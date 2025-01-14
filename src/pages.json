@@ -26,7 +26,7 @@
       {
         "iconPath": "static/tabbar/home.png",
         "selectedIconPath": "static/tabbar/homeHL.png",
-        "pagePath": "pages/index/index",
+        "pagePath": "pages/question/question",
         "text": "首页"
       },
       {
@@ -51,7 +51,7 @@
   },
   "pages": [
     {
-      "path": "pages/index/index",
+      "path": "pages/question/question",
       "type": "home",
       "style": {
         "navigationStyle": "custom",
@@ -70,11 +70,19 @@
       "type": "page"
     },
     {
-      "path": "pages/addQuestion/index",
+      "path": "pages/question/add-question",
       "type": "page",
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "增加面试题目"
+      }
+    },
+    {
+      "path": "pages/question/edit-question",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "编辑面试题目"
       }
     },
     {
