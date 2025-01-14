@@ -107,7 +107,7 @@
     </view>
     <view class="flex w-full justify-center items-center fixed bottom-15" @click="chatStream()">
       <view class="w-95% h-12 bg-blue-5 flex justify-center items-center text-white rounded">
-        确认
+        测试生成面试题
       </view>
     </view>
   </view>
@@ -168,7 +168,7 @@ const query = {
   workLife: '1-3年',
   miniWage: '5000',
   maxWage: '8000',
-  jobDescription: '负责电商平台后端业务开发，要求熟悉高并发、微服务架构。',
+  jobDescription: '负责电商平台前端业务开发，要求熟悉高并发、微服务架构。',
   interviewTime: '5分钟',
 }
 const chatStream = () => {

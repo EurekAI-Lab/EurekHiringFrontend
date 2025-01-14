@@ -16,6 +16,7 @@
         @click="handleClickLeft"
       ></view>
       <view class="absolute left-2/5 text-white">自定义题目</view>
+      <view class="absolute left-4/5" @click="saveQuestion()">确定</view>
     </view>
     <view>
       <image :src="aibg02" class="w-full h-50"></image>
@@ -36,20 +37,90 @@
           class="absolute bottom-3 right-10 text-xs bg-#50a5ff w-23 h-8 rounded flex justify-center items-center"
         >
           <image :src="iconFj" class="w-3 h-3"></image>
-          <view class="text-white pl-2 text-[14px]">智能识别</view>
+          <view class="text-white pl-2 text-[14px]" @click="getQuestion">智能识别</view>
         </view>
       </view>
+    </view>
+    <view class="flex justify-center items-center">
+      <wd-overlay :show="loding">
+        <view class="wrapper flex flex-col text-white">
+          <wd-loading type="outline" />
+          <view>Ai正在返回面试推荐题目</view>
+          <view>请稍等</view>
+        </view>
+      </wd-overlay>
+    </view>
+    <view class="pl-4 absolute top-80" v-if="show">
+      <Aizdsc v-model:value1="value1" v-model:value2="value2" v-model:value3="value3"></Aizdsc>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
+import Aizdsc from '@/components/public/aizdsc.vue'
+
 import aibg02 from '../../static/images/ai-bg-02.png'
 import iconFj from '../../static/app/icons/icon_fj.png'
 import { ref } from 'vue'
-
+import { generateOneQuestionAPI } from '@/service/api'
+import { usePublicStore } from '@/store'
+const publicStore = usePublicStore()
+const query = {
+  positionName: '前端工程师',
+  qualification: '本科',
+  companySize: '100-299人',
+  tradeName: '软件工程师',
+  workLife: '1-3年',
+  miniWage: '5000',
+  maxWage: '8000',
+  jobDescription: '负责电商平台后端业务开发，要求熟悉高并发、微服务架构。',
+  interviewTime: '5分钟',
+}
+const loding = ref(false)
+const show = ref(false)
 const value = ref('')
+
+const value1 = ref('')
+const value2 = ref('')
+const value3 = ref('')
+
+const getQuestion = async () => {
+  loding.value = true
+  const res = await generateOneQuestionAPI(query)
+  loding.value = false
+  if (res.code === 200) {
+    show.value = true
+    value1.value = res.data.interviewAspect
+    value2.value = res.data.time
+    value3.value = res.data.question
+  }
+}
+
+const saveQuestion = () => {
+  publicStore.questionState.questions.push({
+    index: publicStore.questionState.questions.length + 1,
+    interview_aspect: value1.value,
+    time: value2.value,
+    question: value3.value,
+  })
+  uni.navigateBack()
+
+}
 function handleClickLeft() {
   uni.navigateBack()
 }
 </script>
+<style>
+.wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.block {
+  width: 120px;
+  height: 120px;
+  background-color: #fff;
+}
+</style>
