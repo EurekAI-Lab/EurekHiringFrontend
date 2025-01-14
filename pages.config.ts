@@ -45,6 +45,7 @@ export default defineUniPages({
         text: '组件集合',
       },
       {
+        
         iconPath: 'static/tabbar/example.png',
         selectedIconPath: 'static/tabbar/exampleHL.png',
         pagePath: 'pages/test/index',

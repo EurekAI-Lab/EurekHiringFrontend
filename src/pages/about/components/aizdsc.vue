@@ -7,25 +7,25 @@
       </view>
       <view class="flex mt-2">
         <wd-col span="4">
-          <image class="w-5 h-5 ml-5 mt-3" :src="iconkhd"></image>
+          <image class="w-6 h-6 ml-5 mt-3" :src="iconkhd"></image>
         </wd-col>
-        <wd-col span="6"><view class="ml-2 mt-3 font-bold">考核点</view></wd-col>
+        <wd-col span="6"><view class="ml-2 mt-3 font-bold text-sm">考核点</view></wd-col>
         <wd-col span="14">
-          <wd-input class="ml-4 mt-2 w-40" v-model="value1" disabled></wd-input>
+          <wd-input class="ml-4 mt-2 w-40" v-model="value1"></wd-input>
         </wd-col>
       </view>
       <view class="flex mt-2">
         <wd-col span="4">
-          <image class="w-5 h-5 ml-5 mt-3" :src="icond"></image>
+          <image class="w-6 h-6 ml-5 mt-3" :src="icond"></image>
         </wd-col>
-        <wd-col span="6"><view class="ml-2 mt-3 font-bold">答题时长</view></wd-col>
+        <wd-col span="6"><view class="ml-2 mt-3 font-bold text-sm">答题时长</view></wd-col>
         <wd-col span="14">
-          <wd-input class="ml-4 mt-2 w-40" v-model="value2" disabled></wd-input>
+          <wd-input class="ml-4 mt-2 w-40" v-model="value2"></wd-input>
         </wd-col>
       </view>
       <view class="flex mt-2">
-        <image class="w-5 h-5 ml-5 mt-3" :src="iconwdt"></image>
-        <view class="ml-7 mt-2 font-bold">问答题</view>
+        <image class="w-6 h-6 ml-5 mt-3" :src="iconwdt"></image>
+        <view class="ml-6 mt-3 font-bold text-sm">问答题</view>
       </view>
       <wd-textarea
         class="ml-7 mt-5 w-65"

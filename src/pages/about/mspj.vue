@@ -117,10 +117,10 @@
           </view>
         </view>
       </view>
-      <aizdsc />
-      <view v-if="showModal" class="video-modal">
-        <wd-video :src="videoUrl" @close="closeModal"></wd-video>
-      </view>
+      <aizdsc class="mt-10" />
+      <aimn class="mt-10" />
+      <xzzw class="my-10" />
+      <xzzw class="my-10" />
     </view>
   </view>
 </template>
@@ -133,6 +133,8 @@ import iconfxpg from '@/static/app/icons/icon-fxpg.png'
 import iconzdsc from '@/static/app/icons/icon_zdsc.png'
 import iconframe from '@/static/app/icons/icon-frame.png'
 import Aizdsc from '@/pages/about/components/aizdsc.vue'
+import Aimn from '@/pages/about/components/aimn.vue'
+import Xzzw from '@/pages/about/components/xzzw.vue'
 
 defineOptions({
   name: 'Home',
@@ -144,13 +146,6 @@ const bgscTime = ref('2022-01-12 11:30')
 const pgjg = ref('无风险')
 const dtsc = ref('2分20秒')
 const showModal = ref(false)
-const videoUrl = 'https://tos.hbwhgtyy.com/video/1785ca641ac6445e92c44f88fc6f3527.mp4'
-const showVideoModal = () => {
-  showModal.value = true
-}
-const closeModal = () => {
-  showModal.value = false
-}
 </script>
 
 <style lang="scss" scoped></style>
