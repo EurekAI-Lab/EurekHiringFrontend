@@ -22,15 +22,15 @@
           <view class="absolute flex flex-col">
             <view class="absolute w-30 top-10 flex flex-row left-3">
               <image class="w-6 h-6" :src="icon001"></image>
-              <view class="pt-0.4 pl-3">{{ ctrlData.positionName }}</view>
+              <view class="pt-0.4 pl-3">{{ publicStore.questionState.positionName }}</view>
             </view>
             <view class="absolute w-30 top-17.5 flex flex-row left-3">
               <image class="w-6 h-6" :src="icon002"></image>
-              <view class="pt-0.4 pl-3">{{ ctrlData.companyType }}</view>
+              <view class="pt-0.4 pl-3">{{ publicStore.questionState.companyType }}</view>
             </view>
             <view class="absolute w-30 top-25 flex flex-row left-3">
               <image class="w-6 h-6" :src="icon003"></image>
-              <view class="pt-0.4 pl-3">{{ ctrlData.companySize }}</view>
+              <view class="pt-0.4 pl-3">{{ publicStore.questionState.companySize }}</view>
             </view>
           </view>
         </view>
@@ -51,12 +51,12 @@
     </view>
     <view
       class="flex flex-row absolute top-82 bg-#e8f2ff w-full h-10"
-      v-if="ctrlData.questions.length > 0"
+      v-if="publicStore.questionState.questions.length > 0"
     >
       <view class="flex flex-row justify-center items-center pl-5">
         <image :src="icoTs" class="w-5 h-5"></image>
         <view class="text-xs text-gray-500 pl-1">
-          当前设置题目下，AI面试总时长：{{ ctrlData.totalTime }}分钟
+          当前设置题目下，AI面试总时长：{{ totalTime }}分钟
         </view>
       </view>
     </view>
@@ -64,7 +64,7 @@
     <view class="pb-20">
       <view
         class="flex flex-row left-4 pb-4 justify-center -mt-2 overscroll-none"
-        v-for="(item, index) in ctrlData.questions"
+        v-for="(item, index) in publicStore.questionState.questions"
         :key="index"
       >
         <view @click.stop="closeOutside">
@@ -113,7 +113,7 @@
   </view>
 
   <view class="flex justify-center items-center">
-    <wd-overlay :show="ctrlData.loding">
+    <wd-overlay :show="publicStore.questionState.loding">
       <view class="wrapper flex flex-col text-white">
         <wd-loading type="outline" />
         <view>Ai正在返回面试推荐题目</view>
@@ -134,30 +134,22 @@ import icon002 from '../../static/app/icons/Frame-002.png'
 import icon003 from '../../static/app/icons/Frame-003.png'
 import icoTs from '../../static/app/icons/icon_ts.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
-const message = useMessage()
+import { usePublicStore } from '@/store'
+const publicStore = usePublicStore()
 
-const ctrlData = reactive({
-  // 岗位名称
-  positionName: '产品经理1',
-  // 企业类型
-  companyType: '民营',
-  // 企业规模
-  companySize: '100-299人',
-  // 题目集合
-  questions: [] as any[],
-  loding: false,
-  totalTime: computed(() => {
-    return ctrlData.questions.reduce((sum, question) => {
-      const time = question.time?.replace('分钟', '').trim() // 去掉“分钟”
-      const timeNum = parseFloat(time)
-      return sum + (isNaN(timeNum) ? 0 : timeNum) // 累加时间
-    }, 0)
-  }),
-})
+const message = useMessage()
 defineOptions({
   name: 'Home',
 })
 
+// 计算总时间
+const totalTime = computed(() => {
+  return publicStore.questionState.questions.reduce((sum, question) => {
+    const time = question.time?.replace('分钟', '').trim() // 去掉"分钟"
+    const timeNum = parseFloat(time)
+    return sum + (isNaN(timeNum) ? 0 : timeNum) // 累加时间
+  }, 0)
+})
 const { closeOutside } = useQueue()
 
 const toast = useToast()
@@ -180,7 +172,7 @@ const query = {
   interviewTime: '5分钟',
 }
 const chatStream = () => {
-  ctrlData.loding = true
+  publicStore.questionState.loding = true
 
   // 创建一个新的 ReadableStream
   const stream = new ReadableStream({
@@ -229,11 +221,11 @@ const chatStream = () => {
     while (true) {
       const { done, value } = await streamReader.read()
       if (done) {
-        ctrlData.loding = false
+        publicStore.questionState.loding = false
         break
       }
       const res = JSON.parse(value)
-      ctrlData.questions.push({
+      publicStore.questionState.questions.push({
         index: ++index.value,
         question: res.question,
         time: res.time,
@@ -253,15 +245,26 @@ function handleAction(item: any) {
       title: '删除确认',
     })
     .then(() => {
-      ctrlData.questions = ctrlData.questions.filter((i: any) => i.index !== item.index)
+      publicStore.questionState.questions = publicStore.questionState.questions.filter(
+        (i: any) => i.index !== item.index,
+      )
     })
     .catch(() => {
       console.log('点击了取消按钮')
     })
 }
 const editQuestion = (item: any) => {
+  const params = {
+    ...item,
+  }
+
+  // 将参数序列化为查询字符串
+  const queryString = Object.keys(params)
+    .map((key) => `${key}=${encodeURIComponent(params[key])}`)
+    .join('&')
+
   uni.navigateTo({
-    url: '/pages/question/edit-question',
+    url: `/pages/question/edit-question?${queryString}`,
   })
 }
 
