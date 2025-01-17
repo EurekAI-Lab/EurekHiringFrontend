@@ -17,6 +17,8 @@ const baseUrl = getEnvBaseUrl()
 const httpInterceptor = {
   // 拦截前触发
   invoke(options: CustomRequestOptions) {
+    console.log('请求拦截器', options)
+
     // 接口请求支持通过 query 参数配置 queryString
     if (options.query) {
       const queryStr = qs.stringify(options.query)

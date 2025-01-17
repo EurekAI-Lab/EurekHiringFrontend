@@ -7,14 +7,14 @@ interface NavigateToOptions {
   url: "/pages/question/question" |
        "/pages/about/about" |
        "/pages/about/mspj" |
+       "/pages/interviews/index" |
        "/pages/question/add-question" |
-       "/pages/question/edit-question" |
-       "/pages/test/index";
+       "/pages/question/edit-question";
 }
 interface RedirectToOptions extends NavigateToOptions {}
 
 interface SwitchTabOptions {
-  url: "/pages/question/question" | "/pages/about/about" | "/pages/about/mspj" | "/pages/test/index"
+  url: "/pages/question/question" | "/pages/about/about" | "/pages/about/mspj" | "/pages/interviews/index"
 }
 
 type ReLaunchOptions = NavigateToOptions | SwitchTabOptions;

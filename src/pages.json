@@ -44,7 +44,7 @@
       {
         "iconPath": "static/tabbar/example.png",
         "selectedIconPath": "static/tabbar/exampleHL.png",
-        "pagePath": "pages/test/index",
+        "pagePath": "pages/interviews/index",
         "text": "视频上传"
       }
     ]
@@ -67,7 +67,19 @@
     },
     {
       "path": "pages/about/mspj",
-      "type": "page"
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "面试报告"
+      }
+    },
+    {
+      "path": "pages/interviews/index",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "测试视频上传"
+      }
     },
     {
       "path": "pages/question/add-question",
@@ -83,14 +95,6 @@
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "编辑面试题目"
-      }
-    },
-    {
-      "path": "pages/test/index",
-      "type": "page",
-      "style": {
-        "navigationStyle": "custom",
-        "navigationBarTitleText": "测试视频上传"
       }
     }
   ],

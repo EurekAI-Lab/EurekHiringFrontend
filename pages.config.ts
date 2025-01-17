@@ -47,7 +47,7 @@ export default defineUniPages({
       {
         iconPath: 'static/tabbar/example.png',
         selectedIconPath: 'static/tabbar/exampleHL.png',
-        pagePath: 'pages/test/index',
+        pagePath: 'pages/interviews/index',
         text: '视频上传',
       },
     ],
