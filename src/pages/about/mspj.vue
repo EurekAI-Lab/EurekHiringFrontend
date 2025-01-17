@@ -117,10 +117,10 @@
           </view>
         </view>
       </view>
-      <aizdsc class="mt-10" />
+      <!-- <aizdsc class="mt-10" />
       <aimn class="mt-10" />
       <xzzw class="my-10" />
-      <xzzw class="my-10" />
+      <xzzw class="my-10" /> -->
     </view>
   </view>
 </template>

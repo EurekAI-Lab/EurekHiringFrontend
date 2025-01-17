@@ -113,7 +113,7 @@
   </view>
 
   <view class="flex justify-center items-center">
-    <wd-overlay :show="publicStore.questionState.loding">
+    <wd-overlay :show="publicStore.questionState.loading">
       <view class="wrapper flex flex-col text-white">
         <wd-loading type="outline" />
         <view>Ai正在返回面试推荐题目</view>
@@ -172,12 +172,13 @@ const query = {
   interviewTime: '5分钟',
 }
 const chatStream = () => {
-  publicStore.questionState.loding = true
+  publicStore.questionState.loading = true
 
   // 创建一个新的 ReadableStream
   const stream = new ReadableStream({
     start(controller) {
       // 使用 fetch 发送 POST 请求
+      // fetch('http://119.45.15.47/api/interview-questions/generateQuestion', {
       fetch('http://127.0.0.1:8000/interview-questions/generateQuestion', {
         method: 'POST',
         headers: {
@@ -221,7 +222,7 @@ const chatStream = () => {
     while (true) {
       const { done, value } = await streamReader.read()
       if (done) {
-        publicStore.questionState.loding = false
+        publicStore.questionState.loading = false
         break
       }
       const res = JSON.parse(value)
