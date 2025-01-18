@@ -166,7 +166,7 @@ onMounted(() => {
   const fetchInterviewInfo = async (interviewId: number) => {
     try {
       const response = await uni.request({
-        url: baseUrl + `/api/interviews/${interviewId}`,
+        url: baseUrl + `/interviews/${interviewId}`,
         method: 'GET',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
       })
@@ -195,7 +195,7 @@ defineOptions({
 const fetchInterviewReport = async (interviewId: number) => {
   try {
     const response = await uni.request({
-      url: baseUrl + `/api/interviews/interview_report/${interviewId}`,
+      url: baseUrl + `/interviews/interview_report/${interviewId}`,
       method: 'GET',
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })

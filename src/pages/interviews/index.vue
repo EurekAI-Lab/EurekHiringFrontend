@@ -229,7 +229,7 @@ onMounted(() => {
 const fetchInterviewInfo = async (interviewId: number) => {
   try {
     const response = await uni.request({
-      url: baseUrl + `/api/interviews/${interviewId}`,
+      url: baseUrl + `/interviews/${interviewId}`,
       method: 'GET',
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })
@@ -306,7 +306,7 @@ const uploadVideo = () => {
 const getQuestion = (interviewId: number) => {
   loading.value = true
   uni.request({
-    url: baseUrl + `/api/interviews/interview_details/${interviewId}`,
+    url: baseUrl + `/interviews/interview_details/${interviewId}`,
     method: 'GET',
     header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     success: (res: any) => {
