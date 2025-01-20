@@ -104,7 +104,6 @@ const saveQuestion = () => {
     question: value3.value,
   })
   uni.navigateBack()
-
 }
 function handleClickLeft() {
   uni.navigateBack()

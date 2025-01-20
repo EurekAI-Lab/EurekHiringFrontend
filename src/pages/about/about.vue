@@ -102,12 +102,18 @@
 
     <!--卡片 -->
 
-    <view v-for="item in 10" :key="item" class="flex flex-row h-68 mx-3 bg-white rounded-xl mb-5">
+    <view
+      v-for="item in interviewResults"
+      :key="item"
+      class="flex flex-row h-68 mx-3 bg-white rounded-xl mb-5"
+    >
       <view class="pt-2">
         <view class="relative">
-          <view class="absolute top-1 text-xl font-normal w-30 h-10 left-3">黄晓明 {{ item }}</view>
+          <view class="absolute top-1 text-xl font-normal w-30 h-10 left-3">
+            {{ item.jobseeker.name }}
+          </view>
           <view class="absolute top-9.5 w-80 text-xs text-#616366 left-3">
-            18岁 | 2年经验 | 大专 | 在职·月内到岗
+            x岁 | x经验 | 大专 | 在职·月内到岗
           </view>
           <!-- 头像 -->
 
@@ -125,15 +131,17 @@
             <image class="w-4 h-4" :src="clock"></image>
           </view>
           <view class="absolute top-15.5 left-9.5 overflow-hidden text-xs">
-            <view class="w-60 h-5">意向：上海·UI设计师·UI设计师·UI设计师</view>
+            <view class="w-60 h-5">
+              意向：{{ item.position.location }}·{{ item.position.title }}
+            </view>
           </view>
 
           <!-- 详细细节 -->
           <view class="absolute top-23 left-3.5 w-50 text-xs text-#989EA8">
-            面试完成时间：2020-20-20 11:45
+            面试完成时间：{{ item.interview_result.created_at }}
           </view>
           <view class="absolute top-29 left-3.5 w-50 text-xs text-#989EA8">
-            面试完成时长：20分15秒
+            面试完成时长：{{ item.interview_result.saved_at }}
           </view>
           <!-- 合格或不合格图片 -->
           <view class="absolute top-20 left-68">
@@ -148,12 +156,12 @@
           <view class="absolute top-43 left-3 flex flex-row">
             <image class="w-6 h-6 rounded-full" src="https://picsum.photos/8/8?random=2"></image>
             <view class="overflow-hidden text-xs absolute w-30 top-1 left-8">
-              王小虎 · 招聘专员
+              招聘者：{{ item.recruiter.id }}
             </view>
 
-            <view class="overflow-hidden flex flex-row text-xs absolute w-30 top-1 left-60">
+            <view class="overflow-hidden flex flex-row text-xs absolute w-30 top-1 left-55">
               <image class="w-5 h-5" :src="jobIcon"></image>
-              <view class="absolute left-6">UI设计师</view>
+              <view class="absolute left-6">{{ item.position.title }}</view>
             </view>
           </view>
           <!-- 按钮 -->
@@ -206,13 +214,132 @@ import hs from '../../static/app/icons/icon_hs.png'
 import bhs from '../../static/app/icons/icon_bhs.png'
 import fchs from '../../static/app/icons/icon_fchs.png'
 import jobIcon from '../../static/app/icons/icon_job.png'
+const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+const interviewResults = ref([]) // 存储面试结果
+// 定义面试结果对象结构
+interface InterviewResult {
+  id: number
+  interview_id: number
+  result: 'PASS' | 'FAIL' | 'PENDING' | 'OTHER' // 面试结果
+  score: number // 分数
+  handle_status: 'PENDING' | 'HANDLED' // 标识结果是否已处理
+  next_step: 'INVITE' | 'DISCARD' | 'NONE' // 下一步处理动作
+  feedback: string
+  created_at: string
+  saved_at: string
+}
+
+// 定义面试对象结构
+interface Interview {
+  jobseeker_id: number | null
+  position_id: number | null
+  recruiter_id: number | null
+}
+
+// 定义岗位对象结构
+interface Position {
+  id: number | null
+  title: string | null
+  description: string | null
+  location: string | null
+  salary_range: string | null
+}
+
+// 定义招聘者对象结构
+interface Recruiter {
+  id: number | null
+  user_id: number | null
+  role: string | null
+}
+
+// 定义求职者对象结构
+interface Jobseeker {
+  id: number | null
+  user_id: number | null
+  name: string | null
+  gender: string | null
+}
+
+// 定义最终的返回结果对象结构
+interface InterviewData {
+  interview_result: InterviewResult
+  interview: Interview
+  position: Position
+  recruiter: Recruiter
+  jobseeker: Jobseeker
+}
+
+// 定义返回结果数组类型
+type InterviewDataArray = InterviewData[]
+// 获取屏幕边界到安全区域距离
+const { safeAreaInsets } = uni.getSystemInfoSync()
 // 大Tab
 const isBigTabOneActive = ref(true)
 // 小Tab
 const isSmallTabOneActive = ref(true)
+const filteredInterviewResults = computed(() => {
+  return interviewResults.value.filter((item) => {
+    const calculatedResult = item.score > 60 ? 'PASS' : 'FAIL'
+    const isPending = item.handle_status === 'PENDING'
 
-// 获取屏幕边界到安全区域距离
-const { safeAreaInsets } = uni.getSystemInfoSync()
+    // 筛选条件
+    if (isBigTabOneActive.value) {
+      // 大 Tab 选中 "待处理"
+      return isSmallTabOneActive.value ? isPending : calculatedResult === 'FAIL'
+    } else {
+      // 大 Tab 选中 "已处理"
+      return isSmallTabOneActive.value ? !isPending : item.next_step === 'DISCARD'
+    }
+  })
+})
+
+// 使用 watch 监听 Tab 状态变化
+watch(
+  [isBigTabOneActive, isSmallTabOneActive],
+  () => {
+    // 在 Tab 状态变化时重新获取面试结果
+    getInterviewList() // 或者在这里可以保留先前获取的数据，根据新的 Tab 状态进行筛选
+  },
+  { immediate: true }, // 立即执行，以便在组件挂载时也能获取数据
+)
+// 组件挂载时获取面试信息
+onMounted(() => {
+  // 先登录
+  if (uni.getStorageSync('token')) {
+    console.log('已登录')
+  } else {
+    // 调用登录接口
+    uni.request({
+      url: baseUrl + '/users/login',
+      method: 'POST',
+      data: {
+        email: 'lpytbd@163.com',
+        password: '123456',
+      },
+      success: (res: any) => {
+        console.log('登录成功')
+        uni.setStorageSync('token', res.data.access_token)
+      },
+    })
+  }
+  getInterviewList()
+})
+// 获取面试结果
+const getInterviewList = () => {
+  uni.request({
+    url: baseUrl + `/interviews/getList/`,
+    method: 'GET',
+    header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+    success: (res: any) => {
+      interviewResults.value = res.data
+      // 更新状态
+    },
+    fail: (err) => {
+      console.error('获取面试结果失败:', err)
+    },
+    complete: () => {},
+  })
+}
 </script>
 
 <style lang="scss" scoped></style>

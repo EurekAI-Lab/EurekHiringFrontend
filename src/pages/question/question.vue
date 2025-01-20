@@ -178,8 +178,8 @@ const chatStream = () => {
   const stream = new ReadableStream({
     start(controller) {
       // 使用 fetch 发送 POST 请求
-      // fetch('http://119.45.15.47/api/interview-questions/generateQuestion', {
-      fetch('http://127.0.0.1:8000/interview-questions/generateQuestion', {
+      fetch('http://119.45.15.47/api/interview-questions/generateQuestion', {
+        // fetch('http://127.0.0.1:8000/interview-questions/generateQuestion', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
