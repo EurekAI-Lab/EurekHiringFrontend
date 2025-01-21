@@ -20,15 +20,15 @@
             <image :src="aibg04" class="w-15 h-15 top-10 left-65"></image>
           </view>
           <view class="absolute flex flex-col">
-            <view class="absolute w-30 top-10 flex flex-row left-3">
+            <view class="absolute w-40 top-10 flex flex-row left-3">
               <image class="w-6 h-6" :src="icon001"></image>
               <view class="pt-0.4 pl-3">{{ publicStore.questionState.positionName }}</view>
             </view>
-            <view class="absolute w-30 top-17.5 flex flex-row left-3">
+            <view class="absolute w-40 top-17.5 flex flex-row left-3">
               <image class="w-6 h-6" :src="icon002"></image>
               <view class="pt-0.4 pl-3">{{ publicStore.questionState.companyType }}</view>
             </view>
-            <view class="absolute w-30 top-25 flex flex-row left-3">
+            <view class="absolute w-40 top-25 flex flex-row left-3">
               <image class="w-6 h-6" :src="icon003"></image>
               <view class="pt-0.4 pl-3">{{ publicStore.questionState.companySize }}</view>
             </view>
@@ -105,9 +105,18 @@
         </view>
       </view>
     </view>
-    <view class="flex w-full justify-center items-center fixed bottom-15" @click="chatStream()">
-      <view class="w-95% h-12 bg-blue-5 flex justify-center items-center text-white rounded">
-        测试生成面试题
+    <view class="flex w-full justify-center items-center fixed bottom-15 gap-3">
+      <view
+        @click="chatStream()"
+        class="w-45% h-12 bg-blue-5 flex justify-center items-center text-white rounded"
+      >
+        再次生成
+      </view>
+      <view
+        @click="saveQusetion()"
+        class="w-45% h-12 bg-blue-5 flex justify-center items-center text-white rounded"
+      >
+        保存
       </view>
     </view>
   </view>
@@ -135,6 +144,9 @@ import icon003 from '../../static/app/icons/Frame-003.png'
 import icoTs from '../../static/app/icons/icon_ts.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { usePublicStore } from '@/store'
+
+const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+
 const publicStore = usePublicStore()
 
 const message = useMessage()
@@ -142,6 +154,72 @@ defineOptions({
   name: 'Home',
 })
 
+onMounted(async () => {
+  // 登录接口
+  uni.request({
+    url: baseUrl + '/users/login',
+    method: 'POST',
+    data: {
+      email: 'lpytbd@163.com',
+      password: '123456',
+    },
+    success: (res: any) => {
+      console.log('登录成功')
+      console.log(res)
+      uni.setStorageSync('token', res.data.access_token)
+    },
+  })
+  getInterviewInfo(parms.enterprisesId, parms.positionsId)
+
+  // interviewId.value = getInfoParams()
+  // if (interviewId.value) {
+  //   fetchInterviewInfo(interviewId.value) // 等待 fetchInterviewInfo 完成
+  // } else {
+  //   console.error('未找到 interviews_id')
+  // }
+})
+// 企业id 岗位id 招聘者id 跳转时携带的参数
+const getInfoParams = () => {
+  const getInfoParams = {
+    enterprisesId: 1,
+    positionsId: 17,
+    enterprisesUserId: 6,
+    testPaperId: 5,
+  }
+  return getInfoParams
+}
+const parms = getInfoParams()
+
+const getInterviewInfo = async (enterprisesId: any, positionsId: any) => {
+  try {
+    const response = await uni.request({
+      url: baseUrl + `/positions/get-positions-info/${enterprisesId}/${positionsId}`,
+      method: 'GET',
+      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+    })
+    if (response.statusCode === 200) {
+      publicStore.questionState.positionName = response.data.position.title
+      publicStore.questionState.companyType = response.data.enterprise.enterprises_type
+      publicStore.questionState.companySize = response.data.enterprise.scale
+
+      query.value.companySize = response.data.enterprise.scale
+      query.value.positionName = response.data.position.title
+      query.value.qualification = response.data.position.qualification
+      query.value.companySize = response.data.enterprise.scale
+      query.value.tradeName = response.data.position.title
+      query.value.workLife = response.data.position.work_life
+      query.value.miniWage = response.data.position.salary_range.split('-')[0]
+      query.value.maxWage = response.data.position.salary_range.split('-')[1]
+      query.value.jobDescription = response.data.position.description
+      query.value.interviewTime = '五分钟'
+      chatStream()
+    } else {
+      alert('获取面试信息失败')
+    }
+  } catch (error) {
+    console.error('请求失败:', error)
+  }
+}
 // 计算总时间
 const totalTime = computed(() => {
   return publicStore.questionState.questions.reduce((sum, question) => {
@@ -160,17 +238,18 @@ function handleAddQuestion() {
   })
 }
 
-const query = {
-  positionName: '前端工程师',
-  qualification: '本科',
-  companySize: '100-299人',
-  tradeName: '软件工程师',
-  workLife: '1-3年',
-  miniWage: '5000',
-  maxWage: '8000',
-  jobDescription: '负责电商平台前端业务开发，要求熟悉高并发、微服务架构。',
-  interviewTime: '5分钟',
-}
+const query = ref({
+  positionName: '',
+  qualification: '',
+  companySize: '',
+  tradeName: '',
+  workLife: '',
+  miniWage: '',
+  maxWage: '',
+  jobDescription: '',
+  interviewTime: '',
+  guidePrompt: '',
+})
 const chatStream = () => {
   publicStore.questionState.loading = true
 
@@ -178,13 +257,12 @@ const chatStream = () => {
   const stream = new ReadableStream({
     start(controller) {
       // 使用 fetch 发送 POST 请求
-      fetch('http://119.45.15.47/api/interview-questions/generateQuestion', {
-        // fetch('http://127.0.0.1:8000/interview-questions/generateQuestion', {
+      fetch(baseUrl + '/interview-questions/generateQuestion', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(query), // 携带参数
+        body: JSON.stringify(query.value), // 携带参数
       })
         .then((response) => {
           const reader = response.body.getReader()
@@ -214,11 +292,10 @@ const chatStream = () => {
 
   // 创建一个可读取的流
   const streamReader = stream.getReader()
-  const output = document.getElementById('output') // 假设有一个用于显示输出的元素
 
   // 处理流数据
   const processStream = async () => {
-    const index = ref(0)
+    const index = ref(publicStore.questionState.questions.length)
     while (true) {
       const { done, value } = await streamReader.read()
       if (done) {
@@ -267,6 +344,33 @@ const editQuestion = (item: any) => {
   uni.navigateTo({
     url: `/pages/question/edit-question?${queryString}`,
   })
+}
+const saveQusetion = async () => {
+  message
+    .confirm({
+      msg: '确认要保存面试题吗？',
+      title: '提示',
+    })
+    .then(() => {
+      try {
+        publicStore.questionState.questions.forEach((item: any) => {
+          item.test_paper_id = parms.testPaperId
+          item.interview_time = item.time.replace('分钟', '')
+        })
+        uni.request({
+          url: baseUrl + '/test-papers-questions/questions/batch',
+          method: 'POST',
+          header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+          data: publicStore.questionState.questions,
+        })
+        toast.success('保存面试题成功,返回到APP')
+      } catch (error) {
+        alert('保存面试题接口发生错误' + error)
+      }
+    })
+    .catch((error) => {
+      console.log(error)
+    })
 }
 
 const { safeAreaInsets } = uni.getSystemInfoSync()

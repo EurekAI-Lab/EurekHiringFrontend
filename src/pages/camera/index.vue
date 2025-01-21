@@ -19,7 +19,7 @@
         <view class="flex flex-col gap-y-2">
           <view class="flex flex-row gap-x-3">
             <img :src="icon02" />
-            公司名
+            {{ interviewDetails.position.enterprise_name }}
           </view>
           <view>
             <view class="flex flex-row gap-x-3">
@@ -188,7 +188,7 @@ const fileFrom = reactive({
 const startInterview = () => {
   isTimingShow.value = true
   startRecording()
-  timeLeft.value = 5 // 设置题目时间
+  timeLeft.value = 30 // 设置题目时间
   isTiming.value = true
   isTimeUp.value = false // 重置时间到标志
   startTimer()
@@ -387,7 +387,7 @@ const countdown = ref(0)
 const countdownItmer = ref()
 const startCountdown = () => {
   noticeShow.value = true
-  countdown.value = 8
+  countdown.value = 10
   timer.value = setInterval(() => {
     countdown.value -= 1
     if (countdown.value <= 0) {
@@ -468,7 +468,7 @@ const getInterviewId = () => {
   // 透传方案待定
   // const currentInstance = uni.getCurrentInstance()
   // const interviewId = currentInstance.router?.params.interviews_id
-  return 2
+  return 4
 }
 // 通过 interviews_id 获取面试岗位以及试题信息
 const fetchInterviewInfo = async (interviewId: number) => {

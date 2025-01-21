@@ -75,6 +75,7 @@ const query = {
   maxWage: '8000',
   jobDescription: '负责电商平台后端业务开发，要求熟悉高并发、微服务架构。',
   interviewTime: '5分钟',
+  guidePrompt: '',
 }
 const loding = ref(false)
 const show = ref(false)
@@ -86,6 +87,7 @@ const value3 = ref('')
 
 const getQuestion = async () => {
   loding.value = true
+  query.guidePrompt = value.value
   const res = await generateOneQuestionAPI(query)
   loding.value = false
   if (res.code === 200) {

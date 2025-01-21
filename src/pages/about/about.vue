@@ -7,7 +7,7 @@
 </route>
 
 <template>
-  <view class="w-full bg-#f5f7fb h-auto">
+  <view class="w-full bg-#f5f7fb min-h-[210vw] h-auto">
     <!-- 背景图 -->
     <view class="">
       <image :src="aibg01" class="w-full h-50"></image>
@@ -90,7 +90,7 @@
       >
         <view class="i-carbon-search pl-8 h-5" />
         <view class="-pl-2">
-          <input type="text" placeholder="搜索关键词" />
+          <input type="text" v-model="searchValue" placeholder="搜索关键词" />
         </view>
       </view>
     </view>
@@ -103,7 +103,7 @@
     <!--卡片 -->
 
     <view
-      v-for="item in interviewResults"
+      v-for="item in interviewShowData"
       :key="item"
       class="flex flex-row h-68 mx-3 bg-white rounded-xl mb-5"
     >
@@ -113,7 +113,10 @@
             {{ item.jobseeker.name }}
           </view>
           <view class="absolute top-9.5 w-80 text-xs text-#616366 left-3">
-            x岁 | x经验 | 大专 | 在职·月内到岗
+            {{ item.jobseeker.age }}岁 | {{ item.jobseeker.work_experience_years }} |
+            {{ item.jobseeker.education_level }} | {{ item.jobseeker.currently_employed }}·{{
+              item.jobseeker.availability_time
+            }}
           </view>
           <!-- 头像 -->
 
@@ -141,7 +144,8 @@
             面试完成时间：{{ item.interview_result.created_at }}
           </view>
           <view class="absolute top-29 left-3.5 w-50 text-xs text-#989EA8">
-            面试完成时长：{{ item.interview_result.saved_at }}
+            <!-- {{ item.interview_result.saved_at }} -->
+            面试完成时长：
           </view>
           <!-- 合格或不合格图片 -->
           <view class="absolute top-20 left-68">
@@ -168,6 +172,7 @@
           <view class="absolute top-53 left-2 w-83 h-7 text-xs">
             <view v-if="isBigTabOneActive" class="flex flex-row justify-around">
               <view
+                @click="jump()"
                 class="rounded w-18 h-8 bg-#E2EEFF flex justify-center items-center text-#1778FF"
               >
                 简历详情
@@ -179,17 +184,22 @@
               </view>
               <!--  -->
               <view
+                @click="handleInterviewResult(item.interview_result.id, 'DISCARD')"
                 class="rounded flex justify-center h-8 items-center w-14 bg-#ffe2e2 text-#ea5c5e"
               >
                 弃用
               </view>
-              <view class="rounded flex justify-center h-8 items-center w-18 bg-#1778FF text-white">
+              <view
+                @click="handleInterviewResult(item.interview_result.id, 'INVITE')"
+                class="rounded flex justify-center h-8 items-center w-18 bg-#1778FF text-white"
+              >
                 邀约面试
               </view>
             </view>
 
             <view v-if="!isBigTabOneActive" class="flex flex-row justify-around">
               <view
+                @click="jump()"
                 class="rounded w-40 h-8 bg-#E2EEFF flex justify-center items-center text-#1778FF"
               >
                 简历详情
@@ -204,6 +214,19 @@
         </view>
       </view>
     </view>
+    <view v-if="interviewShowData.length === 0">
+      <wd-status-tip image="search" tip="当前搜索无结果" />
+    </view>
+
+    <view class="flex justify-center items-center">
+      <wd-overlay :show="loading">
+        <view class="wrapper flex flex-col text-white">
+          <wd-loading />
+          <view>正在加载</view>
+        </view>
+      </wd-overlay>
+    </view>
+    <!-- loading -->
   </view>
 </template>
 
@@ -214,8 +237,17 @@ import hs from '../../static/app/icons/icon_hs.png'
 import bhs from '../../static/app/icons/icon_bhs.png'
 import fchs from '../../static/app/icons/icon_fchs.png'
 import jobIcon from '../../static/app/icons/icon_job.png'
+import { useQueue, useToast, useMessage } from 'wot-design-uni'
+
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 const interviewResults = ref([]) // 存储面试结果
+const interviewShowData = ref([])
+const loading = ref(false)
+const searchValue = ref()
+
+const message = useMessage()
+
+const toast = useToast()
 // 定义面试结果对象结构
 interface InterviewResult {
   id: number
@@ -277,52 +309,39 @@ const { safeAreaInsets } = uni.getSystemInfoSync()
 const isBigTabOneActive = ref(true)
 // 小Tab
 const isSmallTabOneActive = ref(true)
-const filteredInterviewResults = computed(() => {
-  return interviewResults.value.filter((item) => {
-    const calculatedResult = item.score > 60 ? 'PASS' : 'FAIL'
-    const isPending = item.handle_status === 'PENDING'
 
-    // 筛选条件
-    if (isBigTabOneActive.value) {
-      // 大 Tab 选中 "待处理"
-      return isSmallTabOneActive.value ? isPending : calculatedResult === 'FAIL'
-    } else {
-      // 大 Tab 选中 "已处理"
-      return isSmallTabOneActive.value ? !isPending : item.next_step === 'DISCARD'
-    }
+// 监视这两个计算属性
+watch([isBigTabOneActive, isSmallTabOneActive], ([newResult1, newResult2]) => {
+  changeShowData()
+})
+watch(searchValue, (newValue, oldValue) => {
+  changeShowData()
+  interviewShowData.value = interviewShowData.value.filter((item) => {
+    return item.jobseeker.name.includes(newValue)
   })
 })
-
-// 使用 watch 监听 Tab 状态变化
-watch(
-  [isBigTabOneActive, isSmallTabOneActive],
-  () => {
-    // 在 Tab 状态变化时重新获取面试结果
-    getInterviewList() // 或者在这里可以保留先前获取的数据，根据新的 Tab 状态进行筛选
-  },
-  { immediate: true }, // 立即执行，以便在组件挂载时也能获取数据
-)
 // 组件挂载时获取面试信息
 onMounted(() => {
+  loading.value = true
   // 先登录
-  if (uni.getStorageSync('token')) {
-    console.log('已登录')
-  } else {
-    // 调用登录接口
-    uni.request({
-      url: baseUrl + '/users/login',
-      method: 'POST',
-      data: {
-        email: 'lpytbd@163.com',
-        password: '123456',
-      },
-      success: (res: any) => {
-        console.log('登录成功')
-        uni.setStorageSync('token', res.data.access_token)
-      },
-    })
-  }
-  getInterviewList()
+  // if (uni.getStorageSync('token')) {
+  //   console.log('已登录')
+  // } else {
+  // 调用登录接口
+  uni.request({
+    url: baseUrl + '/users/login',
+    method: 'POST',
+    data: {
+      email: 'lpytbd@163.com',
+      password: '123456',
+    },
+    success: (res: any) => {
+      console.log('登录成功')
+      uni.setStorageSync('token', res.data.access_token)
+      getInterviewList()
+    },
+  })
+  // }
 })
 // 获取面试结果
 const getInterviewList = () => {
@@ -331,8 +350,10 @@ const getInterviewList = () => {
     method: 'GET',
     header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     success: (res: any) => {
+      loading.value = false
       interviewResults.value = res.data
       // 更新状态
+      changeShowData()
     },
     fail: (err) => {
       console.error('获取面试结果失败:', err)
@@ -340,6 +361,99 @@ const getInterviewList = () => {
     complete: () => {},
   })
 }
+// 邀约面试或弃用
+const handleInterviewResult = (resultId, nextStep) => {
+  // 验证 nextStep
+  if (!['INVITE', 'DISCARD'].includes(nextStep)) {
+    console.error('无效的 next_step:', nextStep)
+    alert('无效的 next_step')
+    return
+  }
+  message
+    .confirm({
+      msg: nextStep === 'DISCARD' ? '确认进行弃用吗，确认后不可恢复' : '确认进行邀约面试吗？',
+      title: '确认',
+    })
+    .then(() => {
+      loading.value = true
+      uni.request({
+        url: baseUrl + '/interview-results/evaluation_with_score/' + resultId + '/finalize',
+        method: 'PATCH',
+        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+        data: {
+          result_id: resultId,
+          next_step: nextStep,
+        },
+        success: (res) => {
+          if (res.statusCode === 200) {
+            toast.success('处理成功')
+          } else {
+            toast.error('处理失败')
+          }
+          getInterviewList()
+        },
+        fail: (err) => {
+          console.error('处理面试结果失败:', err)
+        },
+        complete: () => {
+          loading.value = false
+        },
+      })
+    })
+    .catch(() => {
+      console.log('取消弃用')
+    })
+}
+
+const changeShowData = async () => {
+  // 根据标签页显示数据
+  if (isBigTabOneActive.value) {
+    interviewShowData.value = interviewResults.value.filter((item) => {
+      if (isSmallTabOneActive.value) {
+        return (
+          item.interview_result.handle_status === 'PENDING' &&
+          item.interview_result.result === 'PASS'
+        )
+      } else {
+        return (
+          item.interview_result.handle_status === 'PENDING' &&
+          item.interview_result.result === 'FAIL'
+        )
+      }
+    })
+  } else {
+    interviewShowData.value = interviewResults.value.filter((item) => {
+      if (isSmallTabOneActive.value) {
+        return (
+          item.interview_result.handle_status === 'HANDLED' &&
+          item.interview_result.next_step === 'INVITE'
+        )
+      } else {
+        return (
+          item.interview_result.handle_status === 'HANDLED' &&
+          item.interview_result.next_step === 'DISCARD'
+        )
+      }
+    })
+  }
+}
+// 跳回APP 展示简历
+const jump = () => {
+  toast.warning('跳回APP 展示简历')
+}
 </script>
 
-<style lang="scss" scoped></style>
+<style scoped>
+.wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.block {
+  width: 120px;
+  height: 120px;
+  background-color: #fff;
+}
+</style>
