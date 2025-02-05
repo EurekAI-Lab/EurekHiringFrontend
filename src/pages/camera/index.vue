@@ -102,7 +102,8 @@
         class="w-[60%] bg-green-500 text-white rounded-lg py-2 text-center ml-2"
         @click="nextQuestion()"
       >
-        下一题
+        <view v-if="countdown > 0">跳过休息时间</view>
+        <view v-else>下一题</view>
       </view>
 
       <view
@@ -148,6 +149,8 @@ interface Position {
 interface Question {
   id: number
   question: string
+  interview_aspect: string
+  interview_time: number
 }
 
 interface InterviewDetailsResponse {
@@ -194,7 +197,7 @@ const fileFrom = reactive({
 const startInterview = () => {
   isTimingShow.value = true
   startRecording()
-  timeLeft.value = 30 // 设置题目时间
+  timeLeft.value = interviewDetails.value.questions[currentQuestionIndex.value].interview_time * 60 // 设置题目时间
   isTiming.value = true
   isTimeUp.value = false // 重置时间到标志
   startTimer()
@@ -538,7 +541,7 @@ const handleExit = () => {
 }
 
 const overTip = () => {
-  if (overQuestion.value) {
+  if (!overQuestion.value) {
     message
       .confirm({
         msg: '您的面试还未结束，终止面试将影响您的AI视频面试结果，确定要进行终止吗？',
@@ -559,10 +562,10 @@ const overTip = () => {
   position: fixed; /* 使视频固定在屏幕上 */
   top: -2;
   left: 0;
+  z-index: -1; /* 确保视频处于背景层 */
   width: 101vw; /* 覆盖整个视口宽度 */
   height: 100vh; /* 覆盖整个视口高度 */
   object-fit: cover; /* 确保视频按比例填充 */
-  z-index: -1; /* 确保视频处于背景层 */
 }
 .wrapper {
   display: flex;

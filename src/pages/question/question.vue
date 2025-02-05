@@ -35,7 +35,7 @@
           </view>
         </view>
       </view>
-      <view class="flex justify-center items-center -translate-y-65 relative">
+      <view class="flex justify-center items-center -translate-y-64.5 relative">
         <image :src="aibg03" class="w-32 h-9"></image>
         <view class="absolute text-white">面试职位信息</view>
       </view>
@@ -49,26 +49,17 @@
         + 增加面试题目
       </view>
     </view>
-    <!-- <view
-      class="flex flex-row absolute top-82 bg-#e8f2ff w-full h-10"
-      v-if="publicStore.questionState.questions.length > 0"
-    >
-      <view class="flex flex-row justify-center items-center pl-5">
-        <image :src="icoTs" class="w-5 h-5"></image>
-        <view class="text-xs text-gray-500 pl-1">
-          当前设置题目下，AI面试总时长：{{ totalTime }}分钟
-        </view>
-      </view>
-    </view> -->
 
     <view class="flex flex-row absolute top-75 bg-#e8f2ff w-full h-10">
       <view class="flex flex-row justify-center items-center pl-5">
         <image :src="icoTs" class="w-5 h-5"></image>
-        <view class="text-xs text-gray-500 pl-1">当前设置题目下，AI面试总时长：20分钟</view>
+        <view class="text-xs text-gray-500 pl-1">
+          当前设置题目下，AI面试总时长：{{ totalTime > 20 ? totalTime : 20 }}分钟
+        </view>
       </view>
     </view>
     <!-- 题目 -->
-    <view class="pb-50 overflow-y-auto">
+    <view class="pb-48 overflow-y-auto pt-3 -translate-y-10">
       <view
         class="flex flex-row left-4 pb-4 justify-center -mt-2 overscroll-none"
         v-for="(item, index) in publicStore.questionState.questions"
@@ -76,10 +67,10 @@
       >
         <view @click.stop="closeOutside">
           <wd-swipe-action>
-            <view class="h-33 w-86 relative bg-white rounded-xl">
-              <view class="flex flex-row overflow-hidden">
-                <view class="mt-5 w-1.5 h-3 rounded bg-blue-5"></view>
-                <view class="px-2 pt-3 text h-13">
+            <view class="h-auto py-3 w-86 relative bg-white rounded-xl">
+              <view class="flex flex-row">
+                <view class="mt-5 min-w-1.5 min-h-3 h-3 rounded bg-blue-5 -ml-0.2"></view>
+                <view class="px-2 text h-auto py-2 max-w-[97%]">
                   {{ item.question }}
                 </view>
               </view>
@@ -104,8 +95,8 @@
               </view>
             </view>
             <template #right>
-              <view class="action" @click="handleAction(item)">
-                <image class="w-14 h-30" :src="aibg05" />
+              <view class="w-25 flex justify-center items-center" @click="handleAction(item)">
+                <image class="w-full h-screen" :src="aibg05" />
               </view>
             </template>
           </wd-swipe-action>
