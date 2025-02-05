@@ -10,16 +10,16 @@
 <template>
   <view class="w-full bg-#f5f7fb h-auto h-screen relative">
     <!-- 导航栏 -->
-    <view class="absolute top-15 z-1 w-full h-10 flex flex-row">
+    <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-white">
       <view
-        class="i-carbon-chevron-left text-white w-8 h-8 absolute left-5 -top-1"
+        class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1"
         @click="handleClickLeft"
       ></view>
-      <view class="absolute left-2/5 text-white">自定义题目</view>
+      <view class="absolute left-2/5">自定义题目</view>
       <view class="absolute left-4/5" @click="saveQuestion()">确定</view>
     </view>
-    <view>
-      <image :src="aibg02" class="w-full h-50"></image>
+    <view class="bg-#0a78fb w-full h-45">
+      <!-- <image :src="aibg02" class="w-full h-50"></image> -->
     </view>
     <view class="relative">
       <view class="flex justify-center items-center -translate-y-19">
@@ -41,7 +41,8 @@
         </view>
       </view>
     </view>
-    <view class="flex justify-center items-center">
+
+    <!-- <view class="flex justify-center items-center">
       <wd-overlay :show="loding">
         <view class="wrapper flex flex-col text-white">
           <wd-loading type="outline" />
@@ -49,7 +50,15 @@
           <view>请稍等</view>
         </view>
       </wd-overlay>
+    </view> -->
+    <view class="flex justify-center items-center left-[30%] scroll" id="scroll">
+      <view class="wrapper flex flex-col text-black" v-if="loding">
+        <wd-loading />
+        <view>Ai正在返回面试推荐题目</view>
+        <view>请稍等</view>
+      </view>
     </view>
+
     <view class="pl-4 absolute top-80" v-if="show">
       <Aizdsc v-model:value1="value1" v-model:value2="value2" v-model:value3="value3"></Aizdsc>
     </view>

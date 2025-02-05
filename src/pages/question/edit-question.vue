@@ -10,18 +10,18 @@
 <template>
   <view class="w-full bg-#f5f7fb h-auto h-screen relative">
     <!-- 导航栏 -->
-    <view class="absolute top-15 z-1 w-full h-10 flex flex-row">
+    <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-white">
       <view
-        class="i-carbon-chevron-left text-white w-8 h-8 absolute left-5 -top-1"
+        class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1"
         @click="handleClickLeft"
       ></view>
-      <view class="absolute left-43 text-white">编辑</view>
+      <view class="absolute left-43 ">编辑</view>
       <view class="absolute left-78" @click="changeQuestion()">确定</view>
     </view>
-    <view>
-      <image :src="aibg02" class="w-full h-50"></image>
+    <view class="w-full h-50 bg-#0a79fc">
+      <!-- <image :src="aibg02" class=""></image> -->
     </view>
-    <view class="pl-4 absolute top-30">
+    <view class="pl-4.5 absolute top-20">
       <Aizdsc v-model:value1="value1" v-model:value2="value2" v-model:value3="value3"></Aizdsc>
     </view>
   </view>

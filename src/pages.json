@@ -44,14 +44,8 @@
       {
         "iconPath": "static/tabbar/example.png",
         "selectedIconPath": "static/tabbar/exampleHL.png",
-        "pagePath": "pages/interviews/index",
-        "text": "视频上传"
-      },
-      {
-        "iconPath": "static/tabbar/example.png",
-        "selectedIconPath": "static/tabbar/exampleHL.png",
         "pagePath": "pages/camera/index",
-        "text": "测试视频流"
+        "text": "视频面试"
       }
     ]
   },

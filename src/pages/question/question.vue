@@ -8,13 +8,13 @@
 }
 </route>
 <template>
-  <view class="w-full bg-#f5f7fb min-h-[200vw] h-auto relative">
+  <view class="w-full bg-#f5f7fb min-h-[220vw] h-auto relative">
     <!-- 背景图 -->
-    <view>
-      <image :src="aibg02" class="w-full h-50"></image>
+    <view class="h-50 overflow-hidden">
+      <image :src="aibg02" class="w-full h-50 -translate-y-5"></image>
     </view>
     <view class="relative">
-      <view class="flex justify-center items-center -translate-y-19">
+      <view class="flex justify-center items-center -translate-y-25">
         <view class="w-90% rounded-xl h-38 bg-white relative">
           <view class="absolute">
             <image :src="aibg04" class="w-15 h-15 top-10 left-65"></image>
@@ -35,7 +35,7 @@
           </view>
         </view>
       </view>
-      <view class="flex justify-center items-center -translate-y-58.2 relative">
+      <view class="flex justify-center items-center -translate-y-65 relative">
         <image :src="aibg03" class="w-32 h-9"></image>
         <view class="absolute text-white">面试职位信息</view>
       </view>
@@ -43,13 +43,13 @@
     <!-- 内容框 -->
 
     <!-- 下半部分 问答 -->
-    <view class="flex flex-row absolute top-75 left-6">
+    <view class="flex flex-row absolute top-68 left-6">
       <view class="font-bold">问答题</view>
       <view class="absolute left-55 w-30 text-blue-5" @click="handleAddQuestion">
         + 增加面试题目
       </view>
     </view>
-    <view
+    <!-- <view
       class="flex flex-row absolute top-82 bg-#e8f2ff w-full h-10"
       v-if="publicStore.questionState.questions.length > 0"
     >
@@ -59,9 +59,16 @@
           当前设置题目下，AI面试总时长：{{ totalTime }}分钟
         </view>
       </view>
+    </view> -->
+
+    <view class="flex flex-row absolute top-75 bg-#e8f2ff w-full h-10">
+      <view class="flex flex-row justify-center items-center pl-5">
+        <image :src="icoTs" class="w-5 h-5"></image>
+        <view class="text-xs text-gray-500 pl-1">当前设置题目下，AI面试总时长：20分钟</view>
+      </view>
     </view>
     <!-- 题目 -->
-    <view class="pb-20">
+    <view class="pb-50 overflow-y-auto">
       <view
         class="flex flex-row left-4 pb-4 justify-center -mt-2 overscroll-none"
         v-for="(item, index) in publicStore.questionState.questions"
@@ -104,8 +111,18 @@
           </wd-swipe-action>
         </view>
       </view>
+
+      <view class="flex justify-center items-center left-[30%] scroll" id="scroll">
+        <view class="wrapper flex flex-col text-black" v-if="publicStore.questionState.loading">
+          <wd-loading />
+          <view>Ai正在返回面试推荐题目</view>
+          <view>请稍等</view>
+        </view>
+      </view>
     </view>
-    <view class="flex w-full justify-center items-center fixed bottom-15 gap-3">
+    <view class="count_big_box fixed bottom-1" id="count_big_box"></view>
+
+    <view class="flex w-full justify-center items-center fixed bottom-18 gap-3">
       <view
         @click="chatStream()"
         class="w-45% h-12 bg-blue-5 flex justify-center items-center text-white rounded"
@@ -119,16 +136,6 @@
         保存
       </view>
     </view>
-  </view>
-
-  <view class="flex justify-center items-center">
-    <wd-overlay :show="publicStore.questionState.loading">
-      <view class="wrapper flex flex-col text-white">
-        <wd-loading type="outline" />
-        <view>Ai正在返回面试推荐题目</view>
-        <view>请稍等</view>
-      </view>
-    </wd-overlay>
   </view>
 </template>
 
@@ -160,7 +167,7 @@ onMounted(async () => {
     url: baseUrl + '/users/login',
     method: 'POST',
     data: {
-      email: 'lpytbd@163.com',
+      phone: '13154555192',
       password: '123456',
     },
     success: (res: any) => {
@@ -170,13 +177,6 @@ onMounted(async () => {
     },
   })
   getInterviewInfo(parms.enterprisesId, parms.positionsId)
-
-  // interviewId.value = getInfoParams()
-  // if (interviewId.value) {
-  //   fetchInterviewInfo(interviewId.value) // 等待 fetchInterviewInfo 完成
-  // } else {
-  //   console.error('未找到 interviews_id')
-  // }
 })
 // 企业id 岗位id 招聘者id 跳转时携带的参数
 const getInfoParams = () => {
@@ -251,6 +251,10 @@ const query = ref({
   guidePrompt: '',
 })
 const chatStream = () => {
+  uni.pageScrollTo({
+    scrollTop: 2000000,
+    duration: 300, // 滚动动画持续时间，单位 ms
+  })
   publicStore.questionState.loading = true
 
   // 创建一个新的 ReadableStream
@@ -295,6 +299,7 @@ const chatStream = () => {
 
   // 处理流数据
   const processStream = async () => {
+    publicStore.questionState.questions.length = 0
     const index = ref(publicStore.questionState.questions.length)
     while (true) {
       const { done, value } = await streamReader.read()
@@ -309,6 +314,16 @@ const chatStream = () => {
         time: res.time,
         interview_aspect: res.interview_aspect,
       })
+      uni.pageScrollTo({
+        scrollTop: 2000000,
+        duration: 300, // 滚动动画持续时间，单位 ms
+      })
+      // nextTick(() => {
+      //   const questionList = document.querySelector('question-box')
+      //   if (questionList) {
+      //     questionList.scrollTop = questionList.scrollHeight
+      //   }
+      // })
     }
   }
 

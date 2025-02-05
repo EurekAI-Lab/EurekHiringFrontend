@@ -39,7 +39,7 @@
           <view class="ml-5 mt-2 text-xs text-#374151 font-bold">综合评价</view>
         </view>
         <view class="m-3 text-xs mt-5 text-#a1a1aa">
-          这边需要AI给出一段评估得总计话术这边这边需要AI给出一段评估得总计话术这边这边需要AI给出一段评估得总计话术这边
+          回答展现了较强的技术能力和项目经验，与岗位需求高度匹配，逻辑清晰，表达流畅。
         </view>
       </view>
       <view class="bg-#fafafa h-48 w-85 rounded mt-3 shadow-md">
@@ -81,7 +81,7 @@
             </wd-col>
             <wd-col span="12">
               <view class="flex justify-right mr-2">
-                <image class="w-5 h-5 ml-2" :src="iconframe"></image>
+                <image class="w-5 h-5 ml-2" :src="iconframe" @click="showVideoModal"></image>
                 <view class="text-xs ml-2 text-#a1a1aa">答题时长：{{ dtsc }}</view>
               </view>
             </wd-col>
@@ -92,7 +92,7 @@
           </view>
           <view class="ml-4 mt-2">
             <view class="flex mt-4">
-              <view class="text-xs">整体分析：</view>
+              <view class="text-xs w-30">整体分析：</view>
               <view class="text-xs text-#a1a1aa">{{ item.reason }}</view>
             </view>
             <view class="flex mt-2">
@@ -111,6 +111,13 @@
       <aimn class="mt-10" />
       <xzzw class="my-10" />
       <xzzw class="my-10" /> -->
+      <wd-popup v-model="isModalVisible">
+        <video
+          src="https://interview-system-1325886122.cos.ap-nanjing.myqcloud.com/videos/20250121/VIDEO_20250121_055259_774513.mp4?q-sign-algorithm=sha1&q-ak=AKIDHEA5DA5K7kqW3aKbi1kEWodm7S2fAB59Hbj_sDvj12VV1pPIxFkM7OXYrsazcKKO&q-sign-time=1737481473;1737485073&q-key-time=1737481473;1737485073&q-header-list=host&q-url-param-list=&q-signature=4fb99022e5ff8ad6453a259b160070dbb5c452df&x-cos-security-token=Wbz4nCIWyHeaFgpHYe032SPoclHuLUca88136b993635e433a27f2533e6d2805cWQEMw0flM8riZuMmA1_v9duBYHkNh6gtIkvmtX0ZhFgWY8sTwbtZHyxW85Va7eoYEgs3UGhWvCbJoyKiD5tsWykKL6Ny8I5Bh6wCMLopdC4TQNCKsZdSHO0ulJ1erWc72kEalBqiiPFVKtaPMMavNlcoZWUAiaCRi2H0a5J5oYzq3gzffYfiq3pbxbdj-77Q"
+          controls
+          style="width: 380px; height: 214px"
+        ></video>
+      </wd-popup>
     </view>
   </view>
 </template>
@@ -137,6 +144,11 @@ interface InterviewReportItem {
   reason: string
   original_question: string
 }
+const isModalVisible = ref(false)
+const showVideoModal = () => {
+  isModalVisible.value = true
+  console.log(isModalVisible.value)
+}
 // 面试报告数据
 const interviewReport = ref<InterviewReportItem[]>([])
 // 组件挂载时获取面试信息
@@ -145,7 +157,7 @@ onMounted(() => {
     url: baseUrl + '/users/login',
     method: 'POST',
     data: {
-      email: 'lpytbd@163.com',
+      phone: '13154555192',
       password: '123456',
     },
     success: (res: any) => {
@@ -203,7 +215,6 @@ const fetchInterviewReport = async (interviewId: number) => {
     if (response.statusCode === 200) {
       console.log('面试报告初始化结构1111')
       console.log(response.data)
-
       interviewReport.value = response.data
     } else {
       console.error('获取面试报告失败:', response.data)
@@ -220,10 +231,10 @@ const fetchInterviewReport = async (interviewId: number) => {
     })
   }
 }
-const mszw = ref('产品经理')
-const msrName = ref('小明')
-const ztTime = ref('25分20秒')
-const bgscTime = ref('2022-01-12 11:30')
+const mszw = ref('软件开发工程师')
+const msrName = ref('datou')
+const ztTime = ref('17分20秒')
+const bgscTime = ref('2024-01-22 1:45')
 const pgjg = ref('无风险')
 const dtsc = ref('2分20秒')
 const showModal = ref(false)

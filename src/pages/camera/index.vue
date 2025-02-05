@@ -7,7 +7,7 @@
 }
 </route>
 <template>
-  <view class="flex w-full h-100% overflow-hidden relative">
+  <view class="flex w-full h-115% overflow-hidden relative">
     <view>
       <video id="myvideo" class="fullscreen-video" autoplay muted loop></video>
     </view>
@@ -40,7 +40,7 @@
     </view>
     <view class="w-full flex justify-center fixed" v-if="isInterviewStarted">
       <view
-        class="flex flex-row absolute rounded rounded-xl bg-#302920 top-8 h-20 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
+        class="flex flex-row absolute rounded rounded-xl bg-#302920 top-12 h-auto py-3 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
       >
         <view class="flex flex-col gap-y-2 pl-2">
           <view class="flex flex-row gap-x-3">
@@ -58,13 +58,10 @@
         v-if="noticeShow"
       >
         <view class="flex flex-col gap-y-2 px-2 w-full">
-          <wd-notice-bar
-            custom-class="space"
-            :text="`请开始阅读题目，${countdown}秒后系统自动开始录制`"
-            wrapable
-            :scrollable="false"
-            type="info"
-          />
+          <wd-notify type="success" v-model:visible="noticeShow">
+            <wd-icon name="check-outline" size="inherit" color="inherit" />
+            请开始阅读题目，{{ countdown }}秒后系统自动开始录制
+          </wd-notify>
         </view>
       </view>
     </view>
@@ -88,7 +85,7 @@
       <view
         v-else
         class="w-[35%] bg-white text-blue-500 border border-blue-500 rounded-lg py-2 text-center"
-        @click="handleExit()"
+        @click="overTip()"
       >
         终止面试
       </view>
@@ -101,11 +98,19 @@
         开始面试
       </view>
       <view
-        v-else
+        v-if="isInterviewStarted && !overQuestion"
         class="w-[60%] bg-green-500 text-white rounded-lg py-2 text-center ml-2"
         @click="nextQuestion()"
       >
         下一题
+      </view>
+
+      <view
+        v-if="overQuestion"
+        class="w-[60%] bg-green-500 text-white rounded-lg py-2 text-center ml-2"
+        @click="nextQuestion()"
+      >
+        完成面试
       </view>
     </view>
 
@@ -173,6 +178,7 @@ const useFrontCamera = ref(true) // 是否使用前置摄像头
 const isInterviewStarted = ref(false)
 let mediaRecorder = null
 
+const overQuestion = ref(false)
 const timeLeft = ref(0)
 const isTiming = ref(false)
 const isTimingShow = ref(false)
@@ -207,20 +213,18 @@ const stopRecordingAndSave = async () => {
     currentQuestionIndex.value++
     startCountdown()
   } else {
-    currentQuestionIndex.value++
-
-    message
-      .confirm({
-        msg: '您已完成AI视频面试',
-        title: '提示',
-      })
-      .then(() => {
-        // uni.navigateBack()
-        handleExit()
-      })
-      .catch((error) => {
-        console.log(error)
-      })
+    // message
+    //   .confirm({
+    //     msg: '您已完成AI视频面试',
+    //     title: '提示',
+    //   })
+    //   .then(() => {
+    //     // uni.navigateBack()
+    //   })
+    //   .catch((error) => {
+    //     console.log(error)
+    //   })
+    handleExit()
   }
   recordedData.value = []
   if (mediaRecorder) {
@@ -343,13 +347,31 @@ const nextQuestion = async () => {
     noticeShow.value = false
     countdown.value = 0 // 重置倒计时
     startInterview() // 直接进入面试
-    toast.success('已直接进入面试，请开始作答') // 提示用户
+    // 如果当前是最后一题 则把下一题按钮更改为“完成面试”
+    if (currentQuestionIndex.value === interviewDetails.value.questions.length - 1) {
+      overQuestion.value = true
+    }
   } else {
-    // // 如果倒计时为0，说明在回答中，首先保存当前视频
-    clearInterval(timer.value)
-    isTiming.value = false
-    isTimeUp.value = true
-    handleTimeUp()
+    if (currentQuestionIndex.value < interviewDetails.value.questions.length - 1) {
+      message
+        .confirm({
+          msg: '是否跳过当前题目，该操作不可回退',
+          title: '进入下一题',
+        })
+        .then(() => {
+          // // 如果倒计时为0，说明在回答中，首先保存当前视频
+          clearInterval(timer.value)
+          isTiming.value = false
+          isTimeUp.value = true
+          handleTimeUp()
+        })
+        .catch(() => {})
+    } else {
+      clearInterval(timer.value)
+      isTiming.value = false
+      isTimeUp.value = true
+      handleTimeUp()
+    }
   }
 }
 
@@ -440,7 +462,7 @@ onMounted(async () => {
       url: baseUrl + '/users/login',
       method: 'POST',
       data: {
-        email: 'lpytbd@163.com',
+        phone: '13154555192',
         password: '123456',
       },
       success: (res) => {
@@ -461,7 +483,7 @@ onMounted(async () => {
 // 组件卸载时关闭摄像头
 onBeforeUnmount(() => {
   // stopCamera()
-  clearInterval(timer)
+  clearInterval(timer.value)
 })
 // 获取 interviews_id
 const getInterviewId = () => {
@@ -505,8 +527,29 @@ function handleClickLeft() {
 
 // uni.navigateBack()
 const handleExit = () => {
-  toast.warning('退出面试返回App')
-  // uni.navigateBack()
+  message
+    .confirm({
+      msg: '您已完成' + interviewDetails.value.position.title + '岗位的AI面试',
+      title: '提示',
+    })
+    .then(() => {
+      uni.navigateBack()
+    })
+}
+
+const overTip = () => {
+  if (overQuestion.value) {
+    message
+      .confirm({
+        msg: '您的面试还未结束，终止面试将影响您的AI视频面试结果，确定要进行终止吗？',
+        title: '提示',
+      })
+      .then(() => {
+        handleExit()
+      })
+  } else {
+    handleExit()
+  }
 }
 </script>
 
@@ -514,9 +557,9 @@ const handleExit = () => {
 /* 用于确保视频在背景中填充 */
 .fullscreen-video {
   position: fixed; /* 使视频固定在屏幕上 */
-  top: 0;
+  top: -2;
   left: 0;
-  width: 100vw; /* 覆盖整个视口宽度 */
+  width: 101vw; /* 覆盖整个视口宽度 */
   height: 100vh; /* 覆盖整个视口高度 */
   object-fit: cover; /* 确保视频按比例填充 */
   z-index: -1; /* 确保视频处于背景层 */
