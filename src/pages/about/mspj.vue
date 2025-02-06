@@ -204,6 +204,9 @@ onMounted(() => {
 defineOptions({
   name: 'Home',
 })
+// onLoad((option) => {
+//   interviewId = option.interviews_id
+// })
 const fetchInterviewReport = async (interviewId: number) => {
   try {
     const response = await uni.request({

@@ -39,65 +39,70 @@
       </view>
       <!-- 小tab -->
 
-      <view v-if="isBigTabOneActive" class="flex flex-row justify-start h-10 pl-3 pt-2">
-        <view
-          @click="isSmallTabOneActive = true"
-          class="h-8 w-20 rounded-3xl flex justify-center items-center"
-          :class="{
-            'bg-#E2EEFF text-#1778FF': isSmallTabOneActive,
-            'text-#616366 bg-#EEEEEE': !isSmallTabOneActive,
-          }"
-        >
-          合格
-        </view>
-        <view
-          @click="isSmallTabOneActive = false"
-          class="ml-3 h-8 w-20 rounded-3xl flex justify-center items-center"
-          :class="{
-            'text-#616366 bg-#EEEEEE': isSmallTabOneActive,
-            'bg-#E2EEFF text-#1778FF': !isSmallTabOneActive,
-          }"
-        >
-          不合格
-        </view>
-      </view>
+      <wd-sticky :offset-top="-45">
+        <view class="bg-#f5f7fb h-28">
+          <view v-if="isBigTabOneActive" class="flex flex-row justify-start h-10 pl-3 pt-2">
+            <view
+              @click="isSmallTabOneActive = true"
+              class="h-8 w-20 rounded-3xl flex justify-center items-center"
+              :class="{
+                'bg-#E2EEFF text-#1778FF': isSmallTabOneActive,
+                'text-#616366 bg-#EEEEEE': !isSmallTabOneActive,
+              }"
+            >
+              合格
+            </view>
+            <view
+              @click="isSmallTabOneActive = false"
+              class="ml-3 h-8 w-20 rounded-3xl flex justify-center items-center"
+              :class="{
+                'text-#616366 bg-#EEEEEE': isSmallTabOneActive,
+                'bg-#E2EEFF text-#1778FF': !isSmallTabOneActive,
+              }"
+            >
+              不合格
+            </view>
+          </view>
 
-      <view v-if="!isBigTabOneActive" class="flex flex-row justify-start h-10 pl-3 pt-2">
-        <view
-          @click="isSmallTabOneActive = true"
-          class="h-8 w-28 rounded-3xl flex justify-center items-center"
-          :class="{
-            'bg-#E2EEFF text-#1778FF': isSmallTabOneActive,
-            'text-#616366 bg-#EEEEEE': !isSmallTabOneActive,
-          }"
-        >
-          已邀约面试
-        </view>
-        <view
-          @click="isSmallTabOneActive = false"
-          class="ml-3 h-8 w-20 rounded-3xl flex justify-center items-center"
-          :class="{
-            'text-#616366 bg-#EEEEEE': isSmallTabOneActive,
-            'bg-#E2EEFF text-#1778FF': !isSmallTabOneActive,
-          }"
-        >
-          已弃用
-        </view>
-      </view>
+          <view v-if="!isBigTabOneActive" class="flex flex-row justify-start h-10 pl-3 pt-2">
+            <view
+              @click="isSmallTabOneActive = true"
+              class="h-8 w-28 rounded-3xl flex justify-center items-center"
+              :class="{
+                'bg-#E2EEFF text-#1778FF': isSmallTabOneActive,
+                'text-#616366 bg-#EEEEEE': !isSmallTabOneActive,
+              }"
+            >
+              已邀约面试
+            </view>
+            <view
+              @click="isSmallTabOneActive = false"
+              class="ml-3 h-8 w-20 rounded-3xl flex justify-center items-center"
+              :class="{
+                'text-#616366 bg-#EEEEEE': isSmallTabOneActive,
+                'bg-#E2EEFF text-#1778FF': !isSmallTabOneActive,
+              }"
+            >
+              已弃用
+            </view>
+          </view>
 
-      <!-- 搜索框 -->
-      <view class="flex flex-row justify-center h-10 px-3 pt-2">
-        <view
-          class="w-full h-12 bg-white rounded-3xl flex flex-row items-center shadow-#D0D7E5 shadow"
-        >
-          <view class="i-carbon-search pl-8 h-5" />
-          <view class="-pl-2">
-            <input type="text" v-model="searchValue" placeholder="搜索关键词" />
+          <!-- 搜索框 -->
+          <view class="flex flex-row justify-center h-10 px-3 pt-2">
+            <view
+              class="w-full h-12 bg-white rounded-3xl flex flex-row items-center shadow-#D0D7E5 shadow"
+            >
+              <view class="i-carbon-search pl-8 h-5" />
+              <view class="-pl-2 w-75">
+                <input type="text" v-model="searchValue" placeholder="搜索关键词" />
+              </view>
+            </view>
           </view>
         </view>
-      </view>
+      </wd-sticky>
+
       <!-- 今日 -->
-      <view class="flex flex-row h-10 px-3 pt-7">
+      <view class="flex flex-row h-15 px-3">
         <view class="h-4 w-1.2 rounded bg-blue-500"></view>
         <view class="pl-1.8 -translate-y-0.5">今日</view>
       </view>
@@ -151,7 +156,11 @@
             </view>
             <!-- 合格或不合格图片 -->
             <view class="absolute top-20 left-68">
-              <image v-if="isSmallTabOneActive" class="w-15 h-15" :src="hs"></image>
+              <image
+                v-if="item.interview_result.result === 'PASS'"
+                class="w-15 h-15"
+                :src="hs"
+              ></image>
               <image v-else class="w-15 h-15" :src="bhs"></image>
             </view>
 
@@ -181,6 +190,7 @@
                 </view>
                 <view
                   class="rounded flex justify-center bg-#E2EEFF h-8 items-center w-24 text-#1778FF"
+                  @click="jumpInterviewResult(item.interview_result.id)"
                 >
                   AI面试详情
                 </view>
@@ -279,7 +289,6 @@ interface Position {
   location: string | null
   salary_range: string | null
 }
-
 // 定义招聘者对象结构
 interface Recruiter {
   id: number | null
@@ -315,6 +324,7 @@ const isSmallTabOneActive = ref(true)
 
 // 监视这两个计算属性
 watch([isBigTabOneActive, isSmallTabOneActive], ([newResult1, newResult2]) => {
+  scrollToTarget()
   changeShowData()
 })
 watch(searchValue, (newValue, oldValue) => {
@@ -324,19 +334,19 @@ watch(searchValue, (newValue, oldValue) => {
   })
 })
 
-onPageScroll((e) => {
-  console.log(e.scrollTop) // 210
-  // // 获取滚动位置
-  // const scrollTop = uni.getCurrentPages()[uni.getCurrentPages().length - 1].$page.scrollTop
-  // // 根据滚动位置判断是否显示顶部导航栏
-  // if (scrollTop > 0) {
-  //   // 显示顶部导航栏
-  //   uni.setNavigationBarColor({
-  //     frontColor: '#ffffff',
-  //     backgroundColor: '#1778FF',
-  //   })
-  // }
-})
+// onPageScroll((e) => {
+//   console.log(e.scrollTop) // 210
+//   // // 获取滚动位置
+//   // const scrollTop = uni.getCurrentPages()[uni.getCurrentPages().length - 1].$page.scrollTop
+//   // // 根据滚动位置判断是否显示顶部导航栏
+//   // if (scrollTop > 0) {
+//   //   // 显示顶部导航栏
+//   //   uni.setNavigationBarColor({
+//   //     frontColor: '#ffffff',
+//   //     backgroundColor: '#1778FF',
+//   //   })
+//   // }
+// })
 // 组件挂载时获取面试信息
 onMounted(() => {
   loading.value = true
@@ -376,6 +386,11 @@ const getInterviewList = async () => {
       console.error('获取面试结果失败:', err)
     },
     complete: () => {},
+  })
+}
+const jumpInterviewResult = (interviewResultId) => {
+  uni.switchTab({
+    url: `/pages/about/mspj?${interviewResultId}`,
   })
 }
 // 邀约面试或弃用
@@ -421,38 +436,118 @@ const handleInterviewResult = (resultId, nextStep) => {
       console.log('取消弃用')
     })
 }
-
 const changeShowData = async () => {
   // 根据标签页显示数据
   if (isBigTabOneActive.value) {
-    interviewShowData.value = interviewResults.value.filter((item) => {
-      if (isSmallTabOneActive.value) {
+    interviewShowData.value = interviewResults.value
+      .filter((item) => {
+        if (isSmallTabOneActive.value) {
+          return (
+            item.interview_result.handle_status === 'PENDING'
+            // && item.interview_result.result === 'PASS'
+          )
+        } else {
+          return (
+            item.interview_result.handle_status === 'PENDING'
+            //  && item.interview_result.result === 'FAIL'
+          )
+        }
+      })
+      .sort((a, b) => {
+        // 将 result 为 'PASS' 的项排在前面
         return (
-          item.interview_result.handle_status === 'PENDING' &&
-          item.interview_result.result === 'PASS'
+          (b.interview_result.result === 'PASS' ? 1 : 0) -
+          (a.interview_result.result === 'PASS' ? 1 : 0)
         )
-      } else {
-        return (
-          item.interview_result.handle_status === 'PENDING' &&
-          item.interview_result.result === 'FAIL'
-        )
-      }
-    })
+      })
   } else {
-    interviewShowData.value = interviewResults.value.filter((item) => {
-      if (isSmallTabOneActive.value) {
+    interviewShowData.value = interviewResults.value
+      .filter((item) => {
+        if (isSmallTabOneActive.value) {
+          return (
+            item.interview_result.handle_status === 'HANDLED'
+            // && item.interview_result.next_step === 'INVITE'
+          )
+        } else {
+          return (
+            item.interview_result.handle_status === 'HANDLED'
+            //  && item.interview_result.next_step === 'DISCARD'
+          )
+        }
+      })
+      .sort((a, b) => {
+        // 将 next_step 为 'INVITE' 的项排在前面
         return (
-          item.interview_result.handle_status === 'HANDLED' &&
-          item.interview_result.next_step === 'INVITE'
+          (b.interview_result.next_step === 'INVITE' ? 1 : 0) -
+          (a.interview_result.next_step === 'INVITE' ? 1 : 0)
         )
-      } else {
-        return (
-          item.interview_result.handle_status === 'HANDLED' &&
-          item.interview_result.next_step === 'DISCARD'
-        )
-      }
-    })
+      })
   }
+
+  // 为第一个出现的 PASS 和 FAIL 分别赋值
+  let firstPassIdAssigned = false // 标记是否已赋值给第一个 PASS
+  let firstFailIdAssigned = false // 标记是否已赋值给第一个 FAIL
+
+  for (const item of interviewShowData.value) {
+    if (!firstPassIdAssigned && item.interview_result.result === 'PASS') {
+      item.id = 'firstpass' // 赋值
+      firstPassIdAssigned = true // 标记为已赋值
+    }
+
+    if (!firstFailIdAssigned && item.interview_result.result === 'FAIL') {
+      item.id = 'firstfail' // 赋值
+      firstFailIdAssigned = true // 标记为已赋值
+    }
+
+    // 如果两个都已赋值，可以提前退出循环
+    if (firstPassIdAssigned && firstFailIdAssigned) {
+      break
+    }
+  }
+}
+const scrollToTarget = () => {
+  uni.pageScrollTo({
+    selector: '#firstfail',
+    duration: 300, // 滚动动画持续时间，单位 ms
+    fail: (err) => {
+      console.error('滚动失败:', err)
+    },
+  })
+  // const query = uni.createSelectorQuery()
+
+  // if (isSmallTabOneActive.value) {
+  //   query.select('#firstpass').boundingClientRect((rect) => {
+  //     console.log('firstpassrect', rect)
+
+  //     if (rect) {
+  //       // 获取目标元素的顶部位置
+  //       const scrollTop = rect.top + uni.getSystemInfoSync().statusBarHeight
+  //       console.log('scrollTop', scrollTop)
+  //       // 滚动到目标元素
+  //       uni.pageScrollTo({
+  //         scrollTop: scrollTop,
+  //       })
+  //     }
+  //   })
+  // } else {
+  //   uni.pageScrollTo({
+  //     selector: '#firstfail',
+  //     duration: 300, // 滚动动画持续时间，单位 ms
+  //   })
+  //   // query
+  //   //   .select()
+  //   //   .boundingClientRect((rect) => {
+  //   //     console.log('firstfailrect', rect)
+
+  //   //     if (rect) {
+  //   //       // 获取目标元素的顶部位置
+  //   //       const scrollTop = rect.top + uni.getSystemInfoSync().statusBarHeight
+  //   //       console.log('scrollTop', scrollTop)
+  //   //       // 滚动到目标元素
+  //   //     }
+  //   //   })
+  //   //   .exec()
+  // }
 }
 // 跳回APP 展示简历
 const jump = () => {

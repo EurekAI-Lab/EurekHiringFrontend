@@ -41,16 +41,6 @@
         </view>
       </view>
     </view>
-
-    <!-- <view class="flex justify-center items-center">
-      <wd-overlay :show="loding">
-        <view class="wrapper flex flex-col text-white">
-          <wd-loading type="outline" />
-          <view>Ai正在返回面试推荐题目</view>
-          <view>请稍等</view>
-        </view>
-      </wd-overlay>
-    </view> -->
     <view class="flex justify-center items-center left-[30%] scroll" id="scroll">
       <view class="wrapper flex flex-col text-black" v-if="loding">
         <wd-loading />

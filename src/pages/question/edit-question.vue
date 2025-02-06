@@ -15,7 +15,7 @@
         class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1"
         @click="handleClickLeft"
       ></view>
-      <view class="absolute left-43 ">编辑</view>
+      <view class="absolute left-43">编辑</view>
       <view class="absolute left-78" @click="changeQuestion()">确定</view>
     </view>
     <view class="w-full h-50 bg-#0a79fc">

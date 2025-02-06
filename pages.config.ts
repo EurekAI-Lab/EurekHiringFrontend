@@ -44,17 +44,17 @@ export default defineUniPages({
         pagePath: 'pages/about/mspj',
         text: '组件集合',
       },
-      // {
-      //   iconPath: 'static/tabbar/example.png',
-      //   selectedIconPath: 'static/tabbar/exampleHL.png',
-      //   pagePath: 'pages/interviews/index',
-      //   text: '视频上传',
-      // },
       {
         iconPath: 'static/tabbar/example.png',
         selectedIconPath: 'static/tabbar/exampleHL.png',
         pagePath: 'pages/camera/index',
         text: '视频面试',
+      },
+      {
+        iconPath: 'static/tabbar/example.png',
+        selectedIconPath: 'static/tabbar/exampleHL.png',
+        pagePath: 'pages/test/index',
+        text: '测试环境对接',
       },
     ],
   },

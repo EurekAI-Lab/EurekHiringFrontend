@@ -17,12 +17,12 @@
         class="flex flex-row absolute rounded rounded-xl bg-#302920 top-8 h-20 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
       >
         <view class="flex flex-col gap-y-2">
-          <view class="flex flex-row gap-x-3">
+          <view class="flex flex-row gap-x-3 w-70">
             <img :src="icon02" />
             {{ interviewDetails.position.enterprise_name }}
           </view>
           <view>
-            <view class="flex flex-row gap-x-3">
+            <view class="flex flex-row gap-x-3 w-70">
               <img :src="icon01" />
               {{ interviewDetails.position.title }}
             </view>

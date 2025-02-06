@@ -25,6 +25,9 @@ export default defineManifestConfig({
     router: {
       base: VITE_APP_PUBLIC_BASE,
     },
+    // devServer: {
+    //   https: true,
+    // },
   },
   /* 5+App特有相关 */
   'app-plus': {

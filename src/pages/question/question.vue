@@ -95,8 +95,8 @@
               </view>
             </view>
             <template #right>
-              <view class="w-25 flex justify-center items-center" @click="handleAction(item)">
-                <image class="w-full h-screen" :src="aibg05" />
+              <view class="w-20 flex justify-center items-center" @click="handleAction(item)">
+                <image class="w-full h-[35vw]" :src="aibg05" />
               </view>
             </template>
           </wd-swipe-action>

@@ -1,31 +1,53 @@
 <template>
   <view class="relative">
-    <view class="rounded-t-md bg-#fafafa h-100 w-85 mt-3 mb-10 shadow-md">
-      <view class="rounded-t-md bg-gradient-to-r from-cyan-500 to-blue-500 h-10 flex">
-        <image class="w-8 h-8 ml-5 mt-1" :src="icon001"></image>
-        <view class="text-white ml-2 mt-3 font-bold">AI自动生成获取内容</view>
+    <view class="rounded-t-md bg-#ffffff h-100 w-85 mt-3 mb-10 shadow-md">
+      <view
+        class="rounded-t-md bg-gradient-to-r from-cyan-500 to-cyan-300 h-10 flex flex-row items-center"
+      >
+        <image class="w-8 h-8 px-3" :src="icon001"></image>
+        <view class="text-white font-medium">AI自动生成获取内容</view>
       </view>
-      <view class="flex mt-2">
-        <wd-col span="4">
-          <image class="w-6 h-6 ml-5 mt-3" :src="iconkhd"></image>
-        </wd-col>
-        <wd-col span="6"><view class="ml-2 mt-3 font-bold text-sm">考核点</view></wd-col>
-        <wd-col span="14">
-          <wd-input class="ml-4 mt-2 w-40" v-model="localValue1"></wd-input>
-        </wd-col>
+      <view class="flex mt-2 flex-row items-center w-full h-10">
+        <view class="w-1.7/12">
+          <image class="w-5 h-5 pl-4.5 pb-0.5" :src="iconkhd"></image>
+        </view>
+        <view class="w-3/12 font-semibold text-sm">考核点</view>
+        <view class="w-6.5/12 bg-#f9fbfc">
+          <input class="ml-auto h-7.5 rounded text-sm pl-3" v-model="localValue1" />
+        </view>
       </view>
-      <view class="flex mt-2">
-        <wd-col span="4">
-          <image class="w-6 h-6 ml-5 mt-3" :src="icond"></image>
-        </wd-col>
-        <wd-col span="6"><view class="ml-2 mt-3 font-bold text-sm">答题时长</view></wd-col>
-        <wd-col span="14">
-          <wd-input class="ml-4 mt-2 w-40" v-model="localValue2"></wd-input>
-        </wd-col>
+
+      <view class="flex mt-2 flex-row items-center w-full h-10">
+        <view class="w-1.7/12">
+          <image class="w-5 h-5 pl-4.5 pb-0.5" :src="icond"></image>
+        </view>
+        <view class="w-3/12 font-semibold text-sm">答题时长</view>
+        <view class="w-6.5/12">
+          <input class="pl-3 bg-#f9fbfc ml-auto h-7.5 rounded text-sm" v-model="localValue2" />
+        </view>
       </view>
-      <view class="flex mt-2">
-        <image class="w-6 h-6 ml-5 mt-3" :src="iconwdt"></image>
-        <view class="ml-6 mt-3 font-bold text-sm">问答题</view>
+
+      <view class="flex mt-2 flex-row items-center w-full h-10">
+        <view class="w-1.7/12">
+          <image class="w-5 h-5 pl-4.5 pb-0.5" :src="iconwdt"></image>
+        </view>
+        <view class="w-5/12 font-semibold text-sm">问答题（可修改）</view>
+      </view>
+
+      <view class="relative">
+        <view class="flex justify-center items-center">
+          <view class="w-90% rounded-xl h-40 overflow-hidden">
+            <wd-textarea v-model="localValue3" :maxlength="500" />
+          </view>
+          <!-- 自定义字数限制显示 在左下角 -->
+          <view class="absolute bottom-4 left-10 text-xs text-gray-4">
+            {{ localValue3.length }}/500
+          </view>
+        </view>
+      </view>
+      <!-- <view class="flex mt-2">
+        <image class="w-6 h-6 ml-5 mt-3" :src=""></image>
+        <view class="ml-6 mt-3 font-bold text-sm"></view>
       </view>
       <wd-textarea
         class="ml-7 mt-5 w-65"
@@ -34,7 +56,7 @@
         :maxlength="120"
         clearable
         show-word-limit
-      />
+      /> -->
     </view>
   </view>
 </template>
