@@ -13,7 +13,7 @@
       <image :src="aibg01" class="w-full h-50"></image>
     </view>
 
-    <view class="absolute top-50 z-2 w-full">
+    <view class="top-50 z-2 w-full">
       <!-- 大tab -->
       <view class="flex flex-row justify-center h-8">
         <view

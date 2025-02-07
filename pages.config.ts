@@ -54,7 +54,13 @@ export default defineUniPages({
         iconPath: 'static/tabbar/example.png',
         selectedIconPath: 'static/tabbar/exampleHL.png',
         pagePath: 'pages/interviews/record',
-        text: 'AI面试记录',
+        text: '面试记录',
+      },
+      {
+        iconPath: 'static/tabbar/example.png',
+        selectedIconPath: 'static/tabbar/exampleHL.png',
+        pagePath: 'pages/interviews/record-simulate',
+        text: '模拟面试记录',
       },
       {
         iconPath: 'static/tabbar/example.png',
