@@ -50,11 +50,11 @@
       </view>
     </view>
 
-    <view class="flex flex-row absolute top-75 bg-#e8f2ff w-full h-10">
+    <view class="flex flex-row absolute top-75 bg-#e8f2ff w-full h-10" v-if="totalTime > 0">
       <view class="flex flex-row justify-center items-center pl-5">
         <image :src="icoTs" class="w-5 h-5"></image>
         <view class="text-xs text-gray-500 pl-1">
-          当前设置题目下，AI面试总时长：{{ totalTime > 20 ? totalTime : 20 }}分钟
+          当前设置题目下，AI面试总时长：{{ totalTime }}分钟
         </view>
       </view>
     </view>

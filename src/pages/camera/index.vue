@@ -18,12 +18,12 @@
       >
         <view class="flex flex-col gap-y-2">
           <view class="flex flex-row gap-x-3 w-70">
-            <img :src="icon02" />
+            <img :src="icon02" class="w-5" />
             {{ interviewDetails.position.enterprise_name }}
           </view>
           <view>
             <view class="flex flex-row gap-x-3 w-70">
-              <img :src="icon01" />
+              <img :src="icon01" class="w-5" />
               {{ interviewDetails.position.title }}
             </view>
           </view>
