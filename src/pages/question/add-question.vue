@@ -18,8 +18,8 @@
       <view class="absolute left-2/5">自定义题目</view>
       <view class="absolute left-4/5" @click="saveQuestion()">确定</view>
     </view>
-    <view class="bg-#0a78fb w-full h-45">
-      <!-- <image :src="aibg02" class="w-full h-50"></image> -->
+    <view class="w-full h-45">
+      <image :src="aibg08" class="w-full h-50"></image>
     </view>
     <view class="relative">
       <view class="flex justify-center items-center -translate-y-19">
@@ -58,7 +58,7 @@
 <script setup lang="ts">
 import Aizdsc from '@/components/public/aizdsc.vue'
 
-import aibg02 from '../../static/images/ai-bg-02.png'
+import aibg08 from '../../static/images/ai-bg-08.png'
 import iconFj from '../../static/app/icons/icon_fj.png'
 import { ref } from 'vue'
 import { generateOneQuestionAPI } from '@/service/api'

@@ -11,15 +11,12 @@
   <view class="w-full bg-#f5f7fb h-auto h-screen relative">
     <!-- 导航栏 -->
     <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-white">
-      <view
-        class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1"
-        @click="handleClickLeft"
-      ></view>
+      <view class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1" @click="handleClickLeft"></view>
       <view class="absolute left-43">编辑</view>
       <view class="absolute left-78" @click="changeQuestion()">确定</view>
     </view>
     <view class="w-full h-50 bg-#0a79fc">
-      <!-- <image :src="aibg02" class=""></image> -->
+      <image :src="aibg08" class="w-full h-50"></image>
     </view>
     <view class="pl-4.5 absolute top-20">
       <Aizdsc v-model:value1="value1" v-model:value2="value2" v-model:value3="value3"></Aizdsc>
@@ -29,7 +26,7 @@
 
 <script setup lang="ts">
 import Aizdsc from '@/components/public/aizdsc.vue'
-import aibg02 from '../../static/images/ai-bg-02.png'
+import aibg08 from '../../static/images/ai-bg-08.png'
 import iconFj from '../../static/app/icons/icon_fj.png'
 import { ref } from 'vue'
 import { usePublicStore } from '@/store'

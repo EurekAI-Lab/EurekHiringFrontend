@@ -27,25 +27,43 @@
         "iconPath": "static/tabbar/home.png",
         "selectedIconPath": "static/tabbar/homeHL.png",
         "pagePath": "pages/question/question",
-        "text": "首页"
+        "text": "问题生成"
       },
       {
         "iconPath": "static/tabbar/example.png",
         "selectedIconPath": "static/tabbar/exampleHL.png",
         "pagePath": "pages/about/about",
-        "text": "面试待处理列表"
+        "text": "面试待处理"
       },
       {
         "iconPath": "static/tabbar/example.png",
         "selectedIconPath": "static/tabbar/exampleHL.png",
         "pagePath": "pages/about/mspj",
-        "text": "组件集合"
+        "text": "面试详情"
       },
       {
         "iconPath": "static/tabbar/example.png",
         "selectedIconPath": "static/tabbar/exampleHL.png",
         "pagePath": "pages/camera/index",
         "text": "视频面试"
+      },
+      {
+        "iconPath": "static/tabbar/example.png",
+        "selectedIconPath": "static/tabbar/exampleHL.png",
+        "pagePath": "pages/interviews/record",
+        "text": "面试记录"
+      },
+      {
+        "iconPath": "static/tabbar/example.png",
+        "selectedIconPath": "static/tabbar/exampleHL.png",
+        "pagePath": "pages/interviews/record-simulate",
+        "text": "模拟面试记录"
+      },
+      {
+        "iconPath": "static/tabbar/example.png",
+        "selectedIconPath": "static/tabbar/exampleHL.png",
+        "pagePath": "pages/test/index",
+        "text": "测试环境对接"
       }
     ]
   },
@@ -82,11 +100,17 @@
       }
     },
     {
-      "path": "pages/interviews/index",
+      "path": "pages/interviews/record-simulate",
       "type": "page",
       "style": {
-        "navigationStyle": "custom",
-        "navigationBarTitleText": "测试视频上传"
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/interviews/record",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom"
       }
     },
     {
@@ -103,6 +127,14 @@
       "style": {
         "navigationStyle": "custom",
         "navigationBarTitleText": "编辑面试题目"
+      }
+    },
+    {
+      "path": "pages/test/index",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "环境测试页面"
       }
     }
   ],

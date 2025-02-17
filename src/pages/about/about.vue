@@ -9,6 +9,10 @@
 <template>
   <view class="w-full bg-#f5f7fb min-h-[210vw] h-auto relative overflow-y-auto">
     <!-- 背景图 -->
+    <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-white fixed">
+      <view class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1" @click="handleClickLeft"></view>
+      <view class="absolute left-2/5">Ai面试</view>
+    </view>
     <view class="">
       <image :src="aibg01" class="w-full h-50"></image>
     </view>
@@ -16,24 +20,18 @@
     <view class="top-50 z-2 w-full">
       <!-- 大tab -->
       <view class="flex flex-row justify-center h-8">
-        <view
-          @click="isBigTabOneActive = true"
-          class="-translate-y-2 font-bold justify-center rounded-t-lg items-center flex w-1/2"
-          :class="{
+        <view @click="isBigTabOneActive = true"
+          class="-translate-y-2 font-bold justify-center rounded-t-lg items-center flex w-1/2" :class="{
             'h-10 -translate-y-4 !bg-#fefefe': isBigTabOneActive,
             'bg-gradient-to-b from-#a9c4ea to-#f5f7fb': !isBigTabOneActive,
-          }"
-        >
+          }">
           待处理
         </view>
-        <view
-          @click="isBigTabOneActive = false"
-          class="-translate-y-2 font-bold justify-center rounded-t-lg items-center flex w-1/2"
-          :class="{
+        <view @click="isBigTabOneActive = false"
+          class="-translate-y-2 font-bold justify-center rounded-t-lg items-center flex w-1/2" :class="{
             'h-10 -translate-y-4 !bg-#fefefe': !isBigTabOneActive,
             'bg-gradient-to-b from-#a9c4ea to-#f5f7fb': isBigTabOneActive,
-          }"
-        >
+          }">
           已处理
         </view>
       </view>
@@ -42,56 +40,42 @@
       <wd-sticky :offset-top="-45">
         <view class="bg-#f5f7fb h-28">
           <view v-if="isBigTabOneActive" class="flex flex-row justify-start h-10 pl-3 pt-2">
-            <view
-              @click="isSmallTabOneActive = true"
-              class="h-8 w-20 rounded-3xl flex justify-center items-center"
+            <view @click="isSmallTabOneActive = true" class="h-8 w-20 rounded-3xl flex justify-center items-center"
               :class="{
                 'bg-#E2EEFF text-#1778FF': isSmallTabOneActive,
                 'text-#616366 bg-#EEEEEE': !isSmallTabOneActive,
-              }"
-            >
+              }">
               合格
             </view>
-            <view
-              @click="isSmallTabOneActive = false"
-              class="ml-3 h-8 w-20 rounded-3xl flex justify-center items-center"
-              :class="{
+            <view @click="isSmallTabOneActive = false"
+              class="ml-3 h-8 w-20 rounded-3xl flex justify-center items-center" :class="{
                 'text-#616366 bg-#EEEEEE': isSmallTabOneActive,
                 'bg-#E2EEFF text-#1778FF': !isSmallTabOneActive,
-              }"
-            >
+              }">
               不合格
             </view>
           </view>
 
           <view v-if="!isBigTabOneActive" class="flex flex-row justify-start h-10 pl-3 pt-2">
-            <view
-              @click="isSmallTabOneActive = true"
-              class="h-8 w-28 rounded-3xl flex justify-center items-center"
+            <view @click="isSmallTabOneActive = true" class="h-8 w-28 rounded-3xl flex justify-center items-center"
               :class="{
                 'bg-#E2EEFF text-#1778FF': isSmallTabOneActive,
                 'text-#616366 bg-#EEEEEE': !isSmallTabOneActive,
-              }"
-            >
+              }">
               已邀约面试
             </view>
-            <view
-              @click="isSmallTabOneActive = false"
-              class="ml-3 h-8 w-20 rounded-3xl flex justify-center items-center"
-              :class="{
+            <view @click="isSmallTabOneActive = false"
+              class="ml-3 h-8 w-20 rounded-3xl flex justify-center items-center" :class="{
                 'text-#616366 bg-#EEEEEE': isSmallTabOneActive,
                 'bg-#E2EEFF text-#1778FF': !isSmallTabOneActive,
-              }"
-            >
+              }">
               已弃用
             </view>
           </view>
 
           <!-- 搜索框 -->
           <view class="flex flex-row justify-center h-10 px-3 pt-2">
-            <view
-              class="w-full h-12 bg-white rounded-3xl flex flex-row items-center shadow-#D0D7E5 shadow"
-            >
+            <view class="w-full h-12 bg-white rounded-3xl flex flex-row items-center shadow-#D0D7E5 shadow">
               <view class="i-carbon-search pl-8 h-5" />
               <view class="-pl-2 w-75">
                 <input type="text" v-model="searchValue" placeholder="搜索关键词" />
@@ -109,11 +93,8 @@
     </view>
     <view class="absolute top-95 w-full">
       <!--卡片 -->
-      <view
-        v-for="item in interviewShowData"
-        :key="item"
-        class="flex flex-row h-70 mx-3 rounded-xl mb-5 w-[93%] bg-white"
-      >
+      <view v-for="item in interviewShowData" :key="item"
+        class="flex flex-row h-70 mx-3 rounded-xl mb-5 w-[93%] bg-white">
         <view class="pt-2">
           <view class="relative">
             <view class="absolute top-1 text-xl font-normal w-30 h-10 left-3">
@@ -122,17 +103,14 @@
             <view class="absolute top-9.5 w-80 text-xs text-#616366 left-3">
               {{ item.jobseeker.age }}岁 | {{ item.jobseeker.work_experience_years }} |
               {{ item.jobseeker.education_level }} | {{ item.jobseeker.currently_employed }}·{{
-                item.jobseeker.availability_time
+              item.jobseeker.availability_time
               }}
             </view>
             <!-- 头像 -->
 
             <view>
               <view class="absolute text-#616366 left-72 top-2">
-                <image
-                  class="w-12 h-12 rounded-full"
-                  src="https://picsum.photos/15/15?random=1"
-                ></image>
+                <image class="w-12 h-12 rounded-full" src="https://picsum.photos/15/15?random=1"></image>
               </view>
             </view>
 
@@ -156,11 +134,7 @@
             </view>
             <!-- 合格或不合格图片 -->
             <view class="absolute top-20 left-68">
-              <image
-                v-if="item.interview_result.result === 'PASS'"
-                class="w-15 h-15"
-                :src="hs"
-              ></image>
+              <image v-if="item.interview_result.result === 'PASS'" class="w-15 h-15" :src="hs"></image>
               <image v-else class="w-15 h-15" :src="bhs"></image>
             </view>
 
@@ -182,43 +156,29 @@
             <!-- 按钮 -->
             <view class="absolute top-53 left-2 w-83 h-7 text-xs">
               <view v-if="isBigTabOneActive" class="flex flex-row justify-around">
-                <view
-                  @click="jump()"
-                  class="rounded w-18 h-8 bg-#E2EEFF flex justify-center items-center text-#1778FF"
-                >
+                <view @click="jump()" class="rounded w-18 h-8 bg-#E2EEFF flex justify-center items-center text-#1778FF">
                   简历详情
                 </view>
-                <view
-                  class="rounded flex justify-center bg-#E2EEFF h-8 items-center w-24 text-#1778FF"
-                  @click="jumpInterviewResult(item.interview_result.id)"
-                >
+                <view class="rounded flex justify-center bg-#E2EEFF h-8 items-center w-24 text-#1778FF"
+                  @click="jumpInterviewResult(item.interview_result.id)">
                   AI面试详情
                 </view>
                 <!--  -->
-                <view
-                  @click="handleInterviewResult(item.interview_result.id, 'DISCARD')"
-                  class="rounded flex justify-center h-8 items-center w-14 bg-#ffe2e2 text-#ea5c5e"
-                >
+                <view @click="handleInterviewResult(item.interview_result.id, 'DISCARD')"
+                  class="rounded flex justify-center h-8 items-center w-14 bg-#ffe2e2 text-#ea5c5e">
                   弃用
                 </view>
-                <view
-                  @click="handleInterviewResult(item.interview_result.id, 'INVITE')"
-                  class="rounded flex justify-center h-8 items-center w-18 bg-#1778FF text-white"
-                >
+                <view @click="handleInterviewResult(item.interview_result.id, 'INVITE')"
+                  class="rounded flex justify-center h-8 items-center w-18 bg-#1778FF text-white">
                   邀约面试
                 </view>
               </view>
 
               <view v-if="!isBigTabOneActive" class="flex flex-row justify-around">
-                <view
-                  @click="jump()"
-                  class="rounded w-40 h-8 bg-#E2EEFF flex justify-center items-center text-#1778FF"
-                >
+                <view @click="jump()" class="rounded w-40 h-8 bg-#E2EEFF flex justify-center items-center text-#1778FF">
                   简历详情
                 </view>
-                <view
-                  class="rounded flex justify-center bg-#E2EEFF h-8 items-center ml-5 w-40 text-#1778FF"
-                >
+                <view class="rounded flex justify-center bg-#E2EEFF h-8 items-center ml-5 w-40 text-#1778FF">
                   AI面试详情
                 </view>
               </view>
@@ -321,7 +281,9 @@ const { safeAreaInsets } = uni.getSystemInfoSync()
 const isBigTabOneActive = ref(true)
 // 小Tab
 const isSmallTabOneActive = ref(true)
-
+  function handleClickLeft() {
+    uni.navigateBack()
+  }
 // 监视这两个计算属性
 watch([isBigTabOneActive, isSmallTabOneActive], ([newResult1, newResult2]) => {
   scrollToTarget()

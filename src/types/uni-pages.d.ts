@@ -7,14 +7,17 @@ interface NavigateToOptions {
   url: "/pages/question/question" |
        "/pages/about/about" |
        "/pages/about/mspj" |
-       "/pages/interviews/index" |
+       "/pages/camera/index" |
+       "/pages/interviews/record-simulate" |
+       "/pages/interviews/record" |
        "/pages/question/add-question" |
-       "/pages/question/edit-question";
+       "/pages/question/edit-question" |
+       "/pages/test/index";
 }
 interface RedirectToOptions extends NavigateToOptions {}
 
 interface SwitchTabOptions {
-  url: "/pages/question/question" | "/pages/about/about" | "/pages/about/mspj" | "/pages/interviews/index"
+  url: "/pages/question/question" | "/pages/about/about" | "/pages/about/mspj" | "/pages/camera/index" | "/pages/interviews/record" | "/pages/interviews/record-simulate" | "/pages/test/index"
 }
 
 type ReLaunchOptions = NavigateToOptions | SwitchTabOptions;
