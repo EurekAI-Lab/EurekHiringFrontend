@@ -494,14 +494,18 @@
     uni.navigateBack()
   }
 
-  // uni.navigateBack()
   const handleExit = () => {
+    // 面试结束
+    appApi.callback("inviteInterview", {
+      "url": "https://www.baidu.com", "companyName": interviewDetails.value.position.enterprise_name, "jobName": interviewDetails.value.position.title
+    })
     message
       .confirm({
         msg: '您已完成' + interviewDetails.value.position.title + '岗位的AI面试',
         title: '提示',
       })
       .then(() => {
+        appApi.callback("pagerFinish", "")
         uni.navigateBack()
       })
   }

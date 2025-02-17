@@ -195,8 +195,8 @@
     } else {
       alert('未找到 token 参数')
     }
-    if (options.interviewId) {
-      interviewId.value = parseInt(options.interviewId, 10) // 将字符串转换为数字
+    if (options.interview_id) {
+      interviewId.value = parseInt(options.interview_id, 10) // 将字符串转换为数字
     } else {
       alert('未找到 interviewId 参数')
     }
@@ -218,7 +218,6 @@
       })
 
       if (response.statusCode === 200) {
-        console.log('面试报告初始化结构1111')
         console.log(response.data)
         interviewReport.value = response.data
       } else {
