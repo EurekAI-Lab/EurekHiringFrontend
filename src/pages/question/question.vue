@@ -60,8 +60,11 @@
     </view>
     <!-- 题目 -->
     <view class="pb-48 overflow-y-auto pt-3 -translate-y-10">
-      <view class="flex flex-row left-4 pb-4 justify-center -mt-2 overscroll-none"
-        v-for="(item, index) in publicStore.questionState.questions" :key="index">
+      <view
+        class="flex flex-row left-4 pb-4 justify-center -mt-2 overscroll-none"
+        v-for="(item, index) in publicStore.questionState.questions"
+        :key="index"
+      >
         <view @click.stop="closeOutside">
           <wd-swipe-action>
             <view class="h-auto py-3 w-86 relative bg-white rounded-xl">
@@ -111,10 +114,16 @@
     <view class="count_big_box fixed bottom-1" id="count_big_box"></view>
 
     <view class="flex w-full justify-center items-center fixed bottom-18 gap-3">
-      <view @click="chatStream()" class="w-45% h-12 bg-blue-5 flex justify-center items-center text-white rounded">
+      <view
+        @click="chatStream()"
+        class="w-45% h-12 bg-blue-5 flex justify-center items-center text-white rounded"
+      >
         再次生成
       </view>
-      <view @click="saveQusetion()" class="w-45% h-12 bg-blue-5 flex justify-center items-center text-white rounded">
+      <view
+        @click="saveQusetion()"
+        class="w-45% h-12 bg-blue-5 flex justify-center items-center text-white rounded"
+      >
         保存
       </view>
     </view>
@@ -122,271 +131,282 @@
 </template>
 
 <script lang="ts" setup>
-  import aibg02 from '../../static/images/ai-bg-02.png'
-  import aibg03 from '../../static/images/ai-bg-03.png'
-  import aibg04 from '../../static/images/ai-bg-04.png'
-  import aibg05 from '../../static/images/ai-bg-05.png'
+import aibg02 from '../../static/images/ai-bg-02.png'
+import aibg03 from '../../static/images/ai-bg-03.png'
+import aibg04 from '../../static/images/ai-bg-04.png'
+import aibg05 from '../../static/images/ai-bg-05.png'
 
-  import icon001 from '../../static/app/icons/Frame-001.png'
-  import icon002 from '../../static/app/icons/Frame-002.png'
-  import icon003 from '../../static/app/icons/Frame-003.png'
-  import icoTs from '../../static/app/icons/icon_ts.png'
-  import { useQueue, useToast, useMessage } from 'wot-design-uni'
-  import { usePublicStore } from '@/store'
+import icon001 from '../../static/app/icons/Frame-001.png'
+import icon002 from '../../static/app/icons/Frame-002.png'
+import icon003 from '../../static/app/icons/Frame-003.png'
+import icoTs from '../../static/app/icons/icon_ts.png'
+import { useQueue, useToast, useMessage } from 'wot-design-uni'
+import { usePublicStore } from '@/store'
 
-  const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 
-  const publicStore = usePublicStore()
+const publicStore = usePublicStore()
 
-  const message = useMessage()
-  defineOptions({
-    name: 'Home',
-  })
+const message = useMessage()
+defineOptions({
+  name: 'Home',
+})
 
-  onMounted(async () => {
-    getInterviewInfo(positionsId.value)
-  })
-  const positionsId = ref<number | null>(null)
+onMounted(async () => {
+  getInterviewInfo(positionsId.value)
+})
+const positionsId = ref<number | null>(null)
 
-  // const getInfoParams = () => {
-  //   if (!positionsId.value) {
-  //     console.error('positionsId 未定义')
-  //     return { positionsId: null }
-  //   }
-  //   return {
-  //     positionsId: positionsId.value,
-  //   }
-  // }
-  onLoad((options) => {
-
-    if (options.token) {
-      uni.setStorageSync('token', options.token)
+// const getInfoParams = () => {
+//   if (!positionsId.value) {
+//     console.error('positionsId 未定义')
+//     return { positionsId: null }
+//   }
+//   return {
+//     positionsId: positionsId.value,
+//   }
+// }
+onLoad((options) => {
+  if (options.token) {
+    uni.setStorageSync('token', options.token)
+  } else {
+    alert('未找到 token 参数')
+  }
+  if (options.positionsId) {
+    positionsId.value = parseInt(options.positionsId, 10) // 将字符串转换为数字
+  } else {
+    alert('未找到 positionsId 参数')
+  }
+})
+const getInterviewInfo = async (positionsId: any) => {
+  try {
+    const response = await uni.request({
+      url: baseUrl + `/positions/get-positions-info/${positionsId}`,
+      method: 'GET',
+      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+    })
+    if (response.statusCode === 200) {
+      publicStore.questionState.positionName = response.data.position.title
+      publicStore.questionState.companyType = response.data.enterprise.enterprises_type
+      publicStore.questionState.companySize = response.data.enterprise.scale
+      positionId.value = response.data.position.id
+      testPaperId.value = response.data.test_paper.scale || null
+      enterpriseId.value = response.data.enterprise.id
+      query.value.companySize = response.data.enterprise.scale
+      query.value.positionName = response.data.position.title
+      query.value.qualification = response.data.position.qualification
+      query.value.tradeName = response.data.position.title
+      query.value.workLife = response.data.position.work_life
+      query.value.miniWage = response.data.position.salary_range.split('-')[0]
+      query.value.maxWage = response.data.position.salary_range.split('-')[1]
+      query.value.jobDescription = response.data.position.description
+      query.value.interviewTime = '五分钟'
+      chatStream()
     } else {
-      alert('未找到 token 参数')
+      alert('获取面试信息失败')
     }
-    if (options.positionsId) {
-      positionsId.value = parseInt(options.positionsId, 10) // 将字符串转换为数字
-    } else {
-      alert('未找到 positionsId 参数')
+  } catch (error) {
+    console.error('请求失败:', error)
+  }
+}
+// 计算总时间
+const totalTime = computed(() => {
+  return publicStore.questionState.questions.reduce((sum, question) => {
+    const time = question.time?.replace('分钟', '').trim() // 去掉"分钟"
+    const timeNum = parseFloat(time)
+    return sum + (isNaN(timeNum) ? 0 : timeNum) // 累加时间
+  }, 0)
+})
+const { closeOutside } = useQueue()
 
-    }
+const toast = useToast()
+
+function handleAddQuestion() {
+  uni.navigateTo({
+    url: '/pages/question/add-question',
   })
-  const getInterviewInfo = async (positionsId: any) => {
-    try {
-      const response = await uni.request({
-        url: baseUrl + `/positions/get-positions-info/${positionsId}`,
-        method: 'GET',
-        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+}
+
+const query = ref({
+  positionName: '',
+  qualification: '',
+  companySize: '',
+  tradeName: '',
+  workLife: '',
+  miniWage: '',
+  maxWage: '',
+  jobDescription: '',
+  interviewTime: '',
+  guidePrompt: '',
+  testPaperId: '',
+})
+const chatStream = () => {
+  uni.pageScrollTo({
+    scrollTop: 2000000,
+    duration: 300, // 滚动动画持续时间，单位 ms
+  })
+  publicStore.questionState.loading = true
+
+  // 创建一个新的 ReadableStream
+  const stream = new ReadableStream({
+    start(controller) {
+      // 使用 fetch 发送 POST 请求
+      fetch(baseUrl + '/interview-questions/generateQuestion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(query.value), // 携带参数
       })
-      if (response.statusCode === 200) {
-        publicStore.questionState.positionName = response.data.position.title
-        publicStore.questionState.companyType = response.data.enterprise.enterprises_type
-        publicStore.questionState.companySize = response.data.enterprise.scale
+        .then((response) => {
+          const reader = response.body.getReader()
+          const decoder = new TextDecoder('utf-8')
 
-        testPaperId.value = response.data.test_paper.scale || null
-        enterpriseId.value = response.data.enterprise.id
-        query.value.companySize = response.data.enterprise.scale
-        query.value.positionName = response.data.position.title
-        query.value.qualification = response.data.position.qualification
-        query.value.tradeName = response.data.position.title
-        query.value.workLife = response.data.position.work_life
-        query.value.miniWage = response.data.position.salary_range.split('-')[0]
-        query.value.maxWage = response.data.position.salary_range.split('-')[1]
-        query.value.jobDescription = response.data.position.description
-        query.value.interviewTime = '五分钟'
-        chatStream()
-      } else {
-        alert('获取面试信息失败')
+          // 读取流
+          const readStream = () => {
+            reader.read().then(({ done, value }) => {
+              if (done) {
+                controller.close()
+                return
+              }
+              // 解码并推送到可读流
+              controller.enqueue(decoder.decode(value))
+              readStream() // 递归读取
+            })
+          }
+
+          readStream() // 开始读取
+        })
+        .catch((error) => {
+          console.error('Error:', error)
+          controller.error(error)
+        })
+    },
+  })
+
+  // 创建一个可读取的流
+  const streamReader = stream.getReader()
+
+  // 处理流数据
+  const processStream = async () => {
+    publicStore.questionState.questions.length = 0
+    const index = ref(publicStore.questionState.questions.length)
+    while (true) {
+      const { done, value } = await streamReader.read()
+      if (done) {
+        publicStore.questionState.loading = false
+        break
       }
-    } catch (error) {
-      console.error('请求失败:', error)
+      const res = JSON.parse(value)
+      publicStore.questionState.questions.push({
+        index: ++index.value,
+        question: res.question,
+        time: res.time,
+        interview_aspect: res.interview_aspect,
+      })
+      uni.pageScrollTo({
+        scrollTop: 2000000,
+        duration: 300, // 滚动动画持续时间，单位 ms
+      })
+      // nextTick(() => {
+      //   const questionList = document.querySelector('question-box')
+      //   if (questionList) {
+      //     questionList.scrollTop = questionList.scrollHeight
+      //   }
+      // })
     }
   }
-  // 计算总时间
-  const totalTime = computed(() => {
-    return publicStore.questionState.questions.reduce((sum, question) => {
-      const time = question.time?.replace('分钟', '').trim() // 去掉"分钟"
-      const timeNum = parseFloat(time)
-      return sum + (isNaN(timeNum) ? 0 : timeNum) // 累加时间
-    }, 0)
-  })
-  const { closeOutside } = useQueue()
 
-  const toast = useToast()
+  processStream() // 开始处理流
+}
 
-  function handleAddQuestion() {
-    uni.navigateTo({
-      url: '/pages/question/add-question',
+// 删除题目
+function handleAction(item: any) {
+  message
+    .confirm({
+      msg: '试题删除后将不可恢复，确定要进行删除吗？',
+      title: '删除确认',
     })
+    .then(() => {
+      publicStore.questionState.questions = publicStore.questionState.questions.filter(
+        (i: any) => i.index !== item.index,
+      )
+    })
+    .catch(() => {
+      console.log('点击了取消按钮')
+    })
+}
+const editQuestion = (item: any) => {
+  const params = {
+    ...item,
   }
 
-  const query = ref({
-    positionName: '',
-    qualification: '',
-    companySize: '',
-    tradeName: '',
-    workLife: '',
-    miniWage: '',
-    maxWage: '',
-    jobDescription: '',
-    interviewTime: '',
-    guidePrompt: '',
-    testPaperId: ''
-  })
-  const chatStream = () => {
-    uni.pageScrollTo({
-      scrollTop: 2000000,
-      duration: 300, // 滚动动画持续时间，单位 ms
-    })
-    publicStore.questionState.loading = true
+  // 将参数序列化为查询字符串
+  const queryString = Object.keys(params)
+    .map((key) => `${key}=${encodeURIComponent(params[key])}`)
+    .join('&')
 
-    // 创建一个新的 ReadableStream
-    const stream = new ReadableStream({
-      start(controller) {
-        // 使用 fetch 发送 POST 请求
-        fetch(baseUrl + '/interview-questions/generateQuestion', {
+  uni.navigateTo({
+    url: `/pages/question/edit-question?${queryString}`,
+  })
+}
+const testPaperId = ref()
+const enterpriseId = ref()
+const positionId = ref()
+const saveQusetion = async () => {
+  message
+    .confirm({
+      msg: '确认要保存面试题吗？',
+      title: '提示',
+    })
+    .then(() => {
+      try {
+        publicStore.questionState.questions.forEach((item: any) => {
+          item.test_paper_id = testPaperId.value
+          item.interview_time = item.time.replace('分钟', '')
+        })
+        const res = uni.request({
+          url:
+            baseUrl +
+            '/test-papers-questions/questions/batch?positionsId=' +
+            positionId.value +
+            '&enterpriseId=' +
+            enterpriseId.value,
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(query.value), // 携带参数
+          header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+          data: publicStore.questionState.questions,
         })
-          .then((response) => {
-            const reader = response.body.getReader()
-            const decoder = new TextDecoder('utf-8')
-
-            // 读取流
-            const readStream = () => {
-              reader.read().then(({ done, value }) => {
-                if (done) {
-                  controller.close()
-                  return
-                }
-                // 解码并推送到可读流
-                controller.enqueue(decoder.decode(value))
-                readStream() // 递归读取
-              })
-            }
-
-            readStream() // 开始读取
-          })
-          .catch((error) => {
-            console.error('Error:', error)
-            controller.error(error)
-          })
-      },
-    })
-
-    // 创建一个可读取的流
-    const streamReader = stream.getReader()
-
-    // 处理流数据
-    const processStream = async () => {
-      publicStore.questionState.questions.length = 0
-      const index = ref(publicStore.questionState.questions.length)
-      while (true) {
-        const { done, value } = await streamReader.read()
-        if (done) {
-          publicStore.questionState.loading = false
-          break
-        }
-        const res = JSON.parse(value)
-        publicStore.questionState.questions.push({
-          index: ++index.value,
-          question: res.question,
-          time: res.time,
-          interview_aspect: res.interview_aspect,
+        res.then((res) => {
+          console.log(res)
+          if (res.statusCode === 200) {
+            toast.success('保存面试题成功,返回到APP')
+          } else {
+            alert('保存面试题接口发生错误' + res.statusCode)
+          }
         })
-        uni.pageScrollTo({
-          scrollTop: 2000000,
-          duration: 300, // 滚动动画持续时间，单位 ms
-        })
-        // nextTick(() => {
-        //   const questionList = document.querySelector('question-box')
-        //   if (questionList) {
-        //     questionList.scrollTop = questionList.scrollHeight
-        //   }
-        // })
+      } catch (error) {
+        alert('保存面试题接口发生错误' + error)
       }
-    }
-
-    processStream() // 开始处理流
-  }
-
-  // 删除题目
-  function handleAction(item: any) {
-    message
-      .confirm({
-        msg: '试题删除后将不可恢复，确定要进行删除吗？',
-        title: '删除确认',
-      })
-      .then(() => {
-        publicStore.questionState.questions = publicStore.questionState.questions.filter(
-          (i: any) => i.index !== item.index,
-        )
-      })
-      .catch(() => {
-        console.log('点击了取消按钮')
-      })
-  }
-  const editQuestion = (item: any) => {
-    const params = {
-      ...item,
-    }
-
-    // 将参数序列化为查询字符串
-    const queryString = Object.keys(params)
-      .map((key) => `${key}=${encodeURIComponent(params[key])}`)
-      .join('&')
-
-    uni.navigateTo({
-      url: `/pages/question/edit-question?${queryString}`,
     })
-  }
-  const testPaperId = ref()
-  const enterpriseId = ref()
-  const saveQusetion = async () => {
-    message
-      .confirm({
-        msg: '确认要保存面试题吗？',
-        title: '提示',
-      })
-      .then(() => {
-        try {
-          publicStore.questionState.questions.forEach((item: any) => {
-            item.test_paper_id = testPaperId.value
-            item.interview_time = item.time.replace('分钟', '')
-          })
-          uni.request({
-            url: baseUrl + '/test-papers-questions/questions/batch?positionsId=' + positionsId.value + "&enterpriseId=" + enterpriseId.value,
-            method: 'POST',
-            header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-            data: publicStore.questionState.questions,
-          })
-          toast.success('保存面试题成功,返回到APP')
-        } catch (error) {
-          alert('保存面试题接口发生错误' + error)
-        }
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-  }
+    .catch((error) => {
+      console.log(error)
+    })
+}
 
-  const { safeAreaInsets } = uni.getSystemInfoSync()
+const { safeAreaInsets } = uni.getSystemInfoSync()
 </script>
 
 <style>
-  .wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-  }
+.wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
 
-  .block {
-    width: 120px;
-    height: 120px;
-    background-color: #fff;
-  }
+.block {
+  width: 120px;
+  height: 120px;
+  background-color: #fff;
+}
 </style>
