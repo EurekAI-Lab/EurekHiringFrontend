@@ -153,6 +153,8 @@ defineOptions({
 })
 
 onMounted(async () => {
+  console.log(2)
+
   getInterviewInfo(positionsId.value)
 })
 const positionsId = ref<number | null>(null)
@@ -177,6 +179,7 @@ onLoad((options) => {
   } else {
     alert('未找到 positionsId 参数')
   }
+  console.log(1)
 })
 const getInterviewInfo = async (positionsId: any) => {
   try {
@@ -190,7 +193,7 @@ const getInterviewInfo = async (positionsId: any) => {
       publicStore.questionState.companyType = response.data.enterprise.enterprises_type
       publicStore.questionState.companySize = response.data.enterprise.scale
       positionId.value = response.data.position.id
-      testPaperId.value = response.data.test_paper.scale || null
+      testPaperId.value = response.data.test_paper?.scale || null
       enterpriseId.value = response.data.enterprise.id
       query.value.companySize = response.data.enterprise.scale
       query.value.positionName = response.data.position.title
@@ -222,8 +225,32 @@ const { closeOutside } = useQueue()
 const toast = useToast()
 
 function handleAddQuestion() {
+  // query.positionName = options.positionName
+  // query.qualification = options.qualification
+  // query.companySize = options.companySize
+  // query.tradeName = options.tradeName
+  // query.workLife = options.workLife
+  // query.miniWage = options.miniWage
+  // query.maxWage = options.maxWage
+  // query.jobDescription = options.jobDescription
   uni.navigateTo({
-    url: '/pages/question/add-question',
+    url:
+      '/pages/question/add-question?positionName=' +
+      query.value.positionName +
+      '&qualification=' +
+      query.value.qualification +
+      '&companySize=' +
+      query.value.companySize +
+      '&tradeName=' +
+      query.value.tradeName +
+      '&workLife=' +
+      query.value.workLife +
+      '&miniWage=' +
+      query.value.miniWage +
+      '&maxWage=' +
+      query.value.maxWage +
+      '&jobDescription=' +
+      query.value.jobDescription,
   })
 }
 

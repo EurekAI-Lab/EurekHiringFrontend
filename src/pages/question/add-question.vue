@@ -65,17 +65,27 @@ import { generateOneQuestionAPI } from '@/service/api'
 import { usePublicStore } from '@/store'
 const publicStore = usePublicStore()
 const query = {
-  positionName: '前端工程师',
-  qualification: '本科',
-  companySize: '100-299人',
-  tradeName: '软件工程师',
-  workLife: '1-3年',
-  miniWage: '5000',
-  maxWage: '8000',
-  jobDescription: '负责电商平台后端业务开发，要求熟悉高并发、微服务架构。',
+  positionName: '',
+  qualification: '',
+  companySize: '',
+  tradeName: '',
+  workLife: '',
+  miniWage: '',
+  maxWage: '',
+  jobDescription: '',
   interviewTime: '5分钟',
   guidePrompt: '',
 }
+onLoad((options) => {
+  query.positionName = options.positionName
+  query.qualification = options.qualification
+  query.companySize = options.companySize
+  query.tradeName = options.tradeName
+  query.workLife = options.workLife
+  query.miniWage = options.miniWage
+  query.maxWage = options.maxWage
+  query.jobDescription = options.jobDescription
+})
 const loding = ref(false)
 const show = ref(false)
 const value = ref('')
