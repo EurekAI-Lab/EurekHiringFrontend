@@ -209,24 +209,12 @@ const startRecording = async () => {
 
 // 立即停止录制并保存视频
 const stopRecordingAndSave = async () => {
-  console.log(currentQuestionIndex.value)
-  console.log('stopRecordingAndSave')
-
   if (currentQuestionIndex.value < interviewDetails.value.questions.length - 1) {
     currentQuestionIndex.value++
     startCountdown()
   } else {
-    // message
-    //   .confirm({
-    //     msg: '您已完成AI视频面试',
-    //     title: '提示',
-    //   })
-    //   .then(() => {
-    //     // uni.navigateBack()
-    //   })
-    //   .catch((error) => {
-    //     console.log(error)
-    //   })
+    currentQuestionIndex.value++
+
     handleExit()
   }
   recordedData.value = []
@@ -244,7 +232,12 @@ const stopRecordingAndSave = async () => {
 const saveInterview = async () => {
   // try {
   const response = await uni.request({
-    url: baseUrl + '/interviews/submit_interview?interview_id=' + interviewId.value,
+    url:
+      baseUrl +
+      '/interviews/submit_interview?interview_id=' +
+      interviewId.value +
+      '&position_id=' +
+      interviewDetails.value.position.id,
     method: 'POST',
     header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     data: fileFrom.fileUrls,
@@ -314,9 +307,9 @@ const uploadFile = async (opt: any) => {
         question_id: currentQuestionIndex.value,
         video_url: uploadedFileUrl,
       })
-      if (currentQuestionIndex.value === interviewDetails.value.questions.length) {
-        saveInterview()
-      }
+      // if (currentQuestionIndex.value === interviewDetails.value.questions.length) {
+
+      // }
     },
     // eslint-disable-next-line n/handle-callback-err
     error(err) {
@@ -513,25 +506,43 @@ function handleClickLeft() {
   uni.navigateBack()
 }
 
-const handleExit = () => {
+const handleExit = async () => {
   // 面试结束 TODO return url
-  // appApi.callback("Interview_over", JSON.stringify({
-  //   "url": "https://www.baidu.com",
-  //   "companyName": interviewDetails.value.position.enterprise_name,
-  //   "jobName": interviewDetails.value.position.title
-  // }))
-  uni.request({
+  try {
+    appApi.callback(
+      'Interview_over',
+      JSON.stringify({
+        url: 'https://www.baidu.com',
+        companyName: interviewDetails.value.position.enterprise_name,
+        jobName: interviewDetails.value.position.title,
+      }),
+    )
+  } catch (error) {
+    console.log('面试结束app函数报错', error)
+  }
+
+  const res = uni.request({
     url: baseUrl + `/interviews/notify_interview_result/${interviewId.value}`,
-    method: 'GET',
+    method: 'POST',
     header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
   })
+
   message
     .confirm({
       msg: '您已完成' + interviewDetails.value.position.title + '岗位的AI面试',
       title: '提示',
+      beforeConfirm: async ({ resolve }) => {
+        try {
+          appApi.callback('pagerFinish', '')
+        } catch (error) {
+          console.log('返回app函数报错', error)
+        }
+        toast.loading('正在提交中...')
+        await saveInterview()
+        toast.close()
+      },
     })
     .then(() => {
-      // appApi.callback("pagerFinish", "")
       uni.navigateBack()
     })
 }
