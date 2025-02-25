@@ -36,7 +36,12 @@
       </view>
     </wd-sticky>
 
-    <view class="absolute top-70 w-full flex items-center justify-center ">
+    <view
+      class="absolute top-70 w-full flex items-center justify-center"
+      @click="jumpInterviewResult(item.interviews_id)"
+      v-for="item in interviewResults"
+      :key="item"
+    >
       <!--卡片 -->
 
       <view class="w-[92%] rounded-xl bg-white h-47 overflow-hidden flex flex-col">
@@ -48,11 +53,23 @@
           <image :src="rame" class="ml-2.5 mt-2 w-12 h-12 rounded" />
           <view>
             <view class="flex flex-col text-sm">
-              <view class="ml-2.5 mt-2 font-bold">上海天都人力资源集团有限公司</view>
-              <view class="ml-2.5 mt-1 text-gray-500 tracking-wide">民营·500-100人</view>
+              <view class="ml-2.5 mt-2 font-bold">{{ item.enterprise_name }}</view>
+              <view class="ml-2.5 mt-1 text-gray-500 tracking-wide">
+                {{ item.enterprise_scale }}
+              </view>
             </view>
           </view>
-          <image :src="hg" class="w-15 h-15 absolute right-5 mt-1" />
+
+          <image
+            v-if="item.is_qualified === 'PASS'"
+            :src="hg"
+            class="w-15 h-15 absolute right-5 mt-1"
+          />
+          <image
+            v-if="item.is_qualified === 'FAIL'"
+            :src="bhg"
+            class="w-15 h-15 absolute right-5 mt-1"
+          />
         </view>
         <view class="flex justify-center items-center pt-3">
           <view class="w-[94.5%] bg-gray-100 h-0.3 items-center justify-center"></view>
@@ -60,15 +77,15 @@
         <view class="flex flex-col text-sm items-center pt-2">
           <view class="flex flex-row w-[95%]">
             <view class="text-gray">面试职位：</view>
-            <view>产品经理</view>
+            <view>{{ item.position_title }}</view>
           </view>
           <view class="flex flex-row w-[95%] pt-1">
             <view class="text-gray">面试完成时间：</view>
-            <view>2022-01-01 11:30</view>
+            <view>{{ formatCompletionTime(item.completion_time) }}</view>
           </view>
           <view class="flex flex-row w-[95%] pt-1">
             <view class="text-gray">面试完成时长：</view>
-            <view>15分30秒</view>
+            <view></view>
           </view>
         </view>
       </view>
@@ -76,14 +93,14 @@
       <!-- <wd-status-tip image="search" tip="当前搜索无结果" /> -->
     </view>
 
-    <view class="flex justify-center items-center">
+    <!-- <view class="flex justify-center items-center">
       <wd-overlay :show="loading">
         <view class="wrapper flex flex-col text-white">
           <wd-loading />
           <view>正在加载</view>
         </view>
       </wd-overlay>
-    </view>
+    </view> -->
   </view>
 </template>
 
@@ -101,35 +118,55 @@ const interviewShowData = ref([])
 const loading = ref(false)
 const searchValue = ref()
 
-const message = useMessage()
+onLoad((options) => {
+  const storedToken = uni.getStorageSync('token')
 
-const toast = useToast()
-
-// 组件挂载时获取面试信息
+  if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
+    uni.setStorageSync('token', options.token)
+  } else if (storedToken) {
+    uni.setStorageSync('token', storedToken)
+  } else {
+    alert('未找到 token 参数')
+  }
+})
+function formatCompletionTime(isoString) {
+  const date = new Date(isoString)
+  return date.toISOString().replace('T', ' ').substring(0, 19)
+}
 onMounted(() => {
-  // loading.value = true
-  uni.request({
-    url: baseUrl + '/users/login',
-    method: 'POST',
-    data: {
-      phone: '13154555192',
-      password: '123456',
-    },
-    success: (res: any) => {
-      console.log('登录成功')
-      uni.setStorageSync('token', res.data.access_token)
-      // getInterviewList()
-    },
-  })
-  // }
+  getInterviewList()
 })
 function handleClickLeft() {
   uni.navigateBack()
 }
-
+// 获取面试记录
+async function getInterviewList() {
+  try {
+    loading.value = true
+    const token = uni.getStorageSync('token')
+    const response = await uni.request({
+      url: `${baseUrl}/interviews/my_ai_interviews/`,
+      method: 'GET',
+      header: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    if (response.statusCode === 200) {
+      interviewResults.value = response.data.data || []
+    } else {
+      alert('获取面试记录失败，请稍后再试')
+    }
+  } catch (error) {
+    console.error('Error fetching interview list:', error)
+    alert('网络错误，请检查您的连接')
+  } finally {
+    loading.value = false
+  }
+}
 const jumpInterviewResult = (interviewResultId) => {
+  uni.setStorageSync('interviewId', interviewResultId)
   uni.switchTab({
-    url: `/pages/about/mspj?${interviewResultId}`,
+    url: `/pages/about/mspj`,
   })
 }
 </script>

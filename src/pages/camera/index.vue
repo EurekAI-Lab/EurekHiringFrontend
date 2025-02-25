@@ -44,7 +44,11 @@
       >
         <view class="flex flex-col gap-y-2 pl-2">
           <view class="flex flex-row gap-x-3">
-            题目（{{ currentQuestionIndex + 1 }}/{{ interviewDetails.questions.length }}）
+            题目（{{
+              currentQuestionIndex + 1 > interviewDetails.questions.length
+                ? currentQuestionIndex
+                : currentQuestionIndex + 1
+            }}/{{ interviewDetails.questions.length }}）
           </view>
           <view>
             <view class="flex flex-row gap-x-3">
@@ -241,8 +245,11 @@ const saveInterview = async () => {
     method: 'POST',
     header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     data: fileFrom.fileUrls,
+    success: (res) => {
+      alert('面试完成提交成功,返回到APP，返回参数：' + res)
+    },
   })
-  handleClickLeft()
+
   // } catch (error) {
   // alert('面试完成提交接口发生错误' + error)
   // }
@@ -508,11 +515,24 @@ function handleClickLeft() {
 
 const handleExit = async () => {
   // 面试结束 TODO return url
+
+  const res1 = await uni.request({
+    url: baseUrl + `/interviews/redirect-url/`,
+    method: 'GET',
+    header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+    data: {
+      status: 3,
+      interview_id: interviewId.value,
+    },
+  })
+  console.log('res1.data')
+  console.log(res1.data.data.redirect_url)
+
   try {
     appApi.callback(
       'Interview_over',
       JSON.stringify({
-        url: 'https://www.baidu.com',
+        url: res1.data.data.redirect_url,
         companyName: interviewDetails.value.position.enterprise_name,
         jobName: interviewDetails.value.position.title,
       }),
@@ -532,13 +552,13 @@ const handleExit = async () => {
       msg: '您已完成' + interviewDetails.value.position.title + '岗位的AI面试',
       title: '提示',
       beforeConfirm: async ({ resolve }) => {
+        await saveInterview()
         try {
           appApi.callback('pagerFinish', '')
         } catch (error) {
           console.log('返回app函数报错', error)
         }
-        toast.loading('正在提交中...')
-        await saveInterview()
+        // toast.loading('正在提交中...')
         toast.close()
       },
     })

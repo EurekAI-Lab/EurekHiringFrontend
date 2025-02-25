@@ -34,6 +34,8 @@
 
 <script setup lang="ts">
 import iconbhg from '@/static/app/icons/icon_bhg.png'
+import iconhg from '@/static/app/icons/icon_hg.png'
+
 </script>
 
 <style scoped lang="scss"></style>

@@ -153,21 +153,10 @@ defineOptions({
 })
 
 onMounted(async () => {
-  console.log(2)
-
   getInterviewInfo(positionsId.value)
 })
 const positionsId = ref<number | null>(null)
 
-// const getInfoParams = () => {
-//   if (!positionsId.value) {
-//     console.error('positionsId 未定义')
-//     return { positionsId: null }
-//   }
-//   return {
-//     positionsId: positionsId.value,
-//   }
-// }
 onLoad((options) => {
   if (options.token) {
     uni.setStorageSync('token', options.token)
@@ -179,7 +168,6 @@ onLoad((options) => {
   } else {
     alert('未找到 positionsId 参数')
   }
-  console.log(1)
 })
 const getInterviewInfo = async (positionsId: any) => {
   try {
@@ -204,7 +192,18 @@ const getInterviewInfo = async (positionsId: any) => {
       query.value.maxWage = response.data.position.salary_range.split('-')[1]
       query.value.jobDescription = response.data.position.description
       query.value.interviewTime = '五分钟'
-      chatStream()
+      if (response.data.question) {
+        response.data.question.forEach((res: any) => {
+          publicStore.questionState.questions.push({
+            index: res.question_index,
+            question: res.question_text,
+            time: res.interview_time + '分钟',
+            interview_aspect: res.interview_aspect,
+          })
+        })
+      } else {
+        chatStream()
+      }
     } else {
       alert('获取面试信息失败')
     }
@@ -225,14 +224,6 @@ const { closeOutside } = useQueue()
 const toast = useToast()
 
 function handleAddQuestion() {
-  // query.positionName = options.positionName
-  // query.qualification = options.qualification
-  // query.companySize = options.companySize
-  // query.tradeName = options.tradeName
-  // query.workLife = options.workLife
-  // query.miniWage = options.miniWage
-  // query.maxWage = options.maxWage
-  // query.jobDescription = options.jobDescription
   uni.navigateTo({
     url:
       '/pages/question/add-question?positionName=' +
@@ -335,12 +326,6 @@ const chatStream = () => {
         scrollTop: 2000000,
         duration: 300, // 滚动动画持续时间，单位 ms
       })
-      // nextTick(() => {
-      //   const questionList = document.querySelector('question-box')
-      //   if (questionList) {
-      //     questionList.scrollTop = questionList.scrollHeight
-      //   }
-      // })
     }
   }
 
@@ -407,6 +392,11 @@ const saveQusetion = async () => {
           console.log(res)
           if (res.statusCode === 200) {
             toast.success('保存面试题成功,返回到APP')
+            try {
+              appApi.callback('pagerFinish', '')
+            } catch (error) {
+              console.log('返回app函数报错', error)
+            }
           } else {
             alert('保存面试题接口发生错误' + res.statusCode)
           }

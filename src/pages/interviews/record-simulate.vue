@@ -37,7 +37,7 @@
     </wd-sticky>
     <!--  -->
     <view
-      v-for="item in 5"
+      v-for="item in 3"
       :key="item"
       class="relative w-full flex items-center justify-center py-1"
     >
@@ -104,11 +104,11 @@
               <image :src="zfj" class="w-5 h-5" />
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5">
-              <view>操作工</view>
-              <view class="text-gray-400">行业不限·计算机软件·计算机硬件</view>
+              <view>{{ item.title }}</view>
+              <view class="text-gray-400">{{ item.description }}</view>
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
-              <view class="text-#1778ff">5千-1.2万</view>
+              <view class="text-#1778ff">{{ item.salary }}</view>
               <view class="text-gray-400">
                 <image :src="dw" class="w-5 h-5" />
                 上海
@@ -151,60 +151,60 @@ import dw from '../../static/app/icons/icon_dw.png'
 import dh from '../../static/app/icons/icon_dh.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-const interviewResults = ref([]) // 存储面试结果
-const interviewShowData = ref([])
 const loading = ref(false)
 const searchValue = ref()
 const showSheet = ref(false)
-const message = useMessage()
-
-const toast = useToast()
 const close = () => {
   showSheet.value = false
 }
-// 组件挂载时获取面试信息
 onMounted(() => {
-  // loading.value = true
-  uni.request({
-    url: baseUrl + '/users/login',
-    method: 'POST',
-    data: {
-      phone: '13154555192',
-      password: '123456',
-    },
-    success: (res: any) => {
-      console.log('登录成功')
-      uni.setStorageSync('token', res.data.access_token)
-      // getInterviewList()
-    },
-  })
-  // }
+  getPostionInfo()
+})
+
+const getPostionInfo = async () => {
+  try {
+    const response = await uni.request({
+      url: baseUrl + `/jobseekers/by-user/`,
+      method: 'GET',
+      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+    })
+    if (response.statusCode === 200) {
+      console.log('职位')
+      console.log(response.data)
+      response.data?.forEach((element) => {
+        items.value.push({
+          title: element.position_name,
+          description: element.position_name,
+          salary: element.expected_salary_min + '-' + element.expected_salary_max,
+          location: element.expected_city,
+          selected: false,
+        })
+      })
+    } else {
+      console.error('获取职位信息失败:', response.data)
+    }
+  } catch (error) {
+    console.error('请求失败:', error)
+  }
+}
+onLoad((options) => {
+  const storedToken =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNCIsImV4cCI6MTc0MDQxMTc1N30.vzSKU3zltWuHpFYloSK3tKSAYWqMzNR8I3LRr89v32M'
+  // const storedToken = uni.getStorageSync('token')
+
+  if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
+    uni.setStorageSync('token', options.token)
+  } else if (storedToken) {
+    uni.setStorageSync('token', storedToken)
+  } else {
+    alert('未找到 token 参数')
+  }
 })
 function handleClickLeft() {
   uni.navigateBack()
 }
 
-const items = ref([
-  {
-    title: '操作工',
-    description: '行业不限·计算机软件·计算机硬件',
-    salary: '5千-1.2万',
-    location: '上海',
-    icon: 'path/to/icon1.png', // 请替换为适当的图标路径
-    locationIcon: 'path/to/location_icon.png', // 替换为适当的图标路径
-    selected: false,
-  },
-  {
-    title: '工程师',
-    description: '计算机软件·网络安全',
-    salary: '8千-1.5万',
-    location: '北京',
-    icon: 'path/to/icon2.png', // 请替换为适当的图标路径
-    locationIcon: 'path/to/location_icon.png',
-    selected: false,
-  },
-  // 可以添加更多的列表项
-])
+const items = ref([])
 
 const selectItem = (index) => {
   // 清除其他项的选中状态
