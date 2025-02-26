@@ -202,8 +202,8 @@ onLoad((options) => {
   }
   const storedInterviewId = uni.getStorageSync('interviewId')
 
-  if (options.interview_id && !isNaN(options.interview_id)) {
-    interviewId.value = parseInt(options.interview_id, 10)
+  if (options.interviewId && !isNaN(options.interviewId)) {
+    interviewId.value = parseInt(options.interviewId, 10)
   } else if (storedInterviewId) {
     interviewId.value = parseInt(storedInterviewId, 10)
   } else {

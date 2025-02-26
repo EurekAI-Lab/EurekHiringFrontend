@@ -37,7 +37,7 @@
     </wd-sticky>
 
     <view
-      class="absolute top-70 w-full flex items-center justify-center"
+      class="  w-full flex items-center justify-center pb-5"
       @click="jumpInterviewResult(item.interviews_id)"
       v-for="item in interviewResults"
       :key="item"

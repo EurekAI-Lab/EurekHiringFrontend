@@ -225,7 +225,7 @@ const stopRecordingAndSave = async () => {
   if (mediaRecorder) {
     mediaRecorder.onstop = async () => {
       // 将所有 Blob 数据合并为一个 Blob
-      const finalBlob = new Blob(recordedData.value, { type: 'video/mp4' })
+      const finalBlob = new Blob(recordedData.value, { type: 'video/webm' })
       recordedData.value = finalBlob // 存储合并后的 Blob
       await getUploadInfo()
     }
@@ -245,11 +245,8 @@ const saveInterview = async () => {
     method: 'POST',
     header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     data: fileFrom.fileUrls,
-    success: (res) => {
-      alert('面试完成提交成功,返回到APP，返回参数：' + res)
-    },
   })
-
+  handleClickLeft()
   // } catch (error) {
   // alert('面试完成提交接口发生错误' + error)
   // }
@@ -396,7 +393,7 @@ const startCamera = async () => {
     }
     items[0].play()
 
-    mediaRecorder = new MediaRecorder(stream.value, { mimeType: 'video/mp4' })
+    mediaRecorder = new MediaRecorder(stream.value, { mimeType: 'video/webm' })
     mediaRecorder.ondataavailable = (event) => {
       recordedData.value.push(event.data)
     }
@@ -552,13 +549,13 @@ const handleExit = async () => {
       msg: '您已完成' + interviewDetails.value.position.title + '岗位的AI面试',
       title: '提示',
       beforeConfirm: async ({ resolve }) => {
-        await saveInterview()
         try {
           appApi.callback('pagerFinish', '')
         } catch (error) {
           console.log('返回app函数报错', error)
         }
-        // toast.loading('正在提交中...')
+        toast.loading('正在提交中...')
+        await saveInterview()
         toast.close()
       },
     })
