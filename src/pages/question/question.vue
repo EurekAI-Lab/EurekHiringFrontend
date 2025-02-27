@@ -181,7 +181,7 @@ const getInterviewInfo = async (positionsId: any) => {
       publicStore.questionState.companyType = response.data.enterprise.enterprises_type
       publicStore.questionState.companySize = response.data.enterprise.scale
       positionId.value = response.data.position.id
-      testPaperId.value = response.data.question[0]?.test_paper_id || null
+      testPaperId.value = response.data.question?.[0]?.test_paper_id || null
       enterpriseId.value = response.data.enterprise.id
       query.value.companySize = response.data.enterprise.scale
       query.value.positionName = response.data.position.title
@@ -192,7 +192,7 @@ const getInterviewInfo = async (positionsId: any) => {
       query.value.maxWage = response.data.position.salary_range.split('-')[1]
       query.value.jobDescription = response.data.position.description
       query.value.interviewTime = '五分钟'
-      if (response.data.question) {
+      if (response.data.question != null) {
         response.data.question.forEach((res: any) => {
           publicStore.questionState.questions.push({
             index: res.question_index,
