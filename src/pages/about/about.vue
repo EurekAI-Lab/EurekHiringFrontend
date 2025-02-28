@@ -8,13 +8,14 @@
 
 <template>
   <view id="box" class="w-full bg-#f5f7fb min-h-[210vw] h-auto relative overflow-y-auto">
-    <!-- 背景图 -->
-    <view class="top-10 z-1 w-full h-10 flex flex-row text-white fixed">
+    <!-- 背景图 top-10-->
+    <view class="z-2 w-full h-11 flex flex-row text-white fixed nav-bg">
+      <!-- -top-1 -->
       <view
-        class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1"
+        class="i-carbon-chevron-left w-6 h-6 absolute left-5" style="top: 50%;transform: translateY(-50%);"
         @click="handleClickLeft"
       ></view>
-      <view class="absolute left-2/5">Ai面试</view>
+      <view class="absolute left-2/5" style="top: 50%;transform: translateY(-50%);">Ai面试</view>
     </view>
     <view class="">
       <image :src="aibg01" class="w-full h-50"></image>
@@ -122,6 +123,10 @@
     </view>
 
     <!-- top-95 -->
+    <!-- <view class="elative w-full">
+      <view v-for="(item, index) in 30" class="h-14" :id="index == 0 ? 'firstpass':(index == 8 ? 'firstfail' : '')" :class="index>=8?'failResult':''">列表{{ index }}</view>
+    </view> -->
+
     <view class="relative w-full">
       <!--卡片 -->
       <view
@@ -141,7 +146,7 @@
       >
         <view class="pt-2">
           <view class="relative">
-            <view class="absolute top-1 text-xl font-normal w-30 h-10 left-3 ellipsis">
+            <view class="absolute top-1 text-xl font-normal w-80 h-10 left-3 ellipsis">
               {{ item.jobseeker.name }}
             </view>
             <view class="absolute top-9.5 w-80 text-xs text-#616366 left-3">
@@ -184,9 +189,9 @@
               <image
                 v-if="item.interview_result.result === 'PASS'"
                 class="w-15 h-15"
-                :src="hs"
+                :src="hg"
               ></image>
-              <image v-else class="w-15 h-15" :src="bhs"></image>
+              <image v-else class="w-15 h-15" :src="bhg"></image>
             </view>
             <!-- 已邀约/已弃用 -->
             <view class="absolute top-20 left-68" v-if="!isBigTabOneActive">
@@ -281,11 +286,13 @@
 <script lang="ts" setup>
 import aibg01 from '../../static/images/ai-bg-01.png'
 import clock from '../../static/app/icons/clock.png'
-import hs from '../../static/app/icons/icon_hs.png'
-import bhs from '../../static/app/icons/icon_bhs.png'
+// import hs from '../../static/app/icons/icon_hs.png'
+// import bhs from '../../static/app/icons/icon_bhs.png'
+import hg from '../../static/app/icons/icon_hg.png'
+import bhg from '../../static/app/icons/icon_bhg.png'
 import yqy from '../../static/app/icons/icon_yqy.png'
 import yyy from '../../static/app/icons/icon_yyy.png'
-import fchs from '../../static/app/icons/icon_fchs.png'
+// import fchs from '../../static/app/icons/icon_fchs.png'
 import jobIcon from '../../static/app/icons/icon_job.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 
@@ -392,7 +399,7 @@ onMounted(() => {
 const handleScroll = () => {
   const scrollTop =
     window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0
-  if (scrollTop >= offsetTop.value) {
+  if (scrollTop+44 >= offsetTop.value) {
     // 例如，当滚动超过100px时吸顶
     isSticky.value = true
   } else {
@@ -604,7 +611,14 @@ const scrollElement = (atype) => {
     aId = isSmallTabTwoActive.value ? 'firstpass' : 'firstfail'
   }
 
-  document.getElementById(aId).scrollIntoView({ behavior: 'smooth', block: 'center' })
+  // 计算目标位置
+  let targetPosition = document.getElementById(aId).offsetTop - 156; // 距离顶部50px的位置
+  setTimeout(function() { // 使用 setTimeout 来延迟执行，以便浏览器有时间计算元素的 offsetTop
+    window.scrollTo({
+      top: targetPosition,
+      behavior: 'smooth' // 可选，使用平滑滚动
+    });
+  }, 0);
 }
 
 // const scrollToTarget = () => {
@@ -636,6 +650,16 @@ const jump = () => {
   background-color: #fff;
 }
 
+.nav-bg{
+  background: url('../../static/images/ai-bg-01.png') top center;
+  background-size: cover;
+  overflow: hidden;
+}
+
+.header{
+  position: relative;
+}
+
 .ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -643,7 +667,7 @@ const jump = () => {
 
 .sticky-header {
   position: fixed;
-  top: 0;
+  top: 44px;
   z-index: 1000; /* 确保在最上层 */
 }
 </style>

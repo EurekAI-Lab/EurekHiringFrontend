@@ -181,7 +181,10 @@ const getInterviewInfo = async (positionsId: any) => {
       publicStore.questionState.companyType = response.data.enterprise.enterprises_type
       publicStore.questionState.companySize = response.data.enterprise.scale
       positionId.value = response.data.position.id
-      testPaperId.value = response.data.question[0]?.test_paper_id || null
+      testPaperId.value =
+        Array.isArray(response.data.question) && response.data.question.length > 0
+          ? response.data.question[0].test_paper_id
+          : null
       enterpriseId.value = response.data.enterprise.id
       query.value.companySize = response.data.enterprise.scale
       query.value.positionName = response.data.position.title
