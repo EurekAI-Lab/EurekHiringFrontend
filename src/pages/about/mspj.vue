@@ -247,11 +247,11 @@ const fetchInterviewReport = async (interviewId: number) => {
   }
 }
 const mszw = ref('')
-const msrName = ref('datou')
-const ztTime = ref('17分20秒')
-const bgscTime = ref('2024-01-22 1:45')
-const pgjg = ref('无风险')
-const dtsc = ref('2分20秒')
+const msrName = ref('')
+const ztTime = ref('')
+const bgscTime = ref('')
+const pgjg = ref('')
+const dtsc = ref('')
 const showModal = ref(false)
 
 function handleClickLeft() {

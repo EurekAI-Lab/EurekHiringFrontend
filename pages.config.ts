@@ -25,49 +25,49 @@ export default defineUniPages({
     fontSize: '10px',
     iconWidth: '24px',
     spacing: '3px',
-    list: [
-      {
-        iconPath: 'static/tabbar/home.png',
-        selectedIconPath: 'static/tabbar/homeHL.png',
-        pagePath: 'pages/question/question',
-        text: '问题生成',
-      },
-      {
-        iconPath: 'static/tabbar/example.png',
-        selectedIconPath: 'static/tabbar/exampleHL.png',
-        pagePath: 'pages/about/about',
-        text: '面试待处理',
-      },
-      {
-        iconPath: 'static/tabbar/example.png',
-        selectedIconPath: 'static/tabbar/exampleHL.png',
-        pagePath: 'pages/about/mspj',
-        text: '面试详情',
-      },
-      {
-        iconPath: 'static/tabbar/example.png',
-        selectedIconPath: 'static/tabbar/exampleHL.png',
-        pagePath: 'pages/camera/index',
-        text: '视频面试',
-      },
-      {
-        iconPath: 'static/tabbar/example.png',
-        selectedIconPath: 'static/tabbar/exampleHL.png',
-        pagePath: 'pages/interviews/record',
-        text: '面试记录',
-      },
-      {
-        iconPath: 'static/tabbar/example.png',
-        selectedIconPath: 'static/tabbar/exampleHL.png',
-        pagePath: 'pages/interviews/record-simulate',
-        text: '模拟面试记录',
-      },
-      {
-        iconPath: 'static/tabbar/example.png',
-        selectedIconPath: 'static/tabbar/exampleHL.png',
-        pagePath: 'pages/test/index',
-        text: '测试环境对接',
-      },
-    ],
+    // list: [
+    //   {
+    //     iconPath: 'static/tabbar/home.png',
+    //     selectedIconPath: 'static/tabbar/homeHL.png',
+    //     pagePath: 'pages/question/question',
+    //     text: '问题生成',
+    //   },
+    //   {
+    //     iconPath: 'static/tabbar/example.png',
+    //     selectedIconPath: 'static/tabbar/exampleHL.png',
+    //     pagePath: 'pages/about/about',
+    //     text: '面试待处理',
+    //   },
+    //   {
+    //     iconPath: 'static/tabbar/example.png',
+    //     selectedIconPath: 'static/tabbar/exampleHL.png',
+    //     pagePath: 'pages/about/mspj',
+    //     text: '面试详情',
+    //   },
+    //   {
+    //     iconPath: 'static/tabbar/example.png',
+    //     selectedIconPath: 'static/tabbar/exampleHL.png',
+    //     pagePath: 'pages/camera/index',
+    //     text: '视频面试',
+    //   },
+    //   {
+    //     iconPath: 'static/tabbar/example.png',
+    //     selectedIconPath: 'static/tabbar/exampleHL.png',
+    //     pagePath: 'pages/interviews/record',
+    //     text: '面试记录',
+    //   },
+    //   {
+    //     iconPath: 'static/tabbar/example.png',
+    //     selectedIconPath: 'static/tabbar/exampleHL.png',
+    //     pagePath: 'pages/interviews/record-simulate',
+    //     text: '模拟面试记录',
+    //   },
+    //   {
+    //     iconPath: 'static/tabbar/example.png',
+    //     selectedIconPath: 'static/tabbar/exampleHL.png',
+    //     pagePath: 'pages/test/index',
+    //     text: '测试环境对接',
+    //   },
+    // ],
   },
 })

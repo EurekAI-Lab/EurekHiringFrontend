@@ -31,7 +31,8 @@
       </view>
     </wd-sticky>
     <!--  -->
-    <view v-for="item in interviewList" :key="item" class="relative w-full flex items-center justify-center py-1">
+    <view v-for="item in interviewList" :key="item" class="relative w-full flex items-center justify-center py-1"
+      @click="openInfo(item.interviews_id)">
       <!--卡片 -->
 
       <view class="w-[92%] rounded-xl bg-white h-30 overflow-hidden flex flex-col">
@@ -42,10 +43,10 @@
         <view class="flex flex-col text-sm items-center pt-2">
           <view class="flex flex-row w-[95%]">
             <view class="text-gray">面试职位：</view>
-            <view>{{ item.companyName }}</view>
+            <view>{{ item.position_title }}</view>
           </view>
           <view class="flex flex-row w-[95%] pt-1">
-            <view class="text-gray">面试完成时间：</view>
+            <view class="text-gray">面试完成时间：{{ item.completion_time }}</view>
             <view></view>
           </view>
           <view class="flex flex-row w-[95%] pt-1">
@@ -54,7 +55,8 @@
           </view>
         </view>
         <view class="absolute top-10 w-[90%] h-50">
-          <image :src="hg" class="w-18 h-18 absolute right-1" />
+          <image v-if="item.is_qualified == 'FAIL'" :src="bhg" class="w-18 h-18 absolute right-1" />
+          <image v-else :src="hg" class="w-18 h-18 absolute right-1" />
         </view>
       </view>
 
@@ -91,7 +93,7 @@
               <view class="text-#1778ff">{{ item.salary }}</view>
               <view class="text-gray-400">
                 <image :src="dw" class="w-5 h-5" />
-                上海
+                {{ item.expected_city }}
               </view>
             </view>
           </view>
@@ -107,14 +109,6 @@
         </view>
       </wd-action-sheet>
     </view>
-    <view class="flex justify-center items-center">
-      <wd-overlay :show="loading">
-        <view class="wrapper flex flex-col text-white">
-          <wd-loading />
-          <view>正在加载</view>
-        </view>
-      </wd-overlay>
-    </view>
   </view>
 </template>
 
@@ -122,13 +116,16 @@
   import aibg07 from '../../static/images/ai-bg-07.png'
   import aimn from '../../static/app/icons/icon_aimn.png'
   import hg from '../../static/app/icons/icon_hg.png'
+  import bhg from '../../static/app/icons/icon_bhg.png'
   import rame from '../../static/app/icons/Frame-001.png'
   import zfj from '../../static/app/icons/icon_zfj.png'
   import dw from '../../static/app/icons/icon_dw.png'
   import dh from '../../static/app/icons/icon_dh.png'
   import { useQueue, useToast, useMessage } from 'wot-design-uni'
+  const toast = useToast()
+
   const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-  const loading = ref(false)
+  const loading = ref(true)
   const searchValue = ref()
   const showSheet = ref(false)
   const close = async () => {
@@ -139,7 +136,6 @@
     getPostionInfo()
     my_test_interviews()
   })
-  // my_test_interviews
 
   const my_test_interviews = async () => {
     try {
@@ -165,8 +161,6 @@
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
       })
       if (response.statusCode === 200) {
-        console.log('职位')
-        console.log(response.data)
         response.data?.forEach((element) => {
           items.value.push({
             title: element.position_name,
@@ -175,6 +169,8 @@
             location: element.expected_city,
             selected: false,
             position_id: element.position_id,
+            expected_city: element.expected_city,
+            id: element.id
           })
         })
       } else {
@@ -201,6 +197,15 @@
   const items = ref([])
   const interviewList = ref([])
 
+  const openInfo = (id) => {
+    console.log(id);
+    
+    uni.setStorageSync('interviewId', id)
+    uni.navigateTo({
+      url: '/pages/about/mspj'
+
+    });
+  }
   const selectItem = (index) => {
     // 清除其他项的选中状态
     items.value.forEach((item, i) => {
@@ -210,13 +215,26 @@
   const submitTestInerview = async () => {
     if (items.value.some((item) => item.selected)) {
       const selectedItem = items.value.find((item) => item.selected)
-      console.log('选中的职位信息:', selectedItem)
+      toast.loading({
+        loadingType: 'ring',
+        msg: '正在生成题目...'
+      })
       try {
-        const response = await uni.request({
-          url: baseUrl + `/interviews/create_mock_interview/${selectedItem.position_id}`,
+        uni.request({
+          url: baseUrl + `/interviews/create_mock_interview/${selectedItem.id}`,
           method: 'POST',
           header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+          success: (res: any) => {
+            console.log(res);
+            window.location.href = res.data.data.redirect_url
+          },
+          fail: (err) => {
+          },
+          complete: () => {
+            toast.close()
+          },
         })
+
       } catch (error) {
         console.error('请求失败:', error)
       }
