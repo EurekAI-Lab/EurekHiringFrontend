@@ -37,7 +37,7 @@
     </wd-sticky>
 
     <view
-      class="  w-full flex items-center justify-center pb-5"
+      class="w-full flex items-center justify-center pb-5"
       @click="jumpInterviewResult(item.interviews_id)"
       v-for="item in interviewResults"
       :key="item"
@@ -50,7 +50,7 @@
           <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
         </view>
         <view class="flex flex-row">
-          <image :src="rame" class="ml-2.5 mt-2 w-12 h-12 rounded" />
+          <image :src="item.enterprise_logo" class="ml-2.5 mt-2 w-12 h-12 rounded" />
           <view>
             <view class="flex flex-col text-sm">
               <view class="ml-2.5 mt-2 font-bold">{{ item.enterprise_name }}</view>
@@ -113,10 +113,27 @@ import rame from '../../static/app/icons/Frame-001.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-const interviewResults = ref([]) // 存储面试结果
-const interviewShowData = ref([])
+const originalInterviewResults = ref([]) // 存储原始数据
+const interviewResults = ref([]) // 存储筛选后的数据
 const loading = ref(false)
-const searchValue = ref()
+const searchValue = ref('')
+
+// 添加搜索监听
+watch(searchValue, (newValue) => {
+  if (!newValue) {
+    interviewResults.value = originalInterviewResults.value // 如果搜索框为空,显示所有数据
+    return
+  }
+
+  // 每次都基于原始数据进行筛选
+  interviewResults.value = originalInterviewResults.value.filter((item) => {
+    const searchLower = newValue.toLowerCase()
+    return (
+      item.enterprise_name.toLowerCase().includes(searchLower) ||
+      item.position_title.toLowerCase().includes(searchLower)
+    )
+  })
+})
 
 onLoad((options) => {
   const storedToken = uni.getStorageSync('token')
@@ -152,7 +169,8 @@ async function getInterviewList() {
       },
     })
     if (response.statusCode === 200) {
-      interviewResults.value = response.data.data || []
+      originalInterviewResults.value = response.data.data || [] // 保存原始数据
+      interviewResults.value = originalInterviewResults.value // 初始显示所有数据
     } else {
       alert('获取面试记录失败，请稍后再试')
     }
@@ -165,8 +183,8 @@ async function getInterviewList() {
 }
 const jumpInterviewResult = (interviewResultId) => {
   uni.setStorageSync('interviewId', interviewResultId)
-  uni.switchTab({
-    url: `/pages/about/mspj`,
+  uni.navigateTo({
+    url: '/pages/about/mspj',
   })
 }
 </script>

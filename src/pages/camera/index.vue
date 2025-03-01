@@ -9,7 +9,7 @@
 <template>
   <view class="flex w-full h-115% overflow-hidden relative">
     <view>
-      <video id="myvideo" class="fullscreen-video" autoplay muted loop></video>
+      <video id="myvideo" :controls="false" class="fullscreen-video" autoplay muted loop></video>
     </view>
 
     <view class="w-full flex justify-center fixed" v-if="!isInterviewStarted">
