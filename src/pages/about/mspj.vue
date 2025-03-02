@@ -25,43 +25,44 @@
       </view>
       <view class="bg-#fafafa h-22 w-85 rounded mt-2 shadow-md">
         <wd-row>
-          <wd-col span="4">
-            <image class="w-12 h-18 ml-2 mt-2" :src="icon001"></image>
+          <wd-col :span="4">
+            <image class="w-12 h-18 ml-2 mt-2" :src="userAvatar || icon001"></image>
           </wd-col>
-          <wd-col span="16">
+          <wd-col :span="16">
             <view class="ml-5 mt-3 font-bold text-sm">{{ msrName }}</view>
-            <view class="ml-5 mt-1 text-xs text-#374151">做题时长：</view>
-            <view class="ml-5 mt-1 text-xs text-#374151">报告生成时间：{{ bgscTime }}</view>
+            <view class="ml-5 mt-1 text-xs text-#374151">
+              做题时长：{{ formatTimeToMinSec(totalDuration) }}
+            </view>
+            <view class="ml-5 mt-1 text-xs text-#374151">
+              报告生成时间：{{ formatDateTime(bgscTime) }}
+            </view>
           </wd-col>
-          <wd-col span="4">
-            <image class="w-10 h-10 mt-6 ml--1" :src="iconfchs"></image>
+          <wd-col :span="4">
+            <image class="w-10 h-10 mt-6 ml--1" :src="getScoreIcon()"></image>
           </wd-col>
         </wd-row>
       </view>
-      <view
-        class="bg-#fafafa h-30 w-85 rounded mt-3 shadow-md"
-        style="background-image: url('src/static/app/icons/ai_msxq_bj.png'); background-size: cover"
-      >
+      <view class="bg-#fafafa h-auto w-85 rounded mt-3 shadow-md">
         <view class="flex items-center justify-center mt-2">
           <image class="w-3 h-3 ml-2 mt-2" :src="iconjt"></image>
           <view class="ml-5 mt-2 text-xs text-#374151 font-bold">综合评价</view>
         </view>
         <view class="m-3 text-xs mt-5 text-#a1a1aa">
-          回答展现了较强的技术能力和项目经验，与岗位需求高度匹配，逻辑清晰，表达流畅。
+          {{ overallSummary }}
         </view>
       </view>
-      <view class="bg-#fafafa h-48 w-85 rounded mt-3 shadow-md">
+      <view class="bg-#fafafa h-auto w-85 rounded mt-3 shadow-md">
         <wd-row>
-          <wd-col span="4">
+          <wd-col :span="4">
             <image class="w-6 h-6 ml-2 mt-2" src=""></image>
           </wd-col>
-          <wd-col span="16">
+          <wd-col :span="16">
             <view class="flex items-center justify-center">
               <image class="w-3 h-3 ml-2 mt-2" :src="iconjt"></image>
               <view class="ml-5 mt-2 text-xs text-#374151 font-bold">风险评估</view>
             </view>
           </wd-col>
-          <wd-col span="4">
+          <wd-col :span="4">
             <image class="w-10 h-10" :src="iconfxpg"></image>
           </wd-col>
         </wd-row>
@@ -69,32 +70,55 @@
           <view class="text-sm font-bold">评估结果：</view>
           <view class="text-sm font-bold text-#6ee7b7">{{ pgjg }}</view>
         </view>
-        <view class="ml-2 mt-2 text-xs text-#a1a1aa">眼神专注，并未离开摄像区域</view>
+        <view class="ml-2 mt-2 text-xs text-#a1a1aa">暂无</view>
         <view class="flex justify-center mt-2">
-          <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
-          <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
-          <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
-          <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
-          <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
+          <template
+            v-if="frameAnalysis && frameAnalysis.samples && frameAnalysis.samples.length > 0"
+          >
+            <image
+              v-for="(sample, index) in frameAnalysis.samples.slice(0, 5)"
+              :key="index"
+              class="w-14 h-18 ml-2 mt-2"
+              :src="sample.frame_url"
+            ></image>
+          </template>
+          <template v-else>
+            <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
+            <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
+            <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
+            <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
+            <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
+          </template>
         </view>
       </view>
       <view class="bg-#fafafa h-auto w-85 pb-20 rounded mt-3 shadow-md">
         <view class="text-sm ml-2 font-bold">问答题</view>
-        <view v-for="(item, index) in interviewReport">
+        <view v-if="isLoading" class="flex justify-center items-center p-10">
+          <view class="text-center text-gray-500">面试内容正在处理，请稍后再试</view>
+        </view>
+        <view
+          v-else-if="interviewReport.length === 0"
+          class="flex justify-center items-center p-10"
+        >
+          <view class="text-center text-gray-500">暂无面试数据</view>
+        </view>
+        <view v-else v-for="(item, index) in interviewReport" :key="index">
           <view class="flex justify-center mt-2 pt-5">
-            <wd-col span="12">
+            <wd-col ::span="12">
               <view class="text-sm ml-2 font-bold">
                 {{ index + 1 }}、{{ item.original_question }}
               </view>
             </wd-col>
-            <wd-col span="12">
+            <wd-col ::span="12">
               <view class="flex justify-right mr-2">
                 <image
                   class="w-5 h-5 ml-2"
                   :src="iconframe"
                   @click="showVideoModal(item.video_url)"
                 ></image>
-                <view class="text-xs ml-2 text-#a1a1aa">答题时长：{{ dtsc }}</view>
+                <view class="text-xs ml-2 mt-0.5 text-#a1a1aa">
+                  答题时长：{{ formatTimeToMinSec(item.duration_sec) }}
+                </view>
               </view>
             </wd-col>
           </view>
@@ -133,6 +157,8 @@
 <script lang="ts" setup>
 import icon001 from '@/static/app/icons/Frame-001.png'
 import iconfchs from '@/static/app/icons/icon_fchs.png'
+import iconhs from '@/static/app/icons/icon_hs.png'
+import iconbhs from '@/static/app/icons/icon_bhs.png'
 import iconjt from '@/static/app/icons/icon-jt.png'
 import iconfxpg from '@/static/app/icons/icon-fxpg.png'
 import iconzdsc from '@/static/app/icons/icon_zdsc.png'
@@ -152,6 +178,32 @@ interface InterviewReportItem {
   reason: string
   original_question: string
 }
+
+// 添加帧分析数据结构
+interface FrameAnalysisSample {
+  id: number
+  interview_id: number
+  interview_record_id: number
+  frame_timestamp: number
+  frame_url: string
+  action_status: string
+  is_normal: number
+  analysis_detail: string
+  created_at: string
+}
+
+interface FrameAnalysisSummary {
+  total_frames: number
+  abnormal_frames: number
+  abnormal_rate: number
+  abnormal_type_stats: Record<string, number>
+}
+
+interface FrameAnalysis {
+  summary: FrameAnalysisSummary
+  samples: FrameAnalysisSample[]
+}
+
 const isModalVisible = ref(false)
 const showVideo = ref()
 const showVideoModal = (videoUrl: string) => {
@@ -161,6 +213,19 @@ const showVideoModal = (videoUrl: string) => {
 }
 // 面试报告数据
 const interviewReport = ref<InterviewReportItem[]>([])
+const isLoading = ref(true)
+const totalDuration = ref(0)
+
+// 帧分析数据
+const frameAnalysis = ref({
+  summary: {
+    total_frames: 0,
+    abnormal_frames: 0,
+    abnormal_rate: 0,
+    abnormal_type_stats: {},
+  },
+  samples: [],
+})
 // 组件挂载时获取面试信息
 onMounted(() => {
   fetchInterviewReport(interviewId.value)
@@ -220,6 +285,7 @@ defineOptions({
 //   interviewId = option.interviews_id
 // })
 const fetchInterviewReport = async (interviewId: number) => {
+  isLoading.value = true
   try {
     const response = await uni.request({
       url: baseUrl + `/interviews/interview_report/${interviewId}`,
@@ -228,9 +294,54 @@ const fetchInterviewReport = async (interviewId: number) => {
     })
 
     if (response.statusCode === 200) {
-      interviewReport.value = response.data.report_data
-      mszw.value = response.data?.info.position_name
-      msrName.value = response.data?.info.user_name
+      // 处理响应数据类型
+      const responseData = response.data as {
+        report_data: InterviewReportItem[]
+        info: {
+          position_name: string
+          user_name: string
+          user_avatar: string
+          interview_result: string
+          total_duration: number
+          interview_result_time: string
+          overall_summary: string
+          score: number
+        }
+        frame_analysis?: {
+          summary: {
+            total_frames: number
+            abnormal_frames: number
+            abnormal_rate: number
+            abnormal_type_stats: Record<string, any>
+          }
+          samples: Array<{
+            id: number
+            interview_id: number
+            interview_record_id: number
+            frame_timestamp: number
+            frame_url: string
+            action_status: string
+            is_normal: number
+            analysis_detail: string
+            created_at: string
+          }>
+        }
+      }
+
+      interviewReport.value = responseData.report_data
+      mszw.value = responseData.info.position_name
+      msrName.value = responseData.info.user_name
+      totalDuration.value = responseData.info.total_duration
+      bgscTime.value = responseData.info.interview_result_time
+      userAvatar.value = responseData.info.user_avatar
+      overallSummary.value = responseData.info.overall_summary
+      score.value = responseData.info.score
+      pgjg.value = responseData.info.interview_result === 'PASS' ? '通过' : '不通过'
+
+      // 处理帧分析数据
+      if (responseData.frame_analysis) {
+        frameAnalysis.value = responseData.frame_analysis
+      }
     } else {
       console.error('获取面试报告失败:', response.data)
       uni.showToast({
@@ -244,6 +355,8 @@ const fetchInterviewReport = async (interviewId: number) => {
       title: '请求失败，请检查网络',
       icon: 'none',
     })
+  } finally {
+    isLoading.value = false
   }
 }
 const mszw = ref('')
@@ -253,9 +366,49 @@ const bgscTime = ref('')
 const pgjg = ref('')
 const dtsc = ref('')
 const showModal = ref(false)
+const userAvatar = ref('')
+const overallSummary = ref('')
+const score = ref(0)
 
 function handleClickLeft() {
   uni.navigateBack()
+}
+
+// 将秒数转换为"xx分钟xx秒"格式
+const formatTimeToMinSec = (seconds: number) => {
+  if (!seconds || seconds <= 0) return '0秒'
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+
+  if (minutes === 0) {
+    return `${remainingSeconds}秒`
+  } else if (remainingSeconds === 0) {
+    return `${minutes}分钟`
+  } else {
+    return `${minutes}分钟${remainingSeconds}秒`
+  }
+}
+
+// 格式化日期时间
+const formatDateTime = (dateTimeStr: string) => {
+  if (!dateTimeStr) return ''
+  try {
+    const date = new Date(dateTimeStr)
+    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+  } catch (error) {
+    return dateTimeStr
+  }
+}
+
+// 根据分数返回对应的图标
+const getScoreIcon = () => {
+  if (score.value >= 80) {
+    return iconfchs // 非常合适
+  } else if (score.value >= 60) {
+    return iconhs // 合适
+  } else {
+    return iconbhs // 不合适
+  }
 }
 </script>
 

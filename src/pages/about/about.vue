@@ -128,8 +128,8 @@
 
     <!-- top-95 -->
     <!-- <view class="elative w-full">
-      <view v-for="(item, index) in 30" class="h-14" :id="index == 0 ? 'firstpass':(index == 8 ? 'firstfail' : '')" :class="index>=8?'failResult':''">列表{{ index }}</view>
-    </view> -->
+        <view v-for="(item, index) in 30" class="h-14" :id="index == 0 ? 'firstpass':(index == 8 ? 'firstfail' : '')" :class="index>=8?'failResult':''">列表{{ index }}</view>
+      </view> -->
 
     <view class="relative w-full">
       <!--卡片 -->
@@ -182,8 +182,7 @@
               面试完成时间：{{ item.interview_result.created_at }}
             </view>
             <view class="absolute top-29 left-3.5 w-50 text-xs text-#989EA8">
-              <!-- {{ item.interview_result.saved_at }} -->
-              面试完成时长：{{ item.interview_result.saved_at }}
+              面试完成时长：{{ formatTimeToMinSec(item.interview.time_spent) }}
             </view>
             <!-- 合格或不合格图片 -->
             <view class="absolute top-20 left-68" v-if="isBigTabOneActive">
@@ -371,7 +370,8 @@ const isSmallTabTwoActive = ref(true)
 const isSticky = ref(false)
 const offsetTop = ref(null)
 function handleClickLeft() {
-  uni.navigateBack()
+  // uni.navigateBack()
+  appApi.callback('pagerFinish', '')
 }
 
 // 监视这两个计算属性
@@ -625,6 +625,21 @@ const scrollElement = (atype) => {
 // 跳回APP 展示简历
 const jump = () => {
   toast.warning('跳回APP 展示简历')
+}
+
+// 将秒数转换为"xx分钟xx秒"格式
+const formatTimeToMinSec = (seconds: number) => {
+  if (!seconds || seconds <= 0) return '0秒'
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+
+  if (minutes === 0) {
+    return `${remainingSeconds}秒`
+  } else if (remainingSeconds === 0) {
+    return `${minutes}分钟`
+  } else {
+    return `${minutes}分钟${remainingSeconds}秒`
+  }
 }
 </script>
 

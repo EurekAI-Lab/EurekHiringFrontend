@@ -50,7 +50,7 @@
           <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
         </view>
         <view class="flex flex-row">
-          <image :src="item.enterprise_logo" class="ml-2.5 mt-2 w-12 h-12 rounded" />
+          <image :src="item.logo_url" class="ml-2.5 mt-2 w-12 h-12 rounded" />
           <view>
             <view class="flex flex-col text-sm">
               <view class="ml-2.5 mt-2 font-bold">{{ item.enterprise_name }}</view>
@@ -85,7 +85,7 @@
           </view>
           <view class="flex flex-row w-[95%] pt-1">
             <view class="text-gray">面试完成时长：</view>
-            <view></view>
+            <view>{{ formatTimeToMinSec(item.time_spent) }}</view>
           </view>
         </view>
       </view>
@@ -94,13 +94,13 @@
     </view>
 
     <!-- <view class="flex justify-center items-center">
-      <wd-overlay :show="loading">
-        <view class="wrapper flex flex-col text-white">
-          <wd-loading />
-          <view>正在加载</view>
-        </view>
-      </wd-overlay>
-    </view> -->
+        <wd-overlay :show="loading">
+          <view class="wrapper flex flex-col text-white">
+            <wd-loading />
+            <view>正在加载</view>
+          </view>
+        </wd-overlay>
+      </view> -->
   </view>
 </template>
 
@@ -154,7 +154,22 @@ onMounted(() => {
   getInterviewList()
 })
 function handleClickLeft() {
-  uni.navigateBack()
+  // uni.navigateBack()
+  appApi.callback('pagerFinish', '')
+}
+// 将秒数转换为"xx分钟xx秒"格式
+const formatTimeToMinSec = (seconds: number) => {
+  if (!seconds || seconds <= 0) return '0秒'
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+
+  if (minutes === 0) {
+    return `${remainingSeconds}秒`
+  } else if (remainingSeconds === 0) {
+    return `${minutes}分钟`
+  } else {
+    return `${minutes}分钟${remainingSeconds}秒`
+  }
 }
 // 获取面试记录
 async function getInterviewList() {

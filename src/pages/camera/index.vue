@@ -73,7 +73,7 @@
       <view
         class="bg-#302920 flex flex-row w-[98%] text-#fd7e11 text-base h-10 justify-center items-center rounded-3xl"
       >
-        倒计时：{{ timeLeft }}S
+        倒计时：{{ formatTimeToMinSec(timeLeft) }}
       </view>
     </view>
 
@@ -194,6 +194,7 @@ const isTimeUp = ref(false)
 const recordedData = ref([])
 const loading = ref(false)
 const interviewId = ref()
+const videoDuration = ref(0) // 添加视频时长变量
 const fileFrom = reactive({
   interview_id: ref(),
   fileUrls: [],
@@ -204,6 +205,7 @@ const startInterview = () => {
   timeLeft.value = interviewDetails.value.questions[currentQuestionIndex.value].interview_time * 60 // 设置题目时间
   isTiming.value = true
   isTimeUp.value = false // 重置时间到标志
+  videoDuration.value = 0 // 重置视频时长
   startTimer()
 }
 
@@ -310,6 +312,7 @@ const uploadFile = async (opt: any) => {
       fileFrom.fileUrls.push({
         question_id: currentQuestionIndex.value,
         video_url: uploadedFileUrl,
+        video_duration: videoDuration.value, // 添加视频时长
       })
       // if (currentQuestionIndex.value === interviewDetails.value.questions.length) {
 
@@ -326,8 +329,10 @@ const startTimer = () => {
   timer.value = setInterval(() => {
     if (timeLeft.value > 1) {
       timeLeft.value--
+      videoDuration.value++ // 记录视频时长
     } else {
       timeLeft.value--
+      videoDuration.value++ // 记录最后一秒
       clearInterval(timer.value)
       isTiming.value = false
       isTimeUp.value = true // 设置时间到标志
@@ -347,7 +352,7 @@ const nextQuestion = async () => {
     noticeShow.value = false
     countdown.value = 0 // 重置倒计时
     startInterview() // 直接进入面试
-    // 如果当前是最后一题 则把下一题按钮更改为“完成面试”
+    // 如果当前是最后一题 则把下一题按钮更改为"完成面试"
     if (currentQuestionIndex.value === interviewDetails.value.questions.length - 1) {
       overQuestion.value = true
     }
@@ -429,9 +434,25 @@ const handleStart = () => {
       msg: '您即将步入AI面试环节，请针对大模型所生成的题目进行作答。在答题期间，每道题目将为您提供10秒的审题时间，这段时间不计入您的回答时长内。审题时间结束后，系统将自动启动录制您的回答。请确认是否进入面试',
       title: '面试确认',
     })
-    .then(() => {
-      startCountdown()
-      isInterviewStarted.value = true
+    .then(async () => {
+      try {
+        // 更新面试状态
+        const response = await uni.request({
+          url: baseUrl + `/interviews/update_status/${interviewId.value}?status=1`,
+          method: 'POST',
+          header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+        })
+
+        if (response.statusCode === 200) {
+          startCountdown()
+          isInterviewStarted.value = true
+        } else {
+          toast.error('更新面试状态失败')
+        }
+      } catch (error) {
+        console.error('更新面试状态失败:', error)
+        toast.error('更新面试状态失败')
+      }
     })
     .catch((error) => {
       console.log(error)
@@ -506,62 +527,128 @@ const camSafeUrlEncode = (str: string) => {
     .replace(/\)/g, '%29')
     .replace(/\*/g, '%2A')
 }
+
+// 将秒数转换为"xx分钟xx秒"格式
+const formatTimeToMinSec = (seconds: number) => {
+  if (seconds <= 0) return '0秒'
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  
+  if (minutes === 0) {
+    return `${remainingSeconds}秒`
+  } else if (remainingSeconds === 0) {
+    return `${minutes}分钟`
+  } else {
+    return `${minutes}分钟${remainingSeconds}秒`
+  }
+}
+
 function handleClickLeft() {
   uni.navigateBack()
 }
 
 const handleExit = async () => {
-  // 面试结束 TODO return url
-
-  const res1 = await uni.request({
-    url: baseUrl + `/interviews/redirect-url/`,
-    method: 'GET',
-    header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-    data: {
-      status: 3,
-      interview_id: interviewId.value,
-    },
-  })
-  console.log('res1.data')
-  console.log(res1.data.data.redirect_url)
-
-  try {
-    appApi.callback(
-      'Interview_over',
-      JSON.stringify({
-        url: res1.data.data.redirect_url,
-        companyName: interviewDetails.value.position.enterprise_name,
-        jobName: interviewDetails.value.position.title,
-      }),
-    )
-  } catch (error) {
-    console.log('面试结束app函数报错', error)
-  }
-
-  const res = uni.request({
-    url: baseUrl + `/interviews/notify_interview_result/${interviewId.value}`,
-    method: 'POST',
-    header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-  })
-
-  message
-    .confirm({
-      msg: '您已完成' + interviewDetails.value.position.title + '岗位的AI面试',
-      title: '提示',
-      beforeConfirm: async ({ resolve }) => {
-        try {
-          appApi.callback('pagerFinish', '')
-        } catch (error) {
-          console.log('返回app函数报错', error)
+  if (currentQuestionIndex.value === 0) {
+    message
+      .confirm({
+        msg: '您确定退出' + interviewDetails.value.position.title + '岗位的AI面试',
+        title: '提示',
+        beforeConfirm: async ({ resolve }) => {
+          try {
+            if (isInterviewStarted.value) {
+              // 如果面试已开始，更新面试状态
+              const response = await uni.request({
+                url: baseUrl + `/interviews/update_status/${interviewId.value}?status=2`,
+                method: 'POST',
+                header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+              })
+              if (response.statusCode !== 200) {
+                toast.error('更新面试状态失败')
+                return
+              }
+            }
+            appApi.callback('pagerFinish', '')
+          } catch (error) {
+            console.log('返回app函数报错', error)
+            toast.error('更新面试状态失败')
+          }
+          toast.close()
+        },
+      })
+      .then(() => {
+        uni.navigateBack()
+      })
+  } else {
+    // 面试结束 TODO return url
+    if (isInterviewStarted.value) {
+      try {
+        // 更新面试状态
+        const statusResponse = await uni.request({
+          url: baseUrl + `/interviews/update_status/${interviewId.value}?status=2`,
+          method: 'POST',
+          header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+        })
+        if (statusResponse.statusCode !== 200) {
+          toast.error('更新面试状态失败')
+          return
         }
-        toast.loading('正在提交中...')
-        await saveInterview()
-        toast.close()
+      } catch (error) {
+        console.error('更新面试状态失败:', error)
+        toast.error('更新面试状态失败')
+        return
+      }
+    }
+
+    const res1 = await uni.request({
+      url: baseUrl + `/interviews/redirect-url/`,
+      method: 'GET',
+      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+      data: {
+        status: 3,
+        interview_id: interviewId.value,
       },
     })
-    .then(() => {
-      uni.navigateBack()
+    console.log('res1.data')
+    console.log(res1.data.data.redirect_url)
+
+    try {
+      appApi.callback(
+        'Interview_over',
+        JSON.stringify({
+          url: res1.data.data.redirect_url,
+          companyName: interviewDetails.value.position.enterprise_name,
+          jobName: interviewDetails.value.position.title,
+        }),
+      )
+    } catch (error) {
+      console.log('面试结束app函数报错', error)
+    }
+
+    const res = uni.request({
+      url: baseUrl + `/interviews/notify_interview_result/${interviewId.value}`,
+      method: 'POST',
+      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })
+
+    message
+      .confirm({
+        msg: '您已完成' + interviewDetails.value.position.title + '岗位的AI面试',
+        title: '提示',
+        beforeConfirm: async ({ resolve }) => {
+          try {
+            appApi.callback('pagerFinish', '')
+          } catch (error) {
+            console.log('返回app函数报错', error)
+          }
+          toast.loading('正在提交中...')
+          await saveInterview()
+          toast.close()
+        },
+      })
+      .then(() => {
+        uni.navigateBack()
+      })
+  }
 }
 
 const overTip = () => {

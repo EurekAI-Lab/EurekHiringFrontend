@@ -44,14 +44,14 @@
     >
       <!--卡片 -->
 
-      <view class="w-[92%] rounded-xl bg-white h-30 overflow-hidden flex flex-col">
+      <view class="w-[92%] rounded-xl bg-white min-h-20 overflow-hidden flex flex-col">
         <view class="flex flex-row relative">
           <image :src="aimn" class="w-full h-7.5" />
           <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
         </view>
-        <view class="flex flex-col text-sm items-center pt-2">
+        <view class="flex flex-col text-sm items-center pt-2 pb-2">
           <view class="flex flex-row w-[95%]">
-            <view class="text-gray">求职意向：</view>
+            <view class="text-gray" style="word-break: keep-all">求职意向：</view>
             <view>{{ item.position_title }}</view>
           </view>
           <view class="flex flex-row w-[95%] pt-1">
@@ -59,7 +59,7 @@
             <view></view>
           </view>
           <view class="flex flex-row w-[95%] pt-1">
-            <view class="text-gray">面试完成时长：</view>
+            <view class="text-gray">面试完成时长：{{ formatTimeToMinSec(item.time_spent) }}</view>
             <view></view>
           </view>
         </view>
@@ -70,6 +70,12 @@
       </view>
 
       <!-- <wd-status-tip image="search" tip="当前搜索无结果" /> -->
+    </view>
+    <view
+      v-if="interviewList.length === 0 && !loading"
+      class="w-full flex justify-center items-center mt-10"
+    >
+      <wd-status-tip image="search" tip="当前暂无面试记录" />
     </view>
     <view class="absolute bottom-20 w-full h-10 flex justify-center items-center fixed">
       <view
@@ -119,9 +125,9 @@
           </view>
         </view>
         <!-- 
-        <view class="mb-10">
-          <wd-status-tip image="search" tip="当前暂无职位信息" />
-        </view> -->
+          <view class="mb-10">
+            <wd-status-tip image="search" tip="当前暂无职位信息" />
+          </view> -->
         <view class="mb-10 w-full pt-4 flex justify-center items-center">
           <view
             @click="close()"
@@ -151,6 +157,7 @@ const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 const loading = ref(true)
 const searchValue = ref()
 const showSheet = ref(false)
+const showErrorTip = ref(false)
 const close = async () => {
   await submitTestInerview()
   showSheet.value = false
@@ -161,6 +168,7 @@ onMounted(() => {
 })
 
 const my_test_interviews = async () => {
+  loading.value = true
   try {
     const response = await uni.request({
       url: baseUrl + `/interviews/my_test_interviews/`,
@@ -169,11 +177,12 @@ const my_test_interviews = async () => {
     })
     if (response.statusCode === 200) {
       interviewList.value = response.data.data
-    } else {
-      console.error('获取职位信息失败:', response.data)
     }
   } catch (error) {
     console.error('请求失败:', error)
+    toast.error('面试结果正在生成中，请稍后再试')
+  } finally {
+    loading.value = false
   }
 }
 const getPostionInfo = async () => {
@@ -214,7 +223,8 @@ onLoad((options) => {
   }
 })
 function handleClickLeft() {
-  uni.navigateBack()
+  // uni.navigateBack()
+  appApi.callback('pagerFinish', '')
 }
 
 const items = ref([])
@@ -226,7 +236,26 @@ const formatTime = (timeString: string) => {
   return timeString.replace('T', ' ')
 }
 
+// 将秒数转换为"xx分钟xx秒"格式
+const formatTimeToMinSec = (seconds: number) => {
+  if (!seconds || seconds <= 0) return '0秒'
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+
+  if (minutes === 0) {
+    return `${remainingSeconds}秒`
+  } else if (remainingSeconds === 0) {
+    return `${minutes}分钟`
+  } else {
+    return `${minutes}分钟${remainingSeconds}秒`
+  }
+}
+
 const openInfo = (id) => {
+  if (!id) {
+    toast.error('面试结果正在生成中，请稍后再试')
+    return
+  }
   console.log(id)
 
   uni.setStorageSync('interviewId', id)
@@ -256,7 +285,7 @@ const submitTestInerview = async () => {
           console.log(res)
           window.location.href = res.data.data.redirect_url
         },
-        fail: (err) => {},
+        fail: () => {},
         complete: () => {
           toast.close()
         },
