@@ -460,6 +460,7 @@ const getInterviewList = async () => {
 const jumpInterviewResult = (interviewId: number) => {
   // 存储参数
   uni.setStorageSync('interviewId', interviewId)
+  uni.setStorageSync('from', 'h5')
   uni.navigateTo({
     url: '/pages/about/mspj',
   })

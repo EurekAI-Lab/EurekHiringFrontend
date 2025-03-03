@@ -38,7 +38,7 @@
             </view>
           </wd-col>
           <wd-col :span="4">
-            <image class="w-10 h-10 mt-6 ml--1" :src="getScoreIcon()"></image>
+            <image class="w-14 h-14 mt-3 ml--1" :src="getScoreIcon()"></image>
           </wd-col>
         </wd-row>
       </view>
@@ -163,6 +163,9 @@ import iconjt from '@/static/app/icons/icon-jt.png'
 import iconfxpg from '@/static/app/icons/icon-fxpg.png'
 import iconzdsc from '@/static/app/icons/icon_zdsc.png'
 import iconframe from '@/static/app/icons/icon-frame.png'
+import iconhg from '@/static/app/icons/icon_hg.png'
+import iconbhg from '@/static/app/icons/icon_bhg.png'
+
 import Aizdsc from '@/pages/about/components/aizdsc.vue'
 import Aimn from '@/pages/about/components/aimn.vue'
 import Xzzw from '@/pages/about/components/xzzw.vue'
@@ -371,7 +374,12 @@ const overallSummary = ref('')
 const score = ref(0)
 
 function handleClickLeft() {
-  uni.navigateBack()
+  if (uni.getStorageSync('from') && uni.getStorageSync('from') == 'h5') {
+    uni.navigateBack();
+    uni.removeStorageSync('from')
+  } else {
+    appApi.callback('pagerFinish', '')
+  }
 }
 
 // 将秒数转换为"xx分钟xx秒"格式
@@ -405,9 +413,9 @@ const getScoreIcon = () => {
   if (score.value >= 80) {
     return iconfchs // 非常合适
   } else if (score.value >= 60) {
-    return iconhs // 合适
+    return iconhg // 合适
   } else {
-    return iconbhs // 不合适
+    return iconbhg // 不合适
   }
 }
 </script>

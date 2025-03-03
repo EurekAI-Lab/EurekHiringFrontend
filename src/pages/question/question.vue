@@ -9,6 +9,19 @@
 </route>
 <template>
   <view class="w-full bg-#f5f7fb min-h-[220vw] h-auto relative">
+    <!-- 顶部返回 -->
+    <view class="fixed z-2 w-full h-22 nav-bg">
+      <view class="w-full h-11"></view>
+      <view class="relative h-11 flex flex-row text-white">
+        <!-- -top-1 -->
+        <view
+          class="i-carbon-chevron-left w-6 h-6 absolute left-5"
+          style="top: 50%; transform: translateY(-50%)"
+          @click="handleClickLeft"
+        ></view>
+        <view class="absolute left-2/5" style="top: 50%; transform: translateY(-50%)">Ai面试</view>
+      </view>
+    </view>
     <!-- 背景图 -->
     <view class="h-50 overflow-hidden">
       <image :src="aibg02" class="w-full h-50 -translate-y-5"></image>
@@ -156,6 +169,11 @@ onMounted(async () => {
   getInterviewInfo(positionsId.value)
 })
 const positionsId = ref<number | null>(null)
+
+function handleClickLeft() {
+  // uni.navigateBack()
+  appApi.callback('pagerFinish', '')
+}
 
 onLoad((options) => {
   if (options.token) {
@@ -425,5 +443,11 @@ const { safeAreaInsets } = uni.getSystemInfoSync()
   width: 120px;
   height: 120px;
   background-color: #fff;
+}
+
+.nav-bg {
+  background: url('../../static/images/ai-bg-02.png') top center;
+  background-size: 100% 185%;
+  overflow: hidden;
 }
 </style>

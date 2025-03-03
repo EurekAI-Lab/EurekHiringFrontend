@@ -94,7 +94,7 @@
           </view>
         </view>
         <view
-          class="flex w-full h-16 justify-center items-center py-1"
+          class="flex w-full min-h-16 justify-center items-center py-1"
           v-for="(item, index) in items"
           :key="index"
         >
@@ -111,7 +111,7 @@
             >
               <image :src="zfj" class="w-5 h-5" />
             </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5">
+            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5">
               <view>{{ item.title }}</view>
               <view class="text-gray-400">{{ item.description }}</view>
             </view>
@@ -259,6 +259,7 @@ const openInfo = (id) => {
   console.log(id)
 
   uni.setStorageSync('interviewId', id)
+  uni.setStorageSync('from', 'h5')
   uni.navigateTo({
     url: '/pages/about/mspj',
   })

@@ -198,6 +198,7 @@ async function getInterviewList() {
 }
 const jumpInterviewResult = (interviewResultId) => {
   uni.setStorageSync('interviewId', interviewResultId)
+  uni.setStorageSync('from', 'h5')
   uni.navigateTo({
     url: '/pages/about/mspj',
   })
