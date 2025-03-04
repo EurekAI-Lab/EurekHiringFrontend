@@ -360,7 +360,7 @@ const nextQuestion = async () => {
     if (currentQuestionIndex.value < interviewDetails.value.questions.length - 1) {
       message
         .confirm({
-          msg: '是否跳过当前题目，该操作不可回退',
+          msg: '该操作将进入下一题的作答且操作不可回退，您确定已经完成当前题目的作答了吗？',
           title: '进入下一题',
         })
         .then(() => {
@@ -429,9 +429,10 @@ const triggerAnotherMethod = () => {
   toast.success('请开始作答')
 }
 const handleStart = () => {
+  // 在答题期间，每道题目将为您提供10秒的审题时间，这段时间不计入您的回答时长内。审题时间结束后，
   message
     .confirm({
-      msg: '您即将步入AI面试环节，请针对大模型所生成的题目进行作答。在答题期间，每道题目将为您提供10秒的审题时间，这段时间不计入您的回答时长内。审题时间结束后，系统将自动启动录制您的回答。请确认是否进入面试',
+      msg: '您即将步入AI面试环节，请针对大模型所生成的题目进行作答。系统将自动启动录制您的回答。请确认是否进入面试',
       title: '面试确认',
     })
     .then(async () => {
@@ -478,13 +479,6 @@ onMounted(async () => {
     fetchInterviewInfo(interviewId.value) // 等待 fetchInterviewInfo 完成
   } else {
     console.error('未找到 interviews_id')
-  }
-  if ('speechSynthesis' in window) {
-    alert('Web Speech API 支持')
-    // uni.showToast({ title: 'Web Speech API 支持', icon: 'none' });
-  } else {
-    alert('当前浏览器不支持语音合成')
-    // uni.showToast({ title: '当前浏览器不支持语音合成', icon: 'none' });
   }
 })
 // 组件卸载时关闭摄像头
