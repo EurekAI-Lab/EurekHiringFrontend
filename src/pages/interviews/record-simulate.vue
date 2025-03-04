@@ -75,7 +75,7 @@
       v-if="interviewList.length === 0 && !loading"
       class="w-full flex justify-center items-center mt-10"
     >
-      <wd-status-tip image="search" tip="当前暂无面试记录" />
+      <wd-status-tip image="search" tip="我们将根据您的求职意向自动生成面试题目，帮助您在企业的正式AI视频面试中顺利通过，点击【开始模拟】来体验一下吧！" />
     </view>
     <view class="absolute bottom-20 w-full h-10 flex justify-center items-center fixed">
       <view
@@ -90,7 +90,8 @@
       <wd-action-sheet v-model="showSheet" title="选择职位" @close="close">
         <view class="w-full h-auto flex justify-center items-center pb-5">
           <view class="w-[90%] text-gray-500">
-            请选择您需要测试Ai面试的意向职位信息，我们将以该意向信息为您制定Ai面试题
+            <!-- 请选择您需要测试Ai面试的意向职位信息，我们将以该意向信息为您制定Ai面试题 -->
+             请选择您想进行模拟面试的求职意向信息，我们将以该求职意向为您生成AI模拟面试题目
           </view>
         </view>
         <view

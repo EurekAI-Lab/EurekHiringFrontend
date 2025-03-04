@@ -8,20 +8,30 @@
 </route>
 <template>
   <view class="relative h-100% overflow-auto">
-    <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-white">
-      <view class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1" @click="handleClickLeft"></view>
-      <view class="absolute left-2/5"></view>
-      <!-- <view class="absolute left-4/5" @click="saveQuestion()">确定</view> -->
+    <!-- 顶部导航 -->
+    <view class="fixed z-2 w-full h-22 nav-bg">
+      <view class="w-full h-11"></view>
+      <view class="relative h-11 flex flex-row text-white">
+        <!-- -top-1 -->
+        <view
+          class="i-carbon-chevron-left w-6 h-6 absolute left-5"
+          style="top: 50%; transform: translateY(-50%)"
+          @click="handleClickLeft"
+        ></view>
+        <view class="absolute left-2/5" style="top: 50%; transform: translateY(-50%)"></view>
+        <!-- <view class="absolute left-4/5" @click="saveQuestion()">确定</view> -->
+      </view>
     </view>
-    <view class="w-full h-50 bg-gradient-to-b from-blue-600 to-cyan-500' flex flex-wrap justify-center">
-      <view class="bg-#fafafa h-10 w-85 flex items-center rounded mt-20">
+    <view class="w-full h-50 flex flex-wrap justify-center pt-24"
+    style="background: linear-gradient( 180deg, #145EFF 0%, #0CD0FF 100%);">
+      <view class="bg-#fafafa h-10 w-85 flex items-center rounded">
         <image class="w-4 h-4 ml-4" :src="icon001"></image>
         <view class="pl-3 text-xs">面试职位：{{ mszw }}</view>
       </view>
       <view class="bg-#fafafa h-22 w-85 rounded mt-2 shadow-md">
         <wd-row>
           <wd-col :span="4">
-            <image class="w-12 h-18 ml-2 mt-2" :src="userAvatar || icon001"></image>
+            <image class="w-12 h-18 ml-2 mt-2" :src="userAvatar || icon001" mode="aspectFit"></image>
           </wd-col>
           <wd-col :span="16">
             <view class="ml-5 mt-3 font-bold text-sm">{{ msrName }}</view>
@@ -65,16 +75,18 @@
           <view class="text-sm font-bold">评估结果：</view>
           <view class="text-sm font-bold text-#6ee7b7">{{ pgjg }}</view>
         </view>
-        <view class="ml-2 mt-2 text-xs text-#a1a1aa">暂无</view>
+        <!-- <view class="ml-2 mt-2 text-xs text-#a1a1aa">暂无</view> -->
         <view class="flex ml-2 mt-2">
           <view class="text-sm font-bold">面试录屏：</view>
         </view>
         <view class="flex w-95% justify-start mt-2 ml-2" style="overflow: hidden;overflow-x: auto;">
           <template v-if="frameAnalysis && frameAnalysis.samples && frameAnalysis.samples.length > 0">
-            <view class="relative" v-for="(sample, index) in frameAnalysis.samples.slice(0, 5)" :key="index">
-              <image class="w-14 h-18 ml-2 mt-2" :src="sample.frame_url"></image>
-              <image class="absolute w-5 h-5 z-1" style="top: 50%;left: 50%;transform: translate(-30%,-30%);"
+            <view class="relative w-14 h-18 ml-2 mt-2" v-for="(sample, index) in frameAnalysis.samples.slice(0, 5)" :key="index">
+              <image class="w-14 h-18" :src="sample.frame_url"></image>
+              <image class="absolute w-5 h-5 z-1" style="top: 50%;left: 50%;transform: translate(-50%,-50%);"
                 :src="iconframe" @click="showVideoModal(sample.original_video_url)"></image>
+
+              <view class="h-5 video_title" style="font-size: 12px;">第{{ numberToChinese(index+1) }}题</view>
             </view>
           </template>
           <template v-else>
@@ -118,17 +130,17 @@
               {{ item.original_question }}
             </view>
           </view>
-          <view class="mt-2 w-92% ml-4% rounded" style="background-color: #F2F7FF;">
+          <view class="mt-2 w-92% ml-4% rounded" style="background-color: #f4f5f7;">
             <view class="pt-3 pl-3 text-xs">面试人回答：</view>
-            <view class="pt-3 pr-3 pl-3 text-xs text-#a1a1aa">{{ item.answer }}</view>
+            <view class="pt-3 pr-3 pl-3 text-xs text-#a1a1aa">{{ filiterNum(item.answer) }}</view>
           </view>
           <view class="mt-2 w-92% ml-4% rounded" style="background-color: #F2F7FF;">
             <view class="flex pt-3 pr-3 pl-3">
-              <view class="text-xs w-30">整体分析：</view>
+              <view class="text-xs w-30" style="word-break: keep-all;">整体分析：</view>
               <view class="text-xs text-#a1a1aa">{{ item.reason }}</view>
             </view>
             <view class="flex pt-1 pr-3 pl-3">
-              <view class="" style="font-size: 12px;">打分：</view>
+              <view class="" style="font-size: 12px;word-break: keep-all;">打分：</view>
               <wd-progress :percentage="item.score * 10" hide-text style="width: 220px"></wd-progress>
               <view class="font-bold ml-3">{{ item.score * 10 }}</view>
             </view>
@@ -141,7 +153,7 @@
       <xzzw class="my-10" />
       <xzzw class="my-10" /> -->
       <wd-popup v-model="isModalVisible">
-        <video :src="showVideo" controls style="width: 380px; height: 214px"></video>
+        <video :src="showVideo" controls autoplay style="width: 380px; height: 214px"></video>
       </wd-popup>
     </view>
   </view>
@@ -273,6 +285,11 @@
     }
 
     return chinese;
+  }
+
+  // 去掉字符串中的数字
+  function filiterNum(str) {
+    return str.replace(/\d+/g, '');
   }
 
   onLoad((options) => {
@@ -444,4 +461,17 @@
     height: 100%;
     background-color: #F6F7FB;
   }
+
+  .nav-bg{
+  background: linear-gradient( 180deg, #145EFF 0%, #1383FF 100%);
+}
+.video_title{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  color: #fff;
+  text-align: center;
+  background-color: rgba($color: #000000, $alpha: 0.4);
+}
 </style>

@@ -10,7 +10,7 @@
   <view class="w-full bg-#f5f7fb min-h-[210vw] h-auto relative overflow-y-auto">
     <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-white" v-if="getENVIR() !== 'wx'">
       <view class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1" @click="handleClickLeft"></view>
-      <view class="absolute left-2/5">Ai视频面试</view>
+      <view class="absolute left-2/5">Ai面试记录</view>
     </view>
     <!-- 背景图 -->
     <view class="">

@@ -479,6 +479,13 @@ onMounted(async () => {
   } else {
     console.error('未找到 interviews_id')
   }
+  if ('speechSynthesis' in window) {
+    alert('Web Speech API 支持')
+    // uni.showToast({ title: 'Web Speech API 支持', icon: 'none' });
+  } else {
+    alert('当前浏览器不支持语音合成')
+    // uni.showToast({ title: '当前浏览器不支持语音合成', icon: 'none' });
+  }
 })
 // 组件卸载时关闭摄像头
 onBeforeUnmount(() => {
@@ -682,6 +689,7 @@ const overTip = () => {
   /* 覆盖整个视口高度 */
   object-fit: cover;
   /* 确保视频按比例填充 */
+  transform: scaleX(-1); /* 添加这一行来水平翻转视频 */
 }
 
 .wrapper {

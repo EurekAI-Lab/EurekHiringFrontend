@@ -18,7 +18,7 @@
           style="top: 50%; transform: translateY(-50%)"
           @click="handleClickLeft"
         ></view>
-        <view class="absolute left-2/5" style="top: 50%; transform: translateY(-50%)">Ai面试</view>
+        <view class="absolute left-2/5" style="top: 50%; transform: translateY(-50%)">Ai面试记录</view>
       </view>
     </view>
     <view class="">
@@ -154,8 +154,8 @@
               {{ item.jobseeker.name }}
             </view>
             <view class="absolute top-9.5 w-80 text-xs text-#616366 left-3">
-              {{ item.jobseeker.age }}岁 | {{ item.jobseeker.work_experience_years }} |
-              {{ item.jobseeker.education_level }} | {{ item.jobseeker.currently_employed }}·{{
+              {{ item.jobseeker.age }}岁 | {{ item.jobseeker.work_experience_years }}年经验 |
+              {{ item.jobseeker.education_level }} | {{ item.jobseeker.currently_employed }}{{
                 item.jobseeker.availability_time
               }}
             </view>
@@ -625,7 +625,39 @@ const scrollElement = (atype) => {
 
 // 跳回APP 展示简历
 const jump = () => {
-  toast.warning('跳回APP 展示简历')
+  try {
+    // 从本地存储获取 token
+    const token = uni.getStorageSync('token');
+    
+    if (!token) {
+      toast.warning('未找到登录信息，请重新登录');
+      return;
+    }
+    
+    // 解析 token 获取 userId
+    // JWT 格式为：header.payload.signature
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      toast.warning('token 格式不正确');
+      return;
+    }
+    
+    // 解码 payload 部分（Base64URL 解码）
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const userId = payload.sub;
+    
+    if (!userId) {
+      toast.warning('无法获取用户ID');
+      return;
+    }
+    
+    // 调用 APP 原生方法，传入 userId
+    appApi.callback("openUserVitaeInfo", userId);
+    console.log('调用 APP 原生方法成功，userId:', userId);
+  } catch (error) {
+    console.error('调用 APP 原生方法失败:', error);
+    toast.warning('无法打开简历，请确保在 APP 环境中运行');
+  }
 }
 
 // 将秒数转换为"xx分钟xx秒"格式
