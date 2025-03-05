@@ -69,7 +69,7 @@
           <view class="flex flex-row w-[95%] pt-1">
             <view class="text-gray">面试完成时长：</view>
             <view>{{ formatTimeToMinSec(item.time_spent) }}</view>
-          </view>
+          </view> 
         </view>
       </view>
 
@@ -149,8 +149,7 @@
     }
   })
   function formatCompletionTime(isoString) {
-    const date = new Date(isoString)
-    return date.toISOString().replace('T', ' ').substring(0, 19)
+    return isoString.replace('T', ' ').substring(0, 19)
   }
   onMounted(() => {
     getInterviewList()

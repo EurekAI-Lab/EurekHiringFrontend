@@ -210,7 +210,7 @@
             <view class="absolute top-43 left-3 flex flex-row">
               <image class="w-6 h-6 rounded-full" :src="item.recruiter.avatar_url"></image>
               <view class="overflow-hidden text-xs absolute w-30 top-1 left-8">
-                招聘者：{{ item.recruiter.id }}
+                招聘者：{{ item.recruiter.user_name }}
               </view>
 
               <view class="overflow-hidden flex flex-row text-xs absolute w-30 top-1 left-55">
@@ -533,11 +533,16 @@ const changeShowData = async () => {
         }
       })
       .sort((a, b) => {
-        // 将 result 为 'PASS' 的项排在前面
-        return (
-          (b.interview_result.result === 'PASS' ? 1 : 0) -
-          (a.interview_result.result === 'PASS' ? 1 : 0)
-        )
+        // 首先按照 result 为 'PASS' 的项排在前面
+        const resultSort = (b.interview_result.result === 'PASS' ? 1 : 0) -
+          (a.interview_result.result === 'PASS' ? 1 : 0);
+        
+        // 如果 result 相同，则按照时间排序（最近的排在前面）
+        if (resultSort === 0) {
+          return new Date(b.interview_result.created_at).getTime() - new Date(a.interview_result.created_at).getTime();
+        }
+        
+        return resultSort;
       })
   } else {
     interviewShowData.value = interviewResults.value
@@ -555,11 +560,16 @@ const changeShowData = async () => {
         }
       })
       .sort((a, b) => {
-        // 将 next_step 为 'INVITE' 的项排在前面
-        return (
-          (b.interview_result.next_step === 'INVITE' ? 1 : 0) -
-          (a.interview_result.next_step === 'INVITE' ? 1 : 0)
-        )
+        // 首先按照 next_step 为 'INVITE' 的项排在前面
+        const nextStepSort = (b.interview_result.next_step === 'INVITE' ? 1 : 0) -
+          (a.interview_result.next_step === 'INVITE' ? 1 : 0);
+        
+        // 如果 next_step 相同，则按照时间排序（最近的排在前面）
+        if (nextStepSort === 0) {
+          return new Date(b.interview_result.created_at).getTime() - new Date(a.interview_result.created_at).getTime();
+        }
+        
+        return nextStepSort;
       })
   }
 
