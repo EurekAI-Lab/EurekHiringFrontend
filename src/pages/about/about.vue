@@ -495,16 +495,21 @@ const handleInterviewResult = (resultId, userId, nextStep) => {
         success: (res) => {
           if (res.statusCode === 200) {
             toast.success('处理成功')
-            try {
-              // 调用 APP 原生方法，传入 userId
-              appApi.callback(
-                'inviteInterview',
-                JSON.stringify({ positionId: '', employeeUserid: `${userId}` }),
-              )
-              console.log('调用 APP 原生方法成功，userId:', userId)
-            } catch (error) {
-              console.error('调用 APP 原生方法失败:', error)
-              toast.warning('无法打开简历，请确保在 APP 环境中运行')
+            if (nextStep !== 'DISCARD') {
+              try {
+                // 调用 APP 原生方法，传入 userId
+                appApi.callback(
+                  'inviteInterview',
+                  JSON.stringify({ positionId: '', employeeUserid: `${userId}` }),
+                )
+                console.log('调用 APP 原生方法成功，userId:', userId)
+              } catch (error) {
+                console.error('调用 APP 原生方法失败:', error)
+                toast.warning('无法打开简历，请确保在 APP 环境中运行')
+              }
+            } else {
+              isBigTabOneActive.value = false
+              isSmallTabOneActive.value = false
             }
           } else {
             toast.error('处理失败')
