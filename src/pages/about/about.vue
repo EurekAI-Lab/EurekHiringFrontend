@@ -587,8 +587,8 @@ const changeShowData = async () => {
         // 如果 next_step 相同，则按照时间排序（最近的排在前面）
         if (nextStepSort === 0) {
           return (
-            new Date(b.interview_result.created_at).getTime() -
-            new Date(a.interview_result.created_at).getTime()
+            new Date(b.interview_result.updated_at).getTime() -
+            new Date(a.interview_result.updated_at).getTime()
           )
         }
 
