@@ -24,7 +24,7 @@
           <view class="w-full h-12 bg-white rounded-3xl flex flex-row items-center shadow-#D0D7E5 shadow">
             <view class="i-carbon-search pl-8 h-5" />
             <view class="-pl-2 w-75">
-              <input type="text" v-model="searchValue" placeholder="搜索关键词" />
+              <input type="text" v-model="searchValue" placeholder="搜索关键词" @blur="my_test_interviews(searchValue)"/>
             </view>
           </view>
         </view>
@@ -145,11 +145,18 @@
     my_test_interviews()
   })
 
-  const my_test_interviews = async () => {
+  const my_test_interviews = async (keyword = "") => {
+    if (keyword.trim() !== "") {
+      console.log('search')
+    }
     loading.value = true
     try {
+      const trimmedKeyword = keyword.trim();
+      const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : "";
+      const url = `${baseUrl}/interviews/my_test_interviews/${queryParams}`;
+
       const response = await uni.request({
-        url: baseUrl + `/interviews/my_test_interviews/`,
+        url: url,
         method: 'GET',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
       })

@@ -24,7 +24,7 @@
           <view class="w-full h-12 bg-white rounded-3xl flex flex-row items-center shadow-#D0D7E5 shadow">
             <view class="i-carbon-search pl-8 h-5" />
             <view class="-pl-2 w-75">
-              <input type="text" v-model="searchValue" placeholder="搜索关键词" />
+              <input type="text" v-model="searchValue" placeholder="搜索关键词" @blur="getInterviewList(searchValue)"/>
             </view>
           </view>
         </view>
@@ -173,12 +173,19 @@
     }
   }
   // 获取面试记录
-  async function getInterviewList() {
+  async function getInterviewList(keyword = "") {
+    if (keyword.trim() !== "") {
+      console.log('search')
+    }
     try {
+      const trimmedKeyword = keyword.trim();
+      const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : "";
+      const url = `${baseUrl}/interviews/my_ai_interviews/${queryParams}`;
+
       loading.value = true
       const token = uni.getStorageSync('token')
       const response = await uni.request({
-        url: `${baseUrl}/interviews/my_ai_interviews/`,
+        url: url,
         method: 'GET',
         header: {
           Authorization: `Bearer ${token}`,
