@@ -508,8 +508,10 @@ const handleInterviewResult = (resultId, userId, nextStep) => {
                 toast.warning('无法打开简历，请确保在 APP 环境中运行')
               }
             } else {
+              getInterviewList()
               isBigTabOneActive.value = false
-              isSmallTabOneActive.value = false
+              isBigTabOneActive.value = false
+              isSmallTabTwoActive.value = false
             }
           } else {
             toast.error('处理失败')
