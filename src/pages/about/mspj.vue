@@ -90,7 +90,7 @@
           >
             <view
               class="relative w-14 h-18 ml-2 mt-2"
-              v-for="(sample, index) in frameAnalysis.samples.slice(0, 5)"
+              v-for="(sample, index) in frameAnalysis.samples"
               :key="index"
             >
               <image class="w-14 h-18" :src="sample.frame_url"></image>
