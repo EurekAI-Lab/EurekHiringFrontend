@@ -499,7 +499,7 @@ const handleInterviewResult = (resultId, userId, nextStep) => {
               // 调用 APP 原生方法，传入 userId
               appApi.callback(
                 'inviteInterview',
-                JSON.stringify({ positionId: '', employeeUserid: userId }),
+                JSON.stringify({ positionId: '', employeeUserid: `${userId}` }),
               )
               console.log('调用 APP 原生方法成功，userId:', userId)
             } catch (error) {
@@ -711,7 +711,7 @@ const jump = (userId) => {
   try {
     alert('userId: ' + userId)
     // 调用 APP 原生方法，传入 userId
-    appApi.callback('openUserVitaeInfo', userId)
+    appApi.callback('openUserVitaeInfo', `${userId}`)
     console.log('调用 APP 原生方法成功，userId:', userId)
   } catch (error) {
     console.error('调用 APP 原生方法失败:', error)
