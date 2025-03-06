@@ -65,9 +65,9 @@
     <view v-if="interviewList.length === 0 && !loading" class="w-full flex justify-center items-center mt-10">
       <wd-status-tip image="search" tip="我们将根据您的求职意向自动生成面试题目，帮助您在企业的正式AI视频面试中顺利通过，点击【开始模拟】来体验一下吧！" />
     </view>
-    <view class="bottom-0 w-full h-10 flex justify-center items-center pt-5 pb-12 fixed bg-white">
+    <view class="bottom-0 w-full h-10 flex justify-center items-center pt-4 pb-6 fixed bg-white">
       <view @click="showSheet = true"
-        class="bg-gradient-to-r from-#1173fd to-#4fc2fd bg-opacity-50 backdrop-blur-lg w-[85%] h-full flex justify-center items-center text-white text-base font-serif font-extrabold rounded-3xl shadow-xl shadow-blue-500/50">
+        class="bg-gradient-to-r from-#1173fd to-#4fc2fd bg-opacity-50 backdrop-blur-lg w-[85%] h-full flex justify-center items-center text-white text-base font-serif font-extrabold rounded-3xl">
         开始模拟
       </view>
     </view>
