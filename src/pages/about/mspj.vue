@@ -1,5 +1,11 @@
 <route lang="json5">
-{ style: { navigationStyle: 'custom', navigationBarTitleText: '面试报告' } }
+{
+  style: {
+    navigationStyle: 'custom',
+    navigationBarTitleText: '面试报告',
+    enablePullDownRefresh: true,
+  },
+}
 </route>
 <template>
   <!-- <vue-pull-refresh :on-refresh="handleRefresh"> -->
@@ -212,6 +218,7 @@ import Aizdsc from '@/pages/about/components/aizdsc.vue'
 import Aimn from '@/pages/about/components/aimn.vue'
 import Xzzw from '@/pages/about/components/xzzw.vue'
 import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { navigateBack } from '@/utils/platformUtils'
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 // 定义接口返回的数据结构
 interface InterviewReportItem {
@@ -448,7 +455,7 @@ function handleClickLeft() {
     uni.navigateBack()
     uni.removeStorageSync('from')
   } else {
-    appApi.callback('pagerFinish', '')
+    navigateBack()
   }
 }
 

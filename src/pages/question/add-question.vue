@@ -63,6 +63,9 @@ import iconFj from '../../static/app/icons/icon_fj.png'
 import { ref } from 'vue'
 import { generateOneQuestionAPI } from '@/service/api'
 import { usePublicStore } from '@/store'
+import { useToast } from 'wot-design-uni'
+
+const toast = useToast()
 const publicStore = usePublicStore()
 const query = {
   positionName: '',
@@ -108,6 +111,25 @@ const getQuestion = async () => {
 }
 
 const saveQuestion = () => {
+  // 校验题目标题不能为空
+  if (!value3.value || value3.value.trim() === '') {
+    toast.error('题目内容不能为空')
+    return
+  }
+  
+  // 校验考核点不能为空
+  if (!value1.value || value1.value.trim() === '') {
+    toast.error('考核点不能为空')
+    return
+  }
+  
+  // 校验面试时间格式
+  const timeRegex = /^\d+分钟$/
+  if (!value2.value || !timeRegex.test(value2.value)) {
+    toast.error('面试时间格式必须为"x分钟"，如"5分钟"')
+    return
+  }
+  
   publicStore.questionState.questions.push({
     index: publicStore.questionState.questions.length + 1,
     interview_aspect: value1.value,

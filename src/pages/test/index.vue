@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { getPlatformType, PlatformType, navigateBack } from '@/utils/platformUtils'
 
 const currentEnvironment = ref('')
 const functionResponse = ref('')
@@ -39,22 +40,16 @@ function handleClickLeft() {
 }
 
 const detectEnvironment = () => {
-  if (/android/i.test(navigator.userAgent)) {
-    currentEnvironment.value = 'Android'
-  } else if (/iPad|iPhone|iPod/i.test(navigator.userAgent)) {
-    currentEnvironment.value = 'iOS'
-  } else {
-    currentEnvironment.value = '其他'
-  }
+  currentEnvironment.value = getPlatformType()
 }
 
 const callFunction = () => {
   try {
-    if (currentEnvironment.value === 'Android') {
-      appApi.callback('pagerFinish')
+    if (currentEnvironment.value === PlatformType.ANDROID) {
+      navigateBack()
       functionResponse.value = '调用 Android 函数成功！'
-    } else if (currentEnvironment.value === 'iOS') {
-      window.webkit.messageHandlers.pagerFinish.postMessage(null)
+    } else if (currentEnvironment.value === PlatformType.IOS) {
+      navigateBack()
       functionResponse.value = '调用 iOS 函数成功！'
     } else {
       functionResponse.value = '当前环境不支持函数调用！'

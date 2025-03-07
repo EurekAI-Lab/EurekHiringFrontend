@@ -95,6 +95,7 @@
   import rame from '../../static/app/icons/Frame-001.png'
   import { useQueue, useToast, useMessage } from 'wot-design-uni'
   import wxSdk from 'weixin-js-sdk';
+  import { navigateBack } from '@/utils/platformUtils'
   function getENVIR() {
     let text = ''
     let ua = navigator.userAgent.toLowerCase();
@@ -156,7 +157,7 @@
   })
   function handleClickLeft() {
     // uni.navigateBack()
-    appApi.callback('pagerFinish', '')
+    navigateBack()
   }
   // 将秒数转换为"xx分钟xx秒"格式
   const formatTimeToMinSec = (seconds: number) => {

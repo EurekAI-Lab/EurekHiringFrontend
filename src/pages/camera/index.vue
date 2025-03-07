@@ -130,6 +130,7 @@ import { ref, onBeforeUnmount } from 'vue'
 import icon01 from '../../static/app/icons/Frame-001.png'
 import icon02 from '../../static/app/icons/Frame-002.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
+import { navigateBack, interviewOver } from '@/utils/platformUtils'
 
 const message = useMessage()
 
@@ -568,7 +569,7 @@ const handleExit = async () => {
                 return
               }
             }
-            appApi.callback('pagerFinish', '')
+            navigateBack()
           } catch (error) {
             console.log('返回app函数报错', error)
             toast.error('更新面试状态失败')
@@ -610,13 +611,10 @@ const handleExit = async () => {
     console.log(res1.data.data.redirect_url)
 
     try {
-      appApi.callback(
-        'Interview_over',
-        JSON.stringify({
-          url: res1.data.data.redirect_url,
-          companyName: interviewDetails.value.position.enterprise_name,
-          jobName: interviewDetails.value.position.title,
-        }),
+      interviewOver(
+        res1.data.data.redirect_url,
+        interviewDetails.value.position.enterprise_name,
+        interviewDetails.value.position.title
       )
     } catch (error) {
       console.log('面试结束app函数报错', error)
@@ -634,7 +632,7 @@ const handleExit = async () => {
         title: '提示',
         beforeConfirm: async ({ resolve }) => {
           try {
-            appApi.callback('pagerFinish', '')
+            navigateBack()
           } catch (error) {
             console.log('返回app函数报错', error)
           }

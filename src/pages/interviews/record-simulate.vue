@@ -156,6 +156,7 @@ import zfj from '../../static/app/icons/icon_zfj.png'
 import dw from '../../static/app/icons/icon_dw.png'
 import dh from '../../static/app/icons/icon_dh.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
+import { navigateBack } from '@/utils/platformUtils'
 const toast = useToast()
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
@@ -244,8 +245,7 @@ onLoad((options) => {
   }
 })
 function handleClickLeft() {
-  // uni.navigateBack()
-  appApi.callback('pagerFinish', '')
+  navigateBack()
 }
 
 const items = ref([])

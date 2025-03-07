@@ -183,6 +183,7 @@ import icon003 from '../../static/app/icons/Frame-003.png'
 import icoTs from '../../static/app/icons/icon_ts.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { usePublicStore } from '@/store'
+import { navigateBack, aiInterviewSaved } from '@/utils/platformUtils'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 
@@ -199,7 +200,7 @@ const positionsId = ref<number | null>(null)
 
 function handleClickLeft() {
   // uni.navigateBack()
-  appApi.callback('pagerFinish', '')
+  navigateBack()
 }
 
 onLoad((options) => {
@@ -403,6 +404,12 @@ const testPaperId = ref()
 const enterpriseId = ref()
 const positionId = ref()
 const saveQusetion = async () => {
+  // 检查是否有题目
+  if (publicStore.questionState.questions.length === 0) {
+    toast.error('请至少添加一道面试题目')
+    return
+  }
+
   message
     .confirm({ msg: '确认要保存面试题吗？', title: '提示' })
     .then(() => {
@@ -427,8 +434,11 @@ const saveQusetion = async () => {
           if (res.statusCode === 200) {
             toast.success('保存面试题成功,返回到APP')
             try {
-              appApi.callback('aiInterviewSaved', '')
-              appApi.callback('pagerFinish', '')
+              // 只有当有题目时才调用返回APP的函数
+              if (publicStore.questionState.questions.length > 0) {
+                aiInterviewSaved()
+                navigateBack()
+              }
             } catch (error) {
               console.log('返回app函数报错', error)
             }

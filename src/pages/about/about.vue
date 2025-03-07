@@ -304,6 +304,7 @@ import yyy from '../../static/app/icons/icon_yyy.png'
 // import fchs from '../../static/app/icons/icon_fchs.png'
 import jobIcon from '../../static/app/icons/icon_job.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
+import { navigateBack, inviteInterview, openUserVitaeInfo } from '@/utils/platformUtils'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 const interviewResults = ref([]) // 存储面试结果
@@ -380,7 +381,7 @@ const isSticky = ref(false)
 const offsetTop = ref(null)
 function handleClickLeft() {
   // uni.navigateBack()
-  appApi.callback('pagerFinish', '')
+  navigateBack()
 }
 
 // 监视这两个计算属性
@@ -498,10 +499,7 @@ const handleInterviewResult = (resultId, userId, nextStep) => {
             if (nextStep !== 'DISCARD') {
               try {
                 // 调用 APP 原生方法，传入 userId
-                appApi.callback(
-                  'inviteInterview',
-                  JSON.stringify({ positionId: '', employeeUserid: `${userId}` }),
-                )
+                inviteInterview(userId)
                 console.log('调用 APP 原生方法成功，userId:', userId)
               } catch (error) {
                 console.error('调用 APP 原生方法失败:', error)
@@ -718,7 +716,7 @@ const jump = (userId) => {
   try {
     alert('userId: ' + userId)
     // 调用 APP 原生方法，传入 userId
-    appApi.callback('openUserVitaeInfo', `${userId}`)
+    openUserVitaeInfo(userId)
     console.log('调用 APP 原生方法成功，userId:', userId)
   } catch (error) {
     console.error('调用 APP 原生方法失败:', error)
