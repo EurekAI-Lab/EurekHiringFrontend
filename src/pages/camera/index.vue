@@ -1,10 +1,5 @@
 <route lang="json5">
-{
-  style: {
-    navigationStyle: 'custom',
-    navigationBarTitleText: '视频面试',
-  },
-}
+{ style: { navigationStyle: 'custom', navigationBarTitleText: '视频面试' } }
 </route>
 <template>
   <view class="flex w-full h-115% overflow-hidden relative">
@@ -158,22 +153,12 @@ interface Question {
 }
 
 interface InterviewDetailsResponse {
-  data: {
-    position: Position
-    questions: Question[]
-  }
+  data: { position: Position; questions: Question[] }
 }
 
 // 定义状态
 const interviewDetails = ref<InterviewDetailsResponse>({
-  position: {
-    id: 0,
-    title: '',
-    description: '',
-    location: '',
-    salary_range: '',
-    status: 0,
-  },
+  position: { id: 0, title: '', description: '', location: '', salary_range: '', status: 0 },
   questions: [],
 })
 const currentQuestionIndex = ref(0) // 当前题目索引
@@ -195,10 +180,25 @@ const recordedData = ref([])
 const loading = ref(false)
 const interviewId = ref()
 const videoDuration = ref(0) // 添加视频时长变量
-const fileFrom = reactive({
-  interview_id: ref(),
-  fileUrls: [],
+const fileFrom = reactive({ interview_id: ref(), fileUrls: [] })
+
+// 创建音频
+const innerAudioContext = uni.createInnerAudioContext()
+// innerAudioContext.autoplay = true;
+innerAudioContext.onPlay(() => {
+  console.log('开始播放')
 })
+innerAudioContext.onError((res) => {
+  console.log(res.errMsg)
+  console.log(res.errCode)
+})
+
+const play = () => {
+  console.log('currentQuestionIndex.value', currentQuestionIndex.value)
+  innerAudioContext.src = interviewDetails.value.questions[currentQuestionIndex.value].audio_url
+  innerAudioContext.play()
+}
+
 const startInterview = () => {
   isTimingShow.value = true
   startRecording()
@@ -217,10 +217,10 @@ const startRecording = async () => {
 const stopRecordingAndSave = async () => {
   if (currentQuestionIndex.value < interviewDetails.value.questions.length - 1) {
     currentQuestionIndex.value++
+    play()
     startCountdown()
   } else {
     currentQuestionIndex.value++
-
     handleExit()
   }
   recordedData.value = []
@@ -273,9 +273,7 @@ const downloadRecordedVideo = () => {
 
 const getUploadInfo = async () => {
   try {
-    const response = await uni.request({
-      url: baseUrl + '/files/post-policy?ext=mp4',
-    })
+    const response = await uni.request({ url: baseUrl + '/files/post-policy?ext=mp4' })
     await uploadFile(response.data.data)
   } catch (error) {
     alert('获取视频上传路径失败' + JSON.stringify(error))
@@ -445,8 +443,10 @@ const handleStart = () => {
         })
 
         if (response.statusCode === 200) {
+          console.log('开始播放语音')
           startCountdown()
           isInterviewStarted.value = true
+          play()
         } else {
           toast.error('更新面试状态失败')
         }
@@ -534,7 +534,7 @@ const formatTimeToMinSec = (seconds: number) => {
   if (seconds <= 0) return '0秒'
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
-  
+
   if (minutes === 0) {
     return `${remainingSeconds}秒`
   } else if (remainingSeconds === 0) {
@@ -604,10 +604,7 @@ const handleExit = async () => {
       url: baseUrl + `/interviews/redirect-url/`,
       method: 'GET',
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-      data: {
-        status: 3,
-        interview_id: interviewId.value,
-      },
+      data: { status: 3, interview_id: interviewId.value },
     })
     console.log('res1.data')
     console.log(res1.data.data.redirect_url)

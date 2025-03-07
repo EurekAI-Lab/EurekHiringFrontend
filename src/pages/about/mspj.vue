@@ -2,6 +2,7 @@
 { style: { navigationStyle: 'custom', navigationBarTitleText: '面试报告' } }
 </route>
 <template>
+  <!-- <vue-pull-refresh :on-refresh="handleRefresh"> -->
   <view class="relative h-100% overflow-auto">
     <!-- 顶部导航 -->
     <view class="fixed z-2 w-full h-22 nav-bg">
@@ -179,9 +180,9 @@
       </view>
       <view class="w-85 h-5"></view>
       <!-- <aizdsc class="mt-10" />
-        <aimn class="mt-10" />
-        <xzzw class="my-10" />
-        <xzzw class="my-10" /> -->
+          <aimn class="mt-10" />
+          <xzzw class="my-10" />
+          <xzzw class="my-10" /> -->
       <wd-popup v-model="isModalVisible">
         <video
           :src="showVideo"
@@ -192,6 +193,7 @@
       </wd-popup>
     </view>
   </view>
+  <!-- </vue-pull-refresh> -->
 </template>
 
 <script lang="ts" setup>
@@ -209,6 +211,7 @@ import iconbhg from '@/static/app/icons/icon_bhg.png'
 import Aizdsc from '@/pages/about/components/aizdsc.vue'
 import Aimn from '@/pages/about/components/aimn.vue'
 import Xzzw from '@/pages/about/components/xzzw.vue'
+import { onPullDownRefresh } from '@dcloudio/uni-app'
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 // 定义接口返回的数据结构
 interface InterviewReportItem {
@@ -268,29 +271,40 @@ const frameAnalysis = ref({
 onMounted(() => {
   fetchInterviewReport(interviewId.value)
   // 获取面试信息
-  const fetchInterviewInfo = async (interviewId: number) => {
-    try {
-      const response = await uni.request({
-        url: baseUrl + `/interviews/${interviewId}`,
-        method: 'GET',
-        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-      })
-      if (response.statusCode === 200) {
-        console.log('面试初始化结构')
-        console.log(response.data)
-        // 假设接口返回的数据结构是 { company, position, description }
-      } else {
-        console.error('获取面试信息失败:', response.data)
-      }
-    } catch (error) {
-      console.error('请求失败:', error)
-    }
-  }
+  // fetchInterviewInfo;
   if (interviewId.value) {
     fetchInterviewInfo(interviewId.value)
   } else {
     console.error('未找到 interviews_id')
   }
+})
+
+// 获取面试信息
+const fetchInterviewInfo = async (interviewId: number) => {
+  try {
+    const response = await uni.request({
+      url: baseUrl + `/interviews/${interviewId}`,
+      method: 'GET',
+      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+    })
+    if (response.statusCode === 200) {
+      console.log('面试初始化结构')
+      console.log(response.data)
+      // 假设接口返回的数据结构是 { company, position, description }
+    } else {
+      console.error('获取面试信息失败:', response.data)
+    }
+  } catch (error) {
+    console.error('请求失败:', error)
+  }
+}
+
+// 下拉刷新
+onPullDownRefresh(() => {
+  console.log('下拉刷新')
+  fetchInterviewReport(interviewId.value)
+  fetchInterviewInfo(interviewId.value)
+  uni.stopPullDownRefresh() // 停止下拉刷新动画
 })
 
 // 数字转中文大写
