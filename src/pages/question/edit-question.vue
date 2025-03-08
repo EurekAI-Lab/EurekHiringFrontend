@@ -36,9 +36,9 @@ const publicStore = usePublicStore()
 function handleClickLeft() {
   uni.navigateBack()
 }
-const value1 = ref('')
-const value2 = ref('')
-const value3 = ref('')
+const value1 = ref()
+const value2 = ref()
+const value3 = ref()
 const index = ref()
 
 const changeQuestion = () => {
@@ -47,13 +47,13 @@ const changeQuestion = () => {
     toast.error('题目内容不能为空')
     return
   }
-  
+
   // 校验考核点不能为空
   if (!value1.value || value1.value.trim() === '') {
     toast.error('考核点不能为空')
     return
   }
-  
+
   // 校验面试时间格式
   const timeRegex = /^\d+分钟$/
   if (!value2.value || !timeRegex.test(value2.value)) {
@@ -62,13 +62,12 @@ const changeQuestion = () => {
   }
 
   publicStore.questionState.questions.forEach((element) => {
-    if (element.index === index.value) {
+    if (element.index == index.value) {
       element.interview_aspect = value1.value
       element.time = value2.value
       element.question = value3.value
     }
   })
-
   uni.navigateBack()
 }
 

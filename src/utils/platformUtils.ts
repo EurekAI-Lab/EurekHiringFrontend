@@ -36,22 +36,19 @@ export function callPlatformMethod(method: string, params?: any): void {
   try {
     if (platform === PlatformType.ANDROID) {
       // 安卓调用
-      if (window.appApi && typeof window.appApi.callback === 'function') {
-        if (params !== undefined) {
-          window.appApi.callback(method, params)
-        } else {
-          window.appApi.callback(method)
-        }
+      if (params !== undefined) {
+        console.log('安卓调用函数' + `appApi.callback(${method}, ${params})`)
+        appApi.callback(method, params)
       } else {
-        console.error('Android API not found')
+        console.log('安卓调用函数' + `appApi.callback(${method})`)
+        appApi.callback(method)
       }
     } else if (platform === PlatformType.IOS) {
-      // iOS调用
-      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers[method]) {
-        window.webkit.messageHandlers[method].postMessage(params)
-      } else {
-        console.error(`iOS handler for ${method} not found`)
-      }
+      console.log(
+        `iOS调用函数: window.webkit.messageHandlers.${method}.postMessage(${params || 'null'})`,
+      )
+      // 直接使用方法名作为消息处理程序的名称
+      window.webkit.messageHandlers[method].postMessage(params || null)
     } else {
       console.warn(`Platform method call not supported on ${platform}`)
     }
@@ -119,4 +116,4 @@ export function interviewOver(url: string, companyName: string, jobName: string)
  */
 export function aiInterviewSaved(): void {
   callPlatformMethod('aiInterviewSaved', null)
-} 
+}

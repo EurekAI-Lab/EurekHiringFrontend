@@ -405,10 +405,10 @@ const enterpriseId = ref()
 const positionId = ref()
 const saveQusetion = async () => {
   // 检查是否有题目
-  if (publicStore.questionState.questions.length === 0) {
-    toast.error('请至少添加一道面试题目')
-    return
-  }
+  // if (publicStore.questionState.questions.length === 0) {
+  //   toast.error('请至少添加一道面试题目')
+  //   return
+  // }
 
   message
     .confirm({ msg: '确认要保存面试题吗？', title: '提示' })
