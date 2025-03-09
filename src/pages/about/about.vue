@@ -126,8 +126,8 @@
 
     <!-- top-95 -->
     <!-- <view class="elative w-full">
-          <view v-for="(item, index) in 30" class="h-14" :id="index == 0 ? 'firstpass':(index == 8 ? 'firstfail' : '')" :class="index>=8?'failResult':''">列表{{ index }}</view>
-        </view> -->
+            <view v-for="(item, index) in 30" class="h-14" :id="index == 0 ? 'firstpass':(index == 8 ? 'firstfail' : '')" :class="index>=8?'failResult':''">列表{{ index }}</view>
+          </view> -->
 
     <view class="relative w-full">
       <!--卡片 -->
@@ -608,7 +608,7 @@ const changeShowData = async () => {
   // 待处理 // 已处理
   let aKeyWard = isBigTabOneActive.value ? 'result' : 'next_step'
   let aValue = isBigTabOneActive.value ? ['PASS', 'FAIL'] : ['INVITE', 'DISCARD']
-  // console.log('// 待处理 // 已处理', aKeyWard, aValue)
+  console.log('// 待处理 // 已处理', aKeyWard, aValue[0])
   for (const item of interviewShowData.value) {
     if (!firstPassIdAssigned && item.interview_result[aKeyWard] === aValue[0]) {
       item.id = 'firstpass' // 赋值
@@ -626,15 +626,37 @@ const changeShowData = async () => {
     }
   }
 
-  if (!firstPassIdAssigned && interviewShowData.value.length > 0) {
-    isSmallTabOneActive.value = false
-  }
+  console.log('为第一个出现的 PASS 和 FAIL 分别赋值', firstPassIdAssigned, firstFailIdAssigned)
 
-  if (!firstFailIdAssigned && interviewShowData.value.length > 0) {
-    isSmallTabTwoActive.value = false
+  // 判断是否有数据
+  if (interviewShowData.value.length > 0) {
+    // 判断是否存在
+    if (firstPassIdAssigned && interviewShowData.value.length > 0) {
+      isSmallTabOneActive.value = true
+      isSmallTabTwoActive.value = true
+    } else {
+      isSmallTabOneActive.value = false
+      isSmallTabTwoActive.value = false
+    }
+  } else {
+    isSmallTabOneActive.value = true
+    isSmallTabTwoActive.value = true
   }
+  // if (firstPassIdAssigned && interviewShowData.value.length > 0) {
+  //   isSmallTabOneActive.value = true;
+  //   isSmallTabTwoActive.value = true;
+  // } else {
+  //   isSmallTabOneActive.value = false;
+  //   isSmallTabTwoActive.value = false
+  // }
 
-  console.log('处理的数据', interviewShowData.value)
+  // if (!firstFailIdAssigned && interviewShowData.value.length > 0) {
+  //   isSmallTabTwoActive.value = false
+  // } else {
+  //   isSmallTabTwoActive.value = true
+  // }
+
+  console.log('处理的数据', interviewShowData.value, isSmallTabTwoActive.value)
 }
 
 // 点击 合格/不合格 的按钮滚动到指定的位置
@@ -685,6 +707,8 @@ const clickScrollTopFunc = (type, status) => {
       return false
     }
     isSmallTabTwoActive.value = status == 'invite' ? true : false
+
+    console.log('医药与面试', isSmallTabTwoActive.value)
   }
 
   scrollElement(type) // 开始动画循环

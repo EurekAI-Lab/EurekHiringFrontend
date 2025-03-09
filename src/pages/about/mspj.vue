@@ -4,12 +4,15 @@
     navigationStyle: 'custom',
     navigationBarTitleText: '面试报告',
     enablePullDownRefresh: true,
+    'app-plus': {
+      bounce: 'none',
+    },
   },
 }
 </route>
 <template>
-  <!-- <vue-pull-refresh :on-refresh="handleRefresh"> -->
-  <view class="relative h-100% overflow-auto">
+  <!--  h-100% overflow-auto -->
+  <view class="relative">
     <!-- 顶部导航 -->
     <view class="fixed z-2 w-full h-22 nav-bg">
       <view class="w-full h-11"></view>
@@ -24,15 +27,18 @@
         <!-- <view class="absolute left-4/5" @click="saveQuestion()">确定</view> -->
       </view>
     </view>
-    <view
-      class="w-full h-50 flex flex-wrap justify-center pt-24"
-      style="background: linear-gradient(180deg, #145eff 0%, #0cd0ff 100%)"
-    >
-      <view class="bg-#fafafa h-10 w-85 flex items-center rounded">
+    <!-- h-50 h-auto  pt-24-->
+    <view class="relative w-full h-auto flex flex-wrap justify-center pt-24" style="">
+      <!-- 顶部背景 -->
+      <view
+        class="absolute w-100% h-50 z-0 top-22"
+        style="background: linear-gradient(180deg, #145eff 0%, #0cd0ff 100%)"
+      ></view>
+      <view class="relative z-1 bg-#fafafa h-10 w-85 flex items-center rounded">
         <image class="w-4 h-4 ml-4" :src="icon001"></image>
         <view class="pl-3 text-xs">面试职位：{{ mszw }}</view>
       </view>
-      <view class="bg-#fafafa h-22 w-85 rounded mt-2 shadow-md">
+      <view class="relative z-1 bg-#fafafa h-22 w-85 rounded mt-2 shadow-md">
         <wd-row>
           <wd-col :span="4">
             <image
@@ -55,7 +61,7 @@
           </wd-col>
         </wd-row>
       </view>
-      <view class="bg-#fafafa h-auto w-85 rounded mt-3 shadow-md">
+      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md">
         <view class="flex items-center justify-center mt-2">
           <image class="w-4 h-4 ml-2 mt-2" :src="iconjt"></image>
           <view class="ml-5 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
@@ -66,7 +72,7 @@
           {{ overallSummary }}
         </view>
       </view>
-      <view class="bg-#fafafa h-auto w-85 rounded mt-3 shadow-md pb-2">
+      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md pb-2">
         <wd-row>
           <wd-col :span="4">
             <image class="w-6 h-6 ml-2 mt-2" src=""></image>
@@ -122,7 +128,7 @@
           </template>
         </view>
       </view>
-      <view class="bg-#fafafa h-auto w-85 pb-5 rounded mt-3 shadow-md">
+      <view class="relative z-1 bg-#fafafa h-auto w-85 pb-5 rounded mt-3 shadow-md">
         <view class="flex items-center justify-center mt-2">
           <image class="w-4 h-4 ml-2 mt-2" :src="iconjt"></image>
           <view class="ml-5 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
@@ -186,9 +192,9 @@
       </view>
       <view class="w-85 h-5"></view>
       <!-- <aizdsc class="mt-10" />
-          <aimn class="mt-10" />
-          <xzzw class="my-10" />
-          <xzzw class="my-10" /> -->
+            <aimn class="mt-10" />
+            <xzzw class="my-10" />
+            <xzzw class="my-10" /> -->
       <wd-popup v-model="isModalVisible">
         <video
           :src="showVideo"
@@ -199,7 +205,6 @@
       </wd-popup>
     </view>
   </view>
-  <!-- </vue-pull-refresh> -->
 </template>
 
 <script lang="ts" setup>
@@ -311,7 +316,9 @@ onPullDownRefresh(() => {
   console.log('下拉刷新')
   fetchInterviewReport(interviewId.value)
   fetchInterviewInfo(interviewId.value)
-  uni.stopPullDownRefresh() // 停止下拉刷新动画
+  setTimeout(function () {
+    uni.stopPullDownRefresh() // 停止下拉刷新动画
+  }, 1000)
 })
 
 // 数字转中文大写
@@ -505,7 +512,8 @@ uni-page-body,
 }
 
 .nav-bg {
-  background: linear-gradient(180deg, #145eff 0%, #1383ff 100%);
+  // background: linear-gradient(180deg, #145eff 0%, #1383ff 100%);
+  background-color: #145eff;
 }
 .video_title {
   position: absolute;
