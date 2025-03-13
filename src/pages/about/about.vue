@@ -738,7 +738,6 @@ const scrollElement = (atype) => {
 // 跳回APP 展示简历
 const jump = (userId) => {
   try {
-    alert('userId: ' + userId)
     // 调用 APP 原生方法，传入 userId
     openUserVitaeInfo(userId)
     console.log('调用 APP 原生方法成功，userId:', userId)

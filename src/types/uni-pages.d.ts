@@ -6,6 +6,7 @@
 interface NavigateToOptions {
   url: "/pages/question/question" |
        "/pages/about/about" |
+       "/pages/about/mspj-loading" |
        "/pages/about/mspj" |
        "/pages/camera/index" |
        "/pages/interviews/record-simulate" |
@@ -17,7 +18,7 @@ interface NavigateToOptions {
 interface RedirectToOptions extends NavigateToOptions {}
 
 interface SwitchTabOptions {
-  url: "/pages/question/question" | "/pages/about/about" | "/pages/about/mspj" | "/pages/camera/index" | "/pages/interviews/record" | "/pages/interviews/record-simulate" | "/pages/test/index"
+  
 }
 
 type ReLaunchOptions = NavigateToOptions | SwitchTabOptions;

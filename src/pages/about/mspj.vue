@@ -361,7 +361,6 @@ onLoad((options) => {
     alert('未找到 token 参数')
   }
   const storedInterviewId = uni.getStorageSync('interviewId')
-
   if (options.interviewId && !isNaN(options.interviewId)) {
     interviewId.value = parseInt(options.interviewId, 10)
   } else if (storedInterviewId) {

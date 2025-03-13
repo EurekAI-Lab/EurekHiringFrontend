@@ -254,8 +254,9 @@ const getInterviewInfo = async (positionsId: any) => {
     } else {
       alert('获取面试信息失败')
     }
+    console.log('Response:', response) // 断点：检查响应内容
   } catch (error) {
-    console.error('请求失败:', error)
+    console.error('请求失败:', error) // 断点：检查请求失败原因
   }
 }
 // 计算总时间
@@ -352,25 +353,35 @@ const chatStream = () => {
 
   // 处理流数据
   const processStream = async () => {
-    publicStore.questionState.questions.length = 0
+    if (!Array.isArray(publicStore.questionState.questions)) {
+      console.error('questions不是数组，初始化为空数组')
+      publicStore.questionState.questions = []
+    }
     const index = ref(publicStore.questionState.questions.length)
     while (true) {
       const { done, value } = await streamReader.read()
+      console.log('Stream1 value:', value) // 断点：检查流数据内容
       if (done) {
         publicStore.questionState.loading = false
         break
       }
-      const res = JSON.parse(value)
-      publicStore.questionState.questions.push({
-        index: ++index.value,
-        question: res.question,
-        time: res.time,
-        interview_aspect: res.interview_aspect,
-      })
-      uni.pageScrollTo({
-        scrollTop: 2000000,
-        duration: 300, // 滚动动画持续时间，单位 ms
-      })
+      console.log('Stream2 value:', value) // 断点：检查流数据内容
+      try {
+        const res = JSON.parse(value)
+        publicStore.questionState.questions.push({
+          index: ++index.value,
+          question: res.question,
+          time: res.time,
+          interview_aspect: res.interview_aspect,
+        })
+        uni.pageScrollTo({
+          scrollTop: 2000000,
+          duration: 300, // 滚动动画持续时间，单位 ms
+        })
+        console.log('Stream value:', value) // 断点：检查流数据内容
+      } catch (error) {
+        console.error('解析流数据时出错:', error) // 断点：检查解析错误
+      }
     }
   }
 
@@ -404,12 +415,6 @@ const testPaperId = ref()
 const enterpriseId = ref()
 const positionId = ref()
 const saveQusetion = async () => {
-  // 检查是否有题目
-  // if (publicStore.questionState.questions.length === 0) {
-  //   toast.error('请至少添加一道面试题目')
-  //   return
-  // }
-
   message
     .confirm({ msg: '确认要保存面试题吗？', title: '提示' })
     .then(() => {
@@ -430,15 +435,13 @@ const saveQusetion = async () => {
           data: publicStore.questionState.questions,
         })
         res.then((res) => {
-          console.log(res)
+          toast.success('保存成功')
+
           if (res.statusCode === 200) {
-            toast.success('保存面试题成功,返回到APP')
             try {
               // 只有当有题目时才调用返回APP的函数
-              if (publicStore.questionState.questions.length > 0) {
-                aiInterviewSaved()
-                navigateBack()
-              }
+              aiInterviewSaved()
+              navigateBack()
             } catch (error) {
               console.log('返回app函数报错', error)
             }
@@ -446,6 +449,7 @@ const saveQusetion = async () => {
             alert('保存面试题接口发生错误' + res.statusCode)
           }
         })
+        console.log('Fetch response:', res) // 断点：检查fetch响应
       } catch (error) {
         alert('保存面试题接口发生错误' + error)
       }

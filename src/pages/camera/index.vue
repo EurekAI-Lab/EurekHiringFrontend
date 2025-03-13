@@ -74,8 +74,7 @@
           </view>
           <view>
             <view class="flex flex-row gap-x-3">
-              {{ interviewDetails.data.questions[currentQuestionIndex].question
-              }}{{ interviewDetails.data.questions[currentQuestionIndex].question }}
+              {{ interviewDetails.data.questions[currentQuestionIndex].question }}
             </view>
           </view>
         </view>
@@ -140,12 +139,25 @@ import { ref, onBeforeUnmount } from 'vue'
 import icon01 from '../../static/app/icons/Frame-001.png'
 import icon02 from '../../static/app/icons/Frame-002.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
-import { navigateBack, interviewOver } from '@/utils/platformUtils'
+import { navigateBack, interviewOver, getPlatformType, PlatformType } from '@/utils/platformUtils'
 
 const message = useMessage()
 
 const toast = useToast()
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+
+// 获取当前平台的 MIME 类型
+const getMimeType = () => {
+  const platform = getPlatformType()
+  return platform === PlatformType.IOS ? 'video/mp4' : 'video/webm'
+}
+
+// 获取当前平台的文件扩展名
+const getFileExtension = () => {
+  const platform = getPlatformType()
+  return platform === PlatformType.IOS ? 'mp4' : 'webm'
+}
+
 // 定义接口
 interface Position {
   id: number
@@ -235,6 +247,9 @@ const startInterview = () => {
   console.log('重置视频时长为0')
 
   startRecording()
+  // 启动MediaRecorder状态监控
+  startMediaRecorderMonitor()
+
   timeLeft.value =
     interviewDetails.value.data.questions[currentQuestionIndex.value].interview_time * 60 // 设置题目时间
   isTiming.value = true
@@ -242,6 +257,99 @@ const startInterview = () => {
   startTimer()
 }
 
+// 添加MediaRecorder状态监控函数
+let mediaRecorderMonitorInterval = null
+const startMediaRecorderMonitor = () => {
+  // 清除可能存在的旧监控
+  if (mediaRecorderMonitorInterval) {
+    clearInterval(mediaRecorderMonitorInterval)
+  }
+
+  // 每秒检查一次MediaRecorder状态
+  mediaRecorderMonitorInterval = setInterval(() => {
+    if (!mediaRecorder) {
+      console.warn('MediaRecorder不存在，尝试重新初始化')
+
+      if (stream.value) {
+        try {
+          const mimeType = getMimeType()
+          mediaRecorder = new MediaRecorder(stream.value, { mimeType })
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+              recordedData.value.push(event.data)
+            }
+          }
+          mediaRecorder.start()
+        } catch (error) {
+          console.error('MediaRecorder重新初始化失败:', error)
+        }
+      } else {
+        console.error('没有可用的媒体流，无法重新初始化MediaRecorder')
+        startCamera()
+          .then(() => {
+            if (stream.value) {
+              try {
+                const mimeType = getMimeType()
+                mediaRecorder = new MediaRecorder(stream.value, { mimeType })
+                mediaRecorder.ondataavailable = (event) => {
+                  if (event.data && event.data.size > 0) {
+                    recordedData.value.push(event.data)
+                  }
+                }
+                mediaRecorder.start()
+              } catch (error) {
+                console.error('重新获取媒体流后初始化MediaRecorder失败:', error)
+              }
+            }
+          })
+          .catch((error) => {
+            console.error('重新获取媒体流失败:', error)
+          })
+      }
+      return
+    }
+
+    if (mediaRecorder.state !== 'recording') {
+      console.warn(`MediaRecorder不在录制状态，当前状态: ${mediaRecorder.state}，尝试重新启动`)
+
+      try {
+        // 如果是非活动状态，重新启动录制
+        if (mediaRecorder.state === 'inactive') {
+          mediaRecorder.start()
+        } else if (mediaRecorder.state === 'paused') {
+          // 如果是暂停状态，恢复录制
+          mediaRecorder.resume()
+        }
+      } catch (error) {
+        console.error('重新启动MediaRecorder失败，尝试重新初始化:', error)
+
+        // 如果重新启动失败，尝试重新初始化
+        if (stream.value) {
+          try {
+            const mimeType = getMimeType()
+            if (mediaRecorder) {
+              mediaRecorder.stop()
+              mediaRecorder.stream.getTracks().forEach((track) => track.stop())
+            }
+            mediaRecorder = new MediaRecorder(stream.value, { mimeType })
+            mediaRecorder.ondataavailable = (event) => {
+              if (event.data && event.data.size > 0) {
+                recordedData.value.push(event.data)
+              }
+            }
+            mediaRecorder.start()
+          } catch (error) {
+            console.error('MediaRecorder重新初始化失败:', error)
+          }
+        }
+      }
+    } else {
+      console.log('MediaRecorder正在正常录制中')
+    }
+  }, 1000) // 每秒检查一次
+}
+
+// 修改 startRecording 函数中的 MediaRecorder 初始化
 const startRecording = async () => {
   // 检查 mediaRecorder 是否存在且不在录制状态
   if (mediaRecorder && mediaRecorder.state === 'recording') {
@@ -255,7 +363,9 @@ const startRecording = async () => {
     if (mediaRecorder.state === 'inactive') {
       console.log('MediaRecorder 处于非活动状态，重新初始化')
       if (stream.value) {
-        mediaRecorder = new MediaRecorder(stream.value, { mimeType: 'video/webm' })
+        const mimeType = getMimeType()
+        console.log(`使用 MIME 类型: ${mimeType}`)
+        mediaRecorder = new MediaRecorder(stream.value, { mimeType })
         mediaRecorder.ondataavailable = (event) => {
           if (event.data && event.data.size > 0) {
             recordedData.value.push(event.data)
@@ -281,8 +391,8 @@ const startRecording = async () => {
 const stopRecordingAndSave = async () => {
   console.log(`停止录制并保存题目 ${currentQuestionIndex.value} 的视频`)
 
-  // 清空之前的录制数据
-  recordedData.value = []
+  // 停止MediaRecorder状态监控
+  stopMediaRecorderMonitor()
 
   if (mediaRecorder) {
     // 检查 mediaRecorder 状态
@@ -294,28 +404,26 @@ const stopRecordingAndSave = async () => {
 
         // 将所有 Blob 数据合并为一个 Blob
         if (recordedData.value.length > 0) {
-          const finalBlob = new Blob(recordedData.value, { type: 'video/webm' })
+          const mimeType = getMimeType()
+          const finalBlob = new Blob(recordedData.value, { type: mimeType })
           blobData.value = finalBlob // 存储合并后的 Blob 到专门的引用
           console.log(`合并 ${recordedData.value.length} 个数据块，总大小: ${finalBlob.size}`)
 
           // 上传当前题目的视频
           await getUploadInfo()
 
-          // 等待上传完成
-          await new Promise((resolve) => setTimeout(resolve, 1000))
+          // 在录制停止后，再处理下一题
+          if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
+            console.log(`进入下一题: ${currentQuestionIndex.value + 1}`)
+            currentQuestionIndex.value++
+            play()
+            triggerAnotherMethod()
+          } else {
+            console.log('已完成所有题目，退出面试')
+            handleExit()
+          }
         } else {
           console.warn(`题目 ${currentQuestionIndex.value} 没有录制到数据`)
-        }
-
-        // 在录制停止后，再处理下一题
-        if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
-          currentQuestionIndex.value++
-          console.log(`进入下一题: ${currentQuestionIndex.value}`)
-          play()
-          triggerAnotherMethod()
-        } else {
-          console.log('已完成所有题目，退出面试')
-          handleExit()
         }
       }
 
@@ -326,6 +434,9 @@ const stopRecordingAndSave = async () => {
 
       // 即使不在录制状态，也继续处理下一题
       if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
+        console.log(
+          `MediaRecorder不在录制状态，但仍准备进入下一题: ${currentQuestionIndex.value + 1}`,
+        )
         currentQuestionIndex.value++
         console.log(`进入下一题: ${currentQuestionIndex.value}`)
         play()
@@ -340,6 +451,7 @@ const stopRecordingAndSave = async () => {
 
     // 如果没有 mediaRecorder，直接处理下一题
     if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
+      console.log(`MediaRecorder未初始化，但仍准备进入下一题: ${currentQuestionIndex.value + 1}`)
       currentQuestionIndex.value++
       console.log(`进入下一题: ${currentQuestionIndex.value}`)
       play()
@@ -407,7 +519,12 @@ const saveInterview = async () => {
     if (response.statusCode === 200) {
       toast.success('面试数据提交成功')
     } else {
-      toast.error('面试数据提交失败: ' + JSON.stringify(response.data))
+      // duration
+      toast.error({
+        loadingType: 'ring',
+        msg: '面试数据提交失败: ' + JSON.stringify(response.data?.detail),
+        duration: 3000,
+      })
     }
 
     return response
@@ -433,27 +550,18 @@ const downloadRecordedVideo = () => {
   }
 }
 
+// 修改 getUploadInfo 函数中的文件扩展名
 const getUploadInfo = async () => {
   try {
-    const response = await uni.request({ url: baseUrl + '/files/post-policy?ext=mp4' })
+    const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=mp4` })
     // 添加类型断言
     const responseData = response.data as any
     await uploadFile(responseData.data)
-  } catch (error) {
-    alert('获取视频上传路径失败' + JSON.stringify(error))
-  }
+  } catch (error) {}
 }
 
 // 修改 uploadFile 函数
 const uploadFile = async (opt: any) => {
-  // 使用当前题目索引
-  console.log(
-    '准备上传视频，当前题目索引:',
-    currentQuestionIndex.value,
-    '视频时长:',
-    videoDuration.value,
-  )
-
   const formData = {
     key: opt.cosKey,
     policy: opt.policy,
@@ -466,17 +574,16 @@ const uploadFile = async (opt: any) => {
 
   if (opt.securityToken) formData['x-cos-security-token'] = opt.securityToken
 
-  // 创建一个 File 对象
   let fileToUpload: any = blobData.value
 
-  // 如果浏览器支持 File 构造函数，创建一个 File 对象
   if (typeof File !== 'undefined' && blobData.value instanceof Blob) {
     try {
-      fileToUpload = new File([blobData.value], 'video.webm', { type: 'video/webm' })
-      console.log('成功创建 File 对象，大小:', fileToUpload.size)
+      const mimeType = getMimeType()
+      const fileExt = getFileExtension()
+      fileToUpload = new File([blobData.value], `video.${fileExt}`, { type: mimeType })
+      console.log(`成功创建 File 对象，类型: ${mimeType}，大小: ${fileToUpload.size}`)
     } catch (e) {
       console.error('创建 File 对象失败，使用 Blob:', e)
-      // 如果创建 File 失败，继续使用 Blob
       console.log('使用 Blob 对象，大小:', blobData.value.size)
     }
   } else {
@@ -484,14 +591,11 @@ const uploadFile = async (opt: any) => {
     if (blobData.value) {
       console.log('blobData 类型:', typeof blobData.value, '大小:', blobData.value.size || '未知')
     } else {
-      console.error('blobData 为空')
       return
     }
   }
 
-  // 保存当前视频时长，防止在异步操作过程中被修改
   const currentVideoDuration = videoDuration.value
-  // 保存当前题目索引，防止在异步操作过程中被修改
   const currentQuestionIdx = currentQuestionIndex.value
 
   console.log(`开始上传题目 ${currentQuestionIdx} 的视频，时长: ${currentVideoDuration}秒`)
@@ -502,7 +606,6 @@ const uploadFile = async (opt: any) => {
     name: 'file',
     formData,
     success: (res) => {
-      startCamera()
       if (![200, 204].includes(res.statusCode)) {
         console.error('上传失败，状态码:', res.statusCode)
         return
@@ -511,14 +614,12 @@ const uploadFile = async (opt: any) => {
       const uploadedFileUrl =
         'https://' + opt.cosHost + '/' + camSafeUrlEncode(opt.cosKey).replace(/%2F/g, '/')
 
-      // 使用保存的索引和视频时长，注意 question_id 需要加1
       const fileData = {
-        question_id: currentQuestionIdx + 1, // 索引加1后提交
+        question_id: currentQuestionIdx + 1,
         video_url: uploadedFileUrl,
         video_duration: currentVideoDuration,
       }
 
-      // 检查是否已经有相同题目索引的记录（注意：这里的比较也要加1）
       const existingIndex = fileFrom.fileUrls.findIndex(
         (item) => item.question_id === currentQuestionIdx + 1,
       )
@@ -535,13 +636,13 @@ const uploadFile = async (opt: any) => {
     },
     fail: (err) => {
       console.error('上传失败:', err)
-      alert('上传失败')
     },
     complete: () => {
-      console.log(`题目 ${currentQuestionIdx} 的视频上传请求已完成`)
+      toast.close()
     },
   })
 }
+
 const startTimer = () => {
   clearInterval(timer.value)
   console.log('开始计时，初始视频时长:', videoDuration.value)
@@ -596,6 +697,8 @@ const nextQuestion = async () => {
         title: '进入下一题',
       })
       .then(() => {
+        toast.loading('保存视频中...')
+
         if (currentQuestionIndex.value === interviewDetails.value.data.questions.length - 2) {
           console.log('进入最后一题，设置完成面试按钮')
           overQuestion.value = true
@@ -609,8 +712,7 @@ const nextQuestion = async () => {
   } else {
     // 最后一题，点击完成面试
     console.log('完成面试，当前视频时长:', videoDuration.value)
-    isTiming.value = false
-    isTimeUp.value = true
+    toast.loading('保存视频中...')
 
     // 停止计时器
     const stopTimer = startTimer()
@@ -625,8 +727,7 @@ const nextQuestion = async () => {
         if (mediaRecorder.state === 'recording') {
           recordedData.value = []
           mediaRecorder.onstop = async () => {
-            // 将所有 Blob 数据合并为一个 Blob
-            const finalBlob = new Blob(recordedData.value, { type: 'video/webm' })
+            const finalBlob = new Blob(recordedData.value, { type: getMimeType() })
             blobData.value = finalBlob // 使用 blobData 存储
 
             // 确保最后一题的视频上传完成
@@ -635,8 +736,6 @@ const nextQuestion = async () => {
 
             // 等待一段时间确保上传完成
             setTimeout(() => {
-              // 直接调用 handleExit 处理完成面试逻辑
-              console.log('准备提交面试数据，当前已上传:', fileFrom.fileUrls.length, '条记录')
               handleExit()
             }, 2000)
           }
@@ -647,7 +746,7 @@ const nextQuestion = async () => {
 
           // 检查是否已经有最后一题的录制数据
           const hasLastQuestionData = fileFrom.fileUrls.some(
-            (item) => item.question_id === currentQuestionIndex.value,
+            (item) => item.question_id === currentQuestionIndex.value + 1,
           )
 
           if (hasLastQuestionData) {
@@ -659,7 +758,7 @@ const nextQuestion = async () => {
             if (stream.value) {
               try {
                 // 重新创建 MediaRecorder
-                mediaRecorder = new MediaRecorder(stream.value, { mimeType: 'video/webm' })
+                mediaRecorder = new MediaRecorder(stream.value, { mimeType: getMimeType() })
                 recordedData.value = []
 
                 // 设置数据可用事件处理程序
@@ -676,7 +775,7 @@ const nextQuestion = async () => {
 
                   if (recordedData.value.length > 0) {
                     // 将所有 Blob 数据合并为一个 Blob
-                    const finalBlob = new Blob(recordedData.value, { type: 'video/webm' })
+                    const finalBlob = new Blob(recordedData.value, { type: getMimeType() })
                     blobData.value = finalBlob
 
                     // 上传最后一题的视频
@@ -733,7 +832,7 @@ const nextQuestion = async () => {
 const startCamera = async () => {
   try {
     stream.value = await navigator.mediaDevices.getUserMedia({
-      video: { width: { exact: 1000 }, height: { exact: 525 } },
+      video: { width: { exact: 1000 }, height: { exact: 525 }, facingMode: 'user' },
       audio: true,
     })
     const videoTrack = stream.value.getVideoTracks()[0]
@@ -747,32 +846,25 @@ const startCamera = async () => {
     }
     items[0].play()
 
-    mediaRecorder = new MediaRecorder(stream.value, { mimeType: 'video/webm' })
+    // 根据平台选择合适的 MIME 类型
+    const platform = getPlatformType()
+    const mimeType = platform === PlatformType.IOS ? 'video/mp4' : 'video/webm'
+    console.log(`初始化 MediaRecorder，平台: ${platform}，使用 MIME 类型: ${mimeType}`)
+
+    mediaRecorder = new MediaRecorder(stream.value, { mimeType })
     mediaRecorder.ondataavailable = (event) => {
       recordedData.value.push(event.data)
     }
+    // alert('启动摄像头成功')
   } catch (error) {
     if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-      alert('User denied camera access. Please allow access to use the camera.')
+      alert('请在浏览器设置中允许摄像头权限')
     } else {
-      alert('An error occurred while trying to access the camera: ' + error.message)
+      alert('启动摄像头失败:' + JSON.stringify(error))
     }
   }
 }
 const countdown = ref(0)
-
-const countdownItmer = ref()
-const startCountdown = () => {
-  noticeShow.value = true
-  countdown.value = 10
-  timer.value = setInterval(() => {
-    countdown.value -= 1
-    if (countdown.value <= 0) {
-      clearInterval(timer.value)
-      triggerAnotherMethod()
-    }
-  }, 1000)
-}
 
 const triggerAnotherMethod = () => {
   noticeShow.value = false
@@ -810,7 +902,6 @@ const handleStart = () => {
 
         if (response.statusCode === 200) {
           console.log('开始播放语音')
-          // startCountdown()
           triggerAnotherMethod()
           isInterviewStarted.value = true
           play()
@@ -852,18 +943,21 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   // stopCamera()
   clearInterval(timer.value)
+  // 清除MediaRecorder状态监控
+  if (mediaRecorderMonitorInterval) {
+    clearInterval(mediaRecorderMonitorInterval)
+  }
 })
-
+const test = ref(false)
 onLoad((options) => {
   if (options.token) {
     uni.setStorageSync('token', options.token)
-  } else {
-    alert('未找到 token 参数')
   }
   if (options.interviewId) {
     interviewId.value = parseInt(options.interviewId, 10) // 将字符串转换为数字
-  } else {
-    alert('未找到 interviewId 参数')
+  }
+  if (options.test === 'true') {
+    test.value = true
   }
 })
 // 通过 interviews_id 获取面试岗位以及试题信息
@@ -879,6 +973,9 @@ const fetchInterviewInfo = async (interviewId: number) => {
       // 添加类型断言
       const responseData = response.data as any
       interviewDetails.value = responseData
+      if (interviewDetails.value.data.questions.length === 1) {
+        overQuestion.value = true
+      }
     } else {
       console.error('获取面试信息失败:', response.data)
     }
@@ -917,7 +1014,19 @@ function handleClickLeft() {
   uni.navigateBack()
 }
 
+const { safeAreaInsets } = uni.getSystemInfoSync()
+const isExiting = ref(false) // 添加标志变量，防止多次触发退出逻辑
+
 const handleExit = async () => {
+  // 如果已经在退出过程中，直接返回
+  if (isExiting.value) {
+    console.log('已经在退出过程中，忽略重复点击')
+    return
+  }
+  
+  // 设置退出标志
+  isExiting.value = true
+  
   if (currentQuestionIndex.value === 0) {
     message
       .confirm({
@@ -934,6 +1043,7 @@ const handleExit = async () => {
               })
               if (response.statusCode !== 200) {
                 toast.error('更新面试状态失败')
+                isExiting.value = false // 重置退出标志
                 return
               }
             }
@@ -941,6 +1051,7 @@ const handleExit = async () => {
           } catch (error) {
             console.log('返回app函数报错', error)
             toast.error('更新面试状态失败')
+            isExiting.value = false // 重置退出标志
           }
           toast.close()
         },
@@ -948,8 +1059,13 @@ const handleExit = async () => {
       .then(() => {
         uni.navigateBack()
       })
+      .catch(() => {
+        isExiting.value = false // 取消操作时重置退出标志
+      })
   } else {
     // 面试结束 TODO return url
+    toast.loading({ loadingType: 'ring', msg: '正在更新面试状态' })
+
     if (isInterviewStarted.value) {
       try {
         // 更新面试状态
@@ -960,11 +1076,13 @@ const handleExit = async () => {
         })
         if (statusResponse.statusCode !== 200) {
           toast.error('更新面试状态失败')
+          isExiting.value = false // 重置退出标志
           return
         }
       } catch (error) {
         console.error('更新面试状态失败:', error)
         toast.error('更新面试状态失败')
+        isExiting.value = false // 重置退出标志
         return
       }
     }
@@ -983,6 +1101,8 @@ const handleExit = async () => {
       console.log(res1Data.data.redirect_url)
 
       try {
+        // 只调用一次interviewOver方法
+        console.log('调用interviewOver方法')
         interviewOver(
           res1Data.data.redirect_url,
           interviewDetails.value.data.position.enterprise_name,
@@ -998,6 +1118,7 @@ const handleExit = async () => {
         method: 'POST',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
       })
+      toast.close()
 
       // 显示确认对话框
       message
@@ -1036,7 +1157,13 @@ const handleExit = async () => {
               // 提交面试数据
               await saveInterview()
               toast.close()
-              navigateBack()
+              if (!test.value) {
+                navigateBack()
+              } else {
+                uni.navigateTo({
+                  url: '/pages/about/mspj-loading?interviewId=' + interviewId.value,
+                })
+              }
             } catch (error) {
               console.log('提交面试数据失败', error)
               toast.error('提交面试数据失败')
@@ -1064,6 +1191,12 @@ const handleExit = async () => {
 }
 
 const overTip = () => {
+  // 如果已经在退出过程中，直接返回
+  if (isExiting.value) {
+    console.log('已经在退出过程中，忽略重复点击')
+    return
+  }
+  
   if (!overQuestion.value) {
     message
       .confirm({
@@ -1073,8 +1206,19 @@ const overTip = () => {
       .then(() => {
         handleExit()
       })
+      .catch(() => {
+        isExiting.value = false // 取消操作时重置退出标志
+      })
   } else {
     handleExit()
+  }
+}
+
+// 在停止录制时也要清除监控
+const stopMediaRecorderMonitor = () => {
+  if (mediaRecorderMonitorInterval) {
+    clearInterval(mediaRecorderMonitorInterval)
+    mediaRecorderMonitorInterval = null
   }
 }
 </script>
