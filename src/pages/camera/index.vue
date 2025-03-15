@@ -97,7 +97,6 @@
       >
         终止面试
       </view>
-
       <view
         v-if="!isInterviewStarted"
         class="w-[60%] bg-blue-500 text-white rounded-lg py-2 text-center ml-2"
@@ -110,10 +109,8 @@
         class="w-[60%] bg-green-500 text-white rounded-lg py-2 text-center ml-2"
         @click="nextQuestion()"
       >
-        <!-- <view v-if="countdown > 0">跳过休息时间</view> -->
         <view>下一题</view>
       </view>
-
       <view
         v-if="overQuestion"
         class="w-[60%] bg-green-500 text-white rounded-lg py-2 text-center ml-2"
@@ -912,6 +909,9 @@ const handleStart = () => {
         console.error('更新面试状态失败:', error)
         toast.error('更新面试状态失败')
       }
+      if (interviewDetails.value.data.questions.length === 1 && isInterviewStarted.value) {
+        overQuestion.value = true
+      }
     })
     .catch((error) => {
       console.log(error)
@@ -973,7 +973,7 @@ const fetchInterviewInfo = async (interviewId: number) => {
       // 添加类型断言
       const responseData = response.data as any
       interviewDetails.value = responseData
-      if (interviewDetails.value.data.questions.length === 1) {
+      if (interviewDetails.value.data.questions.length === 1 && isInterviewStarted.value) {
         overQuestion.value = true
       }
     } else {
@@ -1023,10 +1023,10 @@ const handleExit = async () => {
     console.log('已经在退出过程中，忽略重复点击')
     return
   }
-  
+
   // 设置退出标志
   isExiting.value = true
-  
+
   if (currentQuestionIndex.value === 0) {
     message
       .confirm({
@@ -1046,6 +1046,8 @@ const handleExit = async () => {
                 isExiting.value = false // 重置退出标志
                 return
               }
+
+              saveInterview()
             }
             navigateBack()
           } catch (error) {
@@ -1196,7 +1198,7 @@ const overTip = () => {
     console.log('已经在退出过程中，忽略重复点击')
     return
   }
-  
+
   if (!overQuestion.value) {
     message
       .confirm({
