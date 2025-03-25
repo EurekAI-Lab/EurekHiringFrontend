@@ -74,6 +74,9 @@ importers:
       recordrtc:
         specifier: ^5.6.2
         version: 5.6.2
+      vconsole:
+        specifier: ^3.15.1
+        version: 3.15.1
       vue:
         specifier: 3.4.21
         version: 3.4.21(typescript@5.8.2)
@@ -246,9 +249,6 @@ importers:
       unplugin-auto-import:
         specifier: ^0.17.8
         version: 0.17.8(rollup@4.34.9)
-      vconsole:
-        specifier: ^3.11.0
-        version: 3.15.1
       vite:
         specifier: 5.2.8
         version: 5.2.8(@types/node@20.17.23)(sass@1.78.0)(terser@5.39.0)

@@ -4,7 +4,7 @@
 
 <template>
   <view class="w-full bg-#f5f7fb min-h-[210vw] h-auto relative overflow-y-auto">
-    <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-white fixed">
+    <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-white ">
       <view
         class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1"
         @click="handleClickLeft"
@@ -16,27 +16,6 @@
       <image :src="aibg07" class="w-full h-50"></image>
     </view>
 
-    <wd-sticky :offset-top="-45">
-      <view class="h-15">
-        <!-- 搜索框 -->
-        <view class="flex flex-row justify-center h-10 px-3 pt-2">
-          <view
-            class="w-full h-12 bg-white rounded-3xl flex flex-row items-center shadow-#D0D7E5 shadow"
-          >
-            <view class="i-carbon-search pl-8 h-5" />
-            <view class="-pl-2 w-75">
-              <input
-                type="text"
-                v-model="searchValue"
-                placeholder="搜索关键词"
-                @blur="my_test_interviews(searchValue)"
-              />
-            </view>
-          </view>
-        </view>
-      </view>
-    </wd-sticky>
-    <!--  -->
     <view
       v-for="item in interviewList"
       :key="item"

@@ -49,47 +49,78 @@ const startProgressSimulation = () => {
 
 // 轮询查询面试报告接口
 const pollInterviewReport = () => {
+  let retryCount = 0
+  const maxRetries = 20 // 最大重试次数，20次 * 30秒 = 10分钟
+
   pollInterval.value = setInterval(async () => {
     if (!interviewId.value) return
 
     try {
+      retryCount++
+      console.log(`第 ${retryCount} 次轮询查询`)
+
       const response = await uni.request({
         url: baseUrl + `/interviews/interview_report/${interviewId.value}`,
         method: 'GET',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
       })
 
-      // 如果请求成功且有数据，跳转到面试报告页面
       if (response.statusCode === 200) {
         const responseData = response.data as any
-
-        // 检查是否有有效的报告数据
         if (responseData && responseData.report_data && responseData.report_data.length > 0) {
           // 停止轮询和进度模拟
           clearAllIntervals()
-
           // 设置进度为100%
           progress.value = 100
-
           // 延迟跳转，让用户看到100%的进度
           setTimeout(() => {
             navigateToReportPage()
           }, 1000)
         } else {
-          // 报告数据不完整，继续等待
-          console.log('面试报告数据不完整，继续等待...')
+          console.log('报告数据不完整，继续等待...')
+          if (retryCount >= maxRetries) {
+            clearAllIntervals()
+            uni.showToast({
+              title: '报告生成超时，请稍后重试',
+              icon: 'none',
+              duration: 2000
+            })
+            setTimeout(() => {
+              navigateBack()
+            }, 2000)
+          }
         }
       } else if (response.statusCode === 404 || response.statusCode === 400) {
-        // 报告不存在，继续等待
-        console.log('面试报告不存在，继续等待...')
+        console.log('报告不存在，继续等待...')
+        if (retryCount >= maxRetries) {
+          clearAllIntervals()
+          uni.showToast({
+            title: '报告生成失败，请稍后重试',
+            icon: 'none',
+            duration: 2000
+          })
+          setTimeout(() => {
+            navigateBack()
+          }, 2000)
+        }
       } else {
-        // 其他错误
         console.error('获取面试报告失败:', response)
       }
     } catch (error) {
       console.error('轮询面试报告出错:', error)
+      if (retryCount >= maxRetries) {
+        clearAllIntervals()
+        uni.showToast({
+          title: '网络错误，请稍后重试',
+          icon: 'none',
+          duration: 2000
+        })
+        setTimeout(() => {
+          navigateBack()
+        }, 2000)
+      }
     }
-  }, 8000) as unknown as number
+  }, 30000) // 每30秒查询一次
 }
 
 // 跳转到面试报告页面
@@ -143,16 +174,44 @@ onLoad((options) => {
     interviewId.value = parseInt(options.interviewId, 10)
   }
 })
-onMounted(() => {
+onMounted(async () => {
   // 获取路由参数
   if (interviewId.value) {
     console.log('获取到面试ID:', interviewId.value)
+    
+    // 先立即查询一次
+    try {
+      const response = await uni.request({
+        url: baseUrl + `/interviews/interview_report/${interviewId.value}`,
+        method: 'GET',
+        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+      })
 
-    // 先等待一分钟，然后再开始轮询
-    console.log('等待一分钟后开始轮询查询面试报告...')
-    setTimeout(() => {
+      // 如果第一次查询就成功且有数据
+      if (response.statusCode === 200) {
+        const responseData = response.data as any
+        if (responseData && responseData.report_data && responseData.report_data.length > 0) {
+          console.log('首次查询成功，直接跳转')
+          // 设置进度为100%
+          progress.value = 100
+          // 延迟跳转，让用户看到100%的进度
+          setTimeout(() => {
+            navigateToReportPage()
+          }, 1000)
+          return // 如果成功就不需要启动轮询
+        }
+      }
+
+      // 如果第一次查询不成功，启动轮询
+      console.log('首次查询未获取到报告，开始轮询...')
+      startProgressSimulation() // 启动进度模拟
+      pollInterviewReport() // 启动轮询
+    } catch (error) {
+      console.error('首次查询失败:', error)
+      // 发生错误时也启动轮询
+      startProgressSimulation()
       pollInterviewReport()
-    }, 30000) // 60秒 = 1分钟
+    }
   } else {
     // 没有面试ID，显示错误并返回
     uni.showToast({

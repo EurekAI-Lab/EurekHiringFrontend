@@ -129,7 +129,7 @@
       <view class="flex justify-center items-center left-[30%] scroll" id="scroll">
         <view class="wrapper flex flex-col text-black" v-if="publicStore.questionState.loading">
           <wd-loading />
-          <view>Ai正在返回面试推荐题目</view>
+          <view>Ai正在生成面试题目</view>
           <view>请稍等</view>
         </view>
       </view>
@@ -307,85 +307,137 @@ const query = ref({
   testPaperId: '',
 })
 const chatStream = () => {
-  uni.pageScrollTo({
-    scrollTop: 2000000,
-    duration: 300, // 滚动动画持续时间，单位 ms
-  })
+  // 不再重置数组，只设置 loading 状态
   publicStore.questionState.loading = true
+  let isStreamClosed = false
+
+  // 保存当前最大的 index，用于新题目的编号
+  const startIndex =
+    publicStore.questionState.questions.length > 0
+      ? Math.max(...publicStore.questionState.questions.map((q) => q.index))
+      : 0
 
   // 创建一个新的 ReadableStream
   const stream = new ReadableStream({
     start(controller) {
-      // 使用 fetch 发送 POST 请求
       fetch(baseUrl + '/interview-questions/generateQuestion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(query.value), // 携带参数
+        body: JSON.stringify(query.value),
       })
         .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
           const reader = response.body.getReader()
           const decoder = new TextDecoder('utf-8')
 
-          // 读取流
-          const readStream = () => {
-            reader.read().then(({ done, value }) => {
-              if (done) {
-                controller.close()
-                return
-              }
-              // 解码并推送到可读流
-              controller.enqueue(decoder.decode(value))
-              readStream() // 递归读取
-            })
+          function readStream() {
+            if (isStreamClosed) {
+              controller.close()
+              return
+            }
+
+            reader
+              .read()
+              .then(({ done, value }) => {
+                if (done) {
+                  controller.close()
+                  return
+                }
+                try {
+                  controller.enqueue(decoder.decode(value))
+                  readStream()
+                } catch (error) {
+                  console.error('Stream读取错误:', error)
+                  controller.error(error)
+                }
+              })
+              .catch((error) => {
+                console.error('读取流失败:', error)
+                controller.error(error)
+              })
           }
 
-          readStream() // 开始读取
+          readStream()
         })
         .catch((error) => {
-          console.error('Error:', error)
+          console.error('Fetch错误:', error)
           controller.error(error)
+          publicStore.questionState.loading = false
         })
+    },
+    cancel() {
+      isStreamClosed = true
     },
   })
 
-  // 创建一个可读取的流
-  const streamReader = stream.getReader()
-
-  // 处理流数据
+  // 修改 processStream 函数
   const processStream = async () => {
-    if (!Array.isArray(publicStore.questionState.questions)) {
-      console.error('questions不是数组，初始化为空数组')
-      publicStore.questionState.questions = []
-    }
-    const index = ref(publicStore.questionState.questions.length)
-    while (true) {
-      const { done, value } = await streamReader.read()
-      console.log('Stream1 value:', value) // 断点：检查流数据内容
-      if (done) {
-        publicStore.questionState.loading = false
-        break
+    try {
+      const streamReader = stream.getReader()
+      let currentIndex = startIndex // 从当前最大 index 开始
+
+      while (true) {
+        try {
+          const { done, value } = await streamReader.read()
+
+          if (done) {
+            console.log('流读取完成')
+            break
+          }
+
+          if (!value) {
+            console.log('收到空值，跳过处理')
+            continue
+          }
+
+          try {
+            const res = JSON.parse(value)
+            if (!Array.isArray(publicStore.questionState.questions)) {
+              publicStore.questionState.questions = []
+            }
+
+            // 添加新题目到现有数组末尾
+            publicStore.questionState.questions.push({
+              index: ++currentIndex,
+              question: res.question,
+              time: res.time,
+              interview_aspect: res.interview_aspect,
+            })
+
+            // 滚动到底部
+            uni.pageScrollTo({
+              scrollTop: 2000000,
+              duration: 300,
+            })
+          } catch (parseError) {
+            console.error('JSON解析错误:', parseError)
+          }
+        } catch (readError) {
+          console.error('读取流错误:', readError)
+          break
+        }
       }
-      console.log('Stream2 value:', value) // 断点：检查流数据内容
-      try {
-        const res = JSON.parse(value)
-        publicStore.questionState.questions.push({
-          index: ++index.value,
-          question: res.question,
-          time: res.time,
-          interview_aspect: res.interview_aspect,
-        })
-        uni.pageScrollTo({
-          scrollTop: 2000000,
-          duration: 300, // 滚动动画持续时间，单位 ms
-        })
-        console.log('Stream value:', value) // 断点：检查流数据内容
-      } catch (error) {
-        console.error('解析流数据时出错:', error) // 断点：检查解析错误
-      }
+    } catch (error) {
+      console.error('处理流错误:', error)
+    } finally {
+      publicStore.questionState.loading = false
     }
   }
 
-  processStream() // 开始处理流
+  // 添加超时处理
+  const timeout = setTimeout(() => {
+    isStreamClosed = true
+    publicStore.questionState.loading = false
+    console.log('流处理超时')
+  }, 30000) // 30秒超时
+
+  // 开始处理流并清理
+  processStream().finally(() => {
+    clearTimeout(timeout)
+    publicStore.questionState.loading = false
+  })
 }
 
 // 删除题目

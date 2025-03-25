@@ -178,7 +178,7 @@ function formatCompletionTime(isoString) {
   return isoString.replace('T', ' ').substring(0, 19)
 }
 onMounted(() => {
-  alert('获取当前环境：' + getENVIR())
+  // alert('获取当前环境：' + getENVIR())
   getInterviewList()
 })
 function handleClickLeft() {

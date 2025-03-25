@@ -169,7 +169,6 @@
     "vite": "5.2.8",
     "vite-plugin-restart": "^0.4.2",
     "vue-tsc": "^1.8.27",
-    "vconsole": "^3.15.1",
     "weixin-js-sdk": "^1.6.5"
   }
 }

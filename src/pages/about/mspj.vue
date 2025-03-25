@@ -14,7 +14,7 @@
   <!--  h-100% overflow-auto -->
   <view class="relative">
     <!-- 顶部导航 -->
-    <view class="fixed z-2 w-full h-22 nav-bg">
+    <view class="fixed z-2 w-full h-22 nav-bg" v-if="getENVIR() !== 'wx'">
       <view class="w-full h-11"></view>
       <view class="relative h-11 flex flex-row text-white">
         <!-- -top-1 -->
@@ -197,6 +197,7 @@
             <xzzw class="my-10" /> -->
       <wd-popup v-model="isModalVisible">
         <video
+          class="mirror"
           :src="showVideo"
           controls
           preload="metadata"
@@ -445,6 +446,25 @@ const fetchInterviewReport = async (interviewId: number) => {
     isLoading.value = false
   }
 }
+function getENVIR() {
+  let text = ''
+  let ua = navigator.userAgent.toLowerCase()
+  if (ua.match(/MicroMessenger/i) == 'micromessenger') {
+    wxSdk.miniProgram.getEnv((res) => {
+      if (res.miniprogram) {
+        //小程序环境
+        text = 'wx'
+      } else {
+        //微信环境
+        text = 'noWx'
+      }
+    })
+  } else {
+    // 其他浏览器
+    text = 'noWx'
+  }
+  return text
+}
 const mszw = ref('')
 const msrName = ref('')
 const ztTime = ref('')
@@ -522,5 +542,10 @@ uni-page-body,
   color: #fff;
   text-align: center;
   background-color: rgba($color: #000000, $alpha: 0.4);
+}
+
+.mirror {
+  transform: scaleX(-1); /* 实现镜像效果 */
+  -webkit-transform: scaleX(-1); /* Safari 支持 */
 }
 </style>

@@ -154,7 +154,7 @@ export default ({ command, mode }) => {
         },
       },
       rollupOptions: {
-        external: ['vconsole'],
+        external: [],
       },
     },
   })

@@ -686,6 +686,7 @@ const handleTimeUp = () => {
   stopRecordingAndSave()
 }
 const noticeShow = ref(false)
+const isRequesting = ref(false)
 const nextQuestion = async () => {
   if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
     message
@@ -707,6 +708,10 @@ const nextQuestion = async () => {
       })
       .catch(() => {})
   } else {
+    if (isRequesting.value) {
+      return
+    }
+    isRequesting.value = true
     // 最后一题，点击完成面试
     console.log('完成面试，当前视频时长:', videoDuration.value)
     toast.loading('保存视频中...')
@@ -1049,11 +1054,13 @@ const handleExit = async () => {
 
               saveInterview()
             }
+            isRequesting.value = false
             navigateBack()
           } catch (error) {
             console.log('返回app函数报错', error)
             toast.error('更新面试状态失败')
             isExiting.value = false // 重置退出标志
+            isRequesting.value = false
           }
           toast.close()
         },
@@ -1166,9 +1173,11 @@ const handleExit = async () => {
                   url: '/pages/about/mspj-loading?interviewId=' + interviewId.value,
                 })
               }
+              isRequesting.value = false
             } catch (error) {
               console.log('提交面试数据失败', error)
               toast.error('提交面试数据失败')
+              isRequesting.value = false
             }
           },
         })
@@ -1189,6 +1198,7 @@ const handleExit = async () => {
       saveInterview()
       uni.navigateBack()
     }
+    isRequesting.value = false
   }
 }
 
