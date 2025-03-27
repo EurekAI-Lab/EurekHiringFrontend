@@ -225,7 +225,35 @@ import Aimn from '@/pages/about/components/aimn.vue'
 import Xzzw from '@/pages/about/components/xzzw.vue'
 import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { navigateBack } from '@/utils/platformUtils'
+
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+
+const options = reactive({
+  width: '800px', // 播放器高度
+  height: '450px', // 播放器高度
+  color: '#409eff', // 主题色
+  title: '', // 视频名称
+  src: 'https://cdn.jsdelivr.net/gh/xdlumia/files/video-play/IronMan.mp4', // 视频源
+  muted: false, // 静音
+  webFullScreen: false,
+  speedRate: ['0.75', '1.0', '1.25', '1.5', '2.0'], // 播放倍速
+  autoPlay: false, // 自动播放
+  loop: false, // 循环播放
+  mirror: false, // 镜像画面
+  ligthOff: false, // 关灯模式
+  volume: 0.3, // 默认音量大小
+  control: true, // 是否显示控制
+  controlBtns: [
+    'audioTrack',
+    'quality',
+    'speedRate',
+    'volume',
+    'setting',
+    'pip',
+    'pageFullScreen',
+    'fullScreen',
+  ], // 显示所有按钮,
+})
 // 定义接口返回的数据结构
 interface InterviewReportItem {
   interview_id: number
@@ -282,6 +310,46 @@ const frameAnalysis = ref({
 })
 // 组件挂载时获取面试信息
 onMounted(() => {
+  // 处理视频播放器操作栏和封面元素的水平翻转
+  const handleVideoElementsMirror = () => {
+    console.log('检查视频播放器元素...')
+
+    // 处理操作栏
+    const videoBar = document.querySelector('.uni-video-bar') as HTMLElement
+    if (videoBar) {
+      videoBar.style.transform = 'scaleX(-1)'
+      videoBar.style.webkitTransform = 'scaleX(-1)'
+    }
+
+    const videoBarFull = document.querySelector('.uni-video-bar-full') as HTMLElement
+    if (videoBarFull) {
+      videoBarFull.style.transform = 'scaleX(-1)'
+      videoBarFull.style.webkitTransform = 'scaleX(-1)'
+    }
+
+    // 处理封面元素
+    const cover = document.querySelector('.uni-video-cover') as HTMLElement
+    if (cover) {
+      cover.style.transform = 'scaleX(-1)'
+      cover.style.webkitTransform = 'scaleX(-1)'
+    }
+  }
+
+  // 立即执行一次
+  handleVideoElementsMirror()
+
+  // 使用 MutationObserver 监听 DOM 变化
+  const observer = new MutationObserver((mutations) => {
+    console.log('DOM发生变化，检查视频播放器元素...')
+    handleVideoElementsMirror()
+  })
+
+  // 开始观察 DOM 变化
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  })
+
   fetchInterviewReport(interviewId.value)
   // 获取面试信息
   // fetchInterviewInfo;

@@ -71,6 +71,20 @@
       }
     },
     {
+      "path": "pages/interviews/process-simulation",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/interviews/process",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/interviews/record-simulate",
       "type": "page",
       "style": {

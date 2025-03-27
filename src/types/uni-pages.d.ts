@@ -9,6 +9,8 @@ interface NavigateToOptions {
        "/pages/about/mspj-loading" |
        "/pages/about/mspj" |
        "/pages/camera/index" |
+       "/pages/interviews/process-simulation" |
+       "/pages/interviews/process" |
        "/pages/interviews/record-simulate" |
        "/pages/interviews/record" |
        "/pages/question/add-question" |

@@ -4,71 +4,64 @@
 
 <template>
   <view class="w-full bg-#f5f7fb min-h-[210vw] h-auto relative overflow-y-auto">
-    <!-- <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-white ">
+    <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-#f4f4f4">
       <view
         class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1"
         @click="handleClickLeft"
       ></view>
-      <view class="absolute left-2/5">Ai模拟面试</view>
-    </view> -->
-    <!-- 背景图 点击跳转操作了流程 -->
-    <view @click="goProcess()">
-      <image :src="aibg07" class="w-full h-40"></image>
+      <view class="absolute left-1.8/5">个人AI模拟面试</view>
     </view>
-
-    <view
-      v-for="item in interviewList"
-      :key="item"
-      class="relative w-full flex items-center justify-center py-1"
-      @click="openInfo(item.interviews_id)"
-    >
-      <!--卡片 -->
-
-      <view class="w-[92%] rounded-xl bg-white min-h-20 overflow-hidden flex flex-col">
-        <view class="flex flex-row relative">
-          <image :src="aimn" class="w-full h-7.5" />
-          <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
+    <view>
+      <image :src="aibg10" class="w-full h-70"></image>
+    </view>
+    <!-- 功能介绍 -->
+    <view class="w-full h-55 flex flex-row justify-center items-center -translate-y-30">
+      <view class="w-95% h-full rounded-2xl flex flex-col bg-#e3f0ff">
+        <view class="flex flex-row py-3 pl-3">
+          <image :src="play" class="w-5 h-5" />
+          <view class="text-sm pl-2 pt-0.4 text-#1c7bff">功能介绍</view>
         </view>
-        <view class="flex flex-col text-sm items-center pt-2 pb-2">
-          <view class="flex flex-row w-[95%]">
-            <view class="text-gray" style="word-break: keep-all">求职意向：</view>
-            <view>{{ item.position_title }}</view>
+        <view class="flex justify-center w-full h-full items-center">
+          <view class="w-90% h-full rounded-2xl relative">
+            <image :src="spzwt" class="w-full h-full rounded-2xl z-20 absolute top-0 left-0" />
+            <video
+              :poster="spzwt"
+              src=""
+              class="w-full h-full rounded-2xl z-10 absolute top-0 left-0"
+            ></video>
           </view>
-          <view class="flex flex-row w-[95%] pt-1">
-            <view class="text-gray">面试完成时间：{{ formatTime(item.completion_time) }}</view>
-            <view></view>
-          </view>
-          <view class="flex flex-row w-[95%] pt-1">
-            <view class="text-gray">面试完成时长：{{ formatTimeToMinSec(item.time_spent) }}</view>
-            <view></view>
-          </view>
-        </view>
-        <view class="absolute top-10 w-[90%] h-50">
-          <image v-if="item.is_qualified == 'FAIL'" :src="bhg" class="w-18 h-18 absolute right-1" />
-          <image v-else :src="hg" class="w-18 h-18 absolute right-1" />
         </view>
       </view>
-
-      <!-- <wd-status-tip image="search" tip="当前搜索无结果" /> -->
     </view>
-    <view
-      v-if="interviewList.length === 0 && !loading"
-      class="w-full flex justify-center items-center mt-10"
-    >
-      <wd-status-tip
-        image="search"
-        tip="我们将根据您的求职意向自动生成面试题目，帮助您在企业的正式AI视频面试中顺利通过，点击【开始模拟】来体验一下吧！"
-      />
+    <view class="w-full h-350 -translate-y-30 mt-3 flex justify-center items-center">
+      <view class="w-90% h-full rounded-2xl flex flex-col justify-center items-center bg-white">
+        <!-- <view class="flex flex-row py-3 pl-3 bg-#1c7bff rounded-t-2xl h-3 w-full">
+          <image :src="play" class="w-5 h-5" />
+          <view class="text-sm pl-2 pt-0.4 text-white">使用帮助</view>
+        </view> -->
+        <image :src="qzzsybz" class="w-full h-10" />
+        <view class="-translate-y-7 -translate-x-30 flex flex-row">
+          <view
+            class="w-5 h-5 bg-white text-blue flex justify-center items-center rounded-full ml-2"
+          >
+            ?
+          </view>
+          <view class="text-sm pl-2 pt-0.4 text-white">使用帮助</view>
+        </view>
+        <view class="text-sm p-2 ml-4 text-gray-700 w-full tracking-wider -mt-5">
+          求职者通过AI模拟面试，可精准打磨自己的应变力，精准突破求职瓶颈。建议在模拟面试之前先进行人才测评，技能图谱指引成长方向。我们针对求职者的求职意向信息自动生成模拟面试题，并根据面试表现生成个性化诊断报告，AI深度解析你的面试表现,帮你挖掘潜在天赋。
+        </view>
+        <image :src="processSimulation" class="w-90% h-full rounded-2xl" />
+      </view>
     </view>
     <view class="bottom-0 w-full h-10 flex justify-center items-center pt-4 pb-6 fixed bg-white">
       <view
-        @click="showSheet = true"
         class="bg-gradient-to-r from-#1173fd to-#4fc2fd bg-opacity-50 backdrop-blur-lg w-[85%] h-full flex justify-center items-center text-white text-base font-serif font-extrabold rounded-3xl"
+        @click="showSheet = true"
       >
         开始模拟
       </view>
     </view>
-
     <view>
       <wd-action-sheet v-model="showSheet" title="选择职位" @close="close">
         <view class="w-full h-auto flex justify-center items-center pb-5">
@@ -108,10 +101,6 @@
             </view>
           </view>
         </view>
-        <!-- 
-          <view class="mb-10">
-            <wd-status-tip image="search" tip="当前暂无职位信息" />
-          </view> -->
         <view class="mb-10 w-full pt-4 flex justify-center items-center">
           <view
             @click="generateInterview()"
@@ -126,62 +115,34 @@
 </template>
 
 <script lang="ts" setup>
-import aibg07 from '../../static/images/ai-bg-07.png'
-import aimn from '../../static/app/icons/icon_aimn.png'
-import hg from '../../static/app/icons/icon_hg.png'
-import bhg from '../../static/app/icons/icon_bhg.png'
-import rame from '../../static/app/icons/Frame-001.png'
+import aibg10 from '../../static/images/ai-bg-10.png'
+import processSimulation from '../../static/app/icons/icon-process-simulation.png'
+import spzwt from '../../static/app/icons/icon_spzwt_play.png'
+import play from '../../static/app/icons/icon_play.png'
 import zfj from '../../static/app/icons/icon_zfj.png'
+import qzzsybz from '../../static/app/icons/icon_qzzsybz.png'
+
 import dw from '../../static/app/icons/icon_dw.png'
 import dh from '../../static/app/icons/icon_dh.png'
-import { useQueue, useToast, useMessage } from 'wot-design-uni'
+
+import { useToast } from 'wot-design-uni'
 import { navigateBack } from '@/utils/platformUtils'
 const toast = useToast()
-
-const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-const loading = ref(true)
-const searchValue = ref()
 const showSheet = ref(false)
-const showErrorTip = ref(false)
+const items = ref([])
+
 const close = async () => {
   showSheet.value = false
 }
-const generateInterview = async () => {
-  await submitTestInerview()
-  showSheet.value = false
+const selectItem = (index) => {
+  // 清除其他项的选中状态
+  items.value.forEach((item, i) => {
+    item.selected = i === index // 只有当前索引的项会被选中
+  })
 }
-onMounted(() => {
-  getPostionInfo()
-  my_test_interviews()
-})
-
-const my_test_interviews = async (keyword = '') => {
-  if (keyword.trim() !== '') {
-    console.log('search')
-  }
-  loading.value = true
-  try {
-    const trimmedKeyword = keyword.trim()
-    const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
-    const url = `${baseUrl}/interviews/my_test_interviews/${queryParams}`
-
-    const response = await uni.request({
-      url: url,
-      method: 'GET',
-      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-    })
-    if (response.statusCode === 200) {
-      interviewList.value = response.data.data
-    }
-  } catch (error) {
-    console.error('请求失败:', error)
-    toast.error('面试结果正在生成中，请稍后再试')
-  } finally {
-    loading.value = false
-  }
-}
-
 const getPostionInfo = async () => {
+  //   const storedToken = uni.getStorageSync('token')
+
   try {
     const response = await uni.request({
       url: baseUrl + `/jobseekers/by-user/`,
@@ -214,60 +175,9 @@ const getPostionInfo = async () => {
     console.error('请求失败:', error)
   }
 }
-onLoad((options) => {
-  const storedToken = uni.getStorageSync('token')
-  if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
-    uni.setStorageSync('token', options.token)
-  } else if (storedToken) {
-    uni.setStorageSync('token', storedToken)
-  } else {
-    alert('未找到 token 参数')
-  }
-})
-function handleClickLeft() {
-  navigateBack()
-}
-
-const items = ref([])
-const interviewList = ref([])
-
-// 添加格式化时间的函数
-const formatTime = (timeString: string) => {
-  if (!timeString) return ''
-  return timeString.replace('T', ' ')
-}
-
-// 将秒数转换为"xx分钟xx秒"格式
-const formatTimeToMinSec = (seconds: number) => {
-  if (!seconds || seconds <= 0) return '0秒'
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-
-  if (minutes === 0) {
-    return `${remainingSeconds}秒`
-  } else if (remainingSeconds === 0) {
-    return `${minutes}分钟`
-  } else {
-    return `${minutes}分钟${remainingSeconds}秒`
-  }
-}
-
-const openInfo = (id) => {
-  if (!id) {
-    toast.error('面试结果正在生成中，请稍后再试')
-    return
-  }
-  console.log(id)
-
-  uni.setStorageSync('interviewId', id)
-  uni.setStorageSync('from', 'h5')
-  uni.navigateTo({ url: '/pages/about/mspj' })
-}
-const selectItem = (index) => {
-  // 清除其他项的选中状态
-  items.value.forEach((item, i) => {
-    item.selected = i === index // 只有当前索引的项会被选中
-  })
+const generateInterview = async () => {
+  await submitTestInerview()
+  showSheet.value = false
 }
 const submitTestInerview = async () => {
   if (items.value.some((item) => item.selected)) {
@@ -292,9 +202,23 @@ const submitTestInerview = async () => {
     }
   }
 }
-const goProcess = () => {
-  uni.navigateTo({ url: '/pages/interviews/process-simulation' })
+function handleClickLeft() {
+  uni.navigateBack()
 }
+// onLoad((options) => {
+//   if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
+//     uni.setStorageSync('token', options.token)
+//   } else if (storedToken) {
+//     uni.setStorageSync('token', storedToken)
+//   } else {
+//     alert('未找到 token 参数')
+//   }
+// })
+const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+onMounted(() => {
+  getPostionInfo()
+  //   my_test_interviews()
+})
 </script>
 
 <style scoped></style>

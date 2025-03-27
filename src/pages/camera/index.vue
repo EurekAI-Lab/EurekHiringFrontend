@@ -4,7 +4,7 @@
 <template>
   <view class="flex w-full h-115% overflow-hidden relative">
     <view>
-      <video id="myvideo" :controls="false" class="fullscreen-video" autoplay muted loop></video>
+      <video id="myvideo" class="fullscreen-video" autoplay muted loop></video>
     </view>
 
     <view class="w-full flex justify-center fixed" v-if="!isInterviewStarted">
@@ -839,12 +839,92 @@ const startCamera = async () => {
     })
     const videoTrack = stream.value.getVideoTracks()[0]
     const settings = videoTrack.getSettings()
-    // alert(`实际宽度: ${settings.width}, 实际高度: ${settings.height}`)
     const content = document.getElementById(`myvideo`)
 
     const items = content.getElementsByTagName('video')
     if (items && items.length > 0) {
       items[0].srcObject = stream.value
+
+      // 使用 MutationObserver 监听 DOM 变化
+      const observer = new MutationObserver((mutations) => {
+        const cover = document.querySelector('.uni-video-cover') as HTMLElement
+        if (cover) {
+          cover.style.display = 'none'
+          cover.style.visibility = 'hidden'
+          cover.style.opacity = '0'
+          cover.style.pointerEvents = 'none'
+        }
+
+        const playButton = document.querySelector('.uni-video-cover-play-button') as HTMLElement
+        if (playButton) {
+          playButton.style.display = 'none'
+          playButton.style.visibility = 'hidden'
+          playButton.style.opacity = '0'
+          playButton.style.pointerEvents = 'none'
+        }
+
+        const duration = document.querySelector('.uni-video-cover-duration') as HTMLElement
+        if (duration) {
+          duration.style.display = 'none'
+          duration.style.visibility = 'hidden'
+          duration.style.opacity = '0'
+          duration.style.pointerEvents = 'none'
+        }
+      })
+
+      // 开始观察 DOM 变化
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      })
+
+      // 添加视频加载完成事件监听
+      items[0].addEventListener('loadedmetadata', () => {
+        console.log('视频元数据加载完成，检查封面元素...')
+        const cover = document.querySelector('.uni-video-cover') as HTMLElement
+        if (cover) {
+          console.log('找到视频封面元素，尝试隐藏...')
+          cover.style.display = 'none'
+          cover.style.visibility = 'hidden'
+          cover.style.opacity = '0'
+          cover.style.pointerEvents = 'none'
+          console.log('视频封面元素样式已设置')
+        }
+
+        const playButton = document.querySelector('.uni-video-cover-play-button') as HTMLElement
+        if (playButton) {
+          console.log('找到播放按钮元素，尝试隐藏...')
+          playButton.style.display = 'none'
+          playButton.style.visibility = 'hidden'
+          playButton.style.opacity = '0'
+          playButton.style.pointerEvents = 'none'
+          console.log('播放按钮元素样式已设置')
+        }
+
+        const duration = document.querySelector('.uni-video-cover-duration') as HTMLElement
+        if (duration) {
+          console.log('找到时长元素，尝试隐藏...')
+          duration.style.display = 'none'
+          duration.style.visibility = 'hidden'
+          duration.style.opacity = '0'
+          duration.style.pointerEvents = 'none'
+          console.log('时长元素样式已设置')
+        }
+      })
+
+      // 添加定时检查
+      setTimeout(() => {
+        console.log('定时检查视频封面元素...')
+        const cover = document.querySelector('.uni-video-cover') as HTMLElement
+        if (cover) {
+          console.log('找到视频封面元素，尝试隐藏...')
+          cover.style.display = 'none'
+          cover.style.visibility = 'hidden'
+          cover.style.opacity = '0'
+          cover.style.pointerEvents = 'none'
+          console.log('视频封面元素样式已设置')
+        }
+      }, 1000)
     }
     items[0].play()
 
@@ -857,7 +937,6 @@ const startCamera = async () => {
     mediaRecorder.ondataavailable = (event) => {
       recordedData.value.push(event.data)
     }
-    // alert('启动摄像头成功')
   } catch (error) {
     if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
       alert('请在浏览器设置中允许摄像头权限')
@@ -938,8 +1017,57 @@ const switchCamera = async () => {
 }
 
 onMounted(async () => {
+  // 立即处理视频封面元素
+  const hideVideoCover = () => {
+    console.log('立即检查并隐藏视频封面元素...')
+    const cover = document.querySelector('.uni-video-cover') as HTMLElement
+    if (cover) {
+      console.log('找到视频封面元素，立即隐藏...')
+      cover.style.display = 'none'
+      cover.style.visibility = 'hidden'
+      cover.style.opacity = '0'
+      cover.style.pointerEvents = 'none'
+      console.log('视频封面元素已隐藏')
+    }
+
+    const playButton = document.querySelector('.uni-video-cover-play-button') as HTMLElement
+    if (playButton) {
+      console.log('找到播放按钮元素，立即隐藏...')
+      playButton.style.display = 'none'
+      playButton.style.visibility = 'hidden'
+      playButton.style.opacity = '0'
+      playButton.style.pointerEvents = 'none'
+      console.log('播放按钮元素已隐藏')
+    }
+
+    const duration = document.querySelector('.uni-video-cover-duration') as HTMLElement
+    if (duration) {
+      console.log('找到时长元素，立即隐藏...')
+      duration.style.display = 'none'
+      duration.style.visibility = 'hidden'
+      duration.style.opacity = '0'
+      duration.style.pointerEvents = 'none'
+      console.log('时长元素已隐藏')
+    }
+  }
+
+  // 立即执行一次
+  hideVideoCover()
+
+  // 使用 MutationObserver 监听 DOM 变化
+  const observer = new MutationObserver((mutations) => {
+    console.log('DOM发生变化，立即检查视频封面元素...')
+    hideVideoCover()
+  })
+
+  // 开始观察 DOM 变化
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  })
+
   if (interviewId.value) {
-    fetchInterviewInfo(interviewId.value) // 等待 fetchInterviewInfo 完成
+    await fetchInterviewInfo(interviewId.value)
   } else {
     console.error('未找到 interviews_id')
   }
@@ -968,6 +1096,7 @@ onLoad((options) => {
 // 通过 interviews_id 获取面试岗位以及试题信息
 const fetchInterviewInfo = async (interviewId: number) => {
   loading.value = true
+
   try {
     const response = await uni.request({
       url: baseUrl + `/interviews/interview_details/${interviewId}`,
@@ -1253,6 +1382,17 @@ const stopMediaRecorderMonitor = () => {
   transform: scaleX(-1); /* 添加这一行来水平翻转视频 */
 }
 
+/* 隐藏视频播放器的默认封面元素 */
+.uni-video-cover,
+.uni-video-cover-play-button,
+.uni-video-cover-duration {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* 或者使用 visibility */
 .wrapper {
   display: flex;
   align-items: center;
