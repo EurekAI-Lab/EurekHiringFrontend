@@ -12,7 +12,7 @@
       <view class="absolute left-1.8/5">企业AI面试应用</view>
     </view>
     <view>
-      <image :src="aibg10" class="w-full h-70"></image>
+      <image :src="aibg11" class="w-full h-70"></image>
     </view>
     <!-- 功能介绍 -->
     <view class="w-full h-55 flex flex-row justify-center items-center -translate-y-30">
@@ -56,7 +56,7 @@
     <view class="bottom-0 w-full h-10 flex justify-center items-center pt-4 pb-6 fixed bg-white">
       <view
         class="bg-gradient-to-r from-#1173fd to-#4fc2fd bg-opacity-50 backdrop-blur-lg w-[85%] h-full flex justify-center items-center text-white text-base font-serif font-extrabold rounded-3xl"
-        @click="showSheet = true"
+        @click="back()"
       >
         创建AI面试题
       </view>
@@ -65,8 +65,8 @@
 </template>
 
 <script lang="ts" setup>
-import aibg10 from '../../static/images/ai-bg-10.png'
-import processSimulation from '../../static/app/icons/icon-process-simulation.png'
+import aibg11 from '../../static/images/ai-bg-11.png'
+import processSimulation from '../../static/app/icons/icon_process.png'
 import spzwt from '../../static/app/icons/icon_spzwt_play.png'
 import play from '../../static/app/icons/icon_play.png'
 import zfj from '../../static/app/icons/icon_zfj.png'
@@ -78,7 +78,9 @@ import { navigateBack } from '@/utils/platformUtils'
 const toast = useToast()
 const showSheet = ref(false)
 const items = ref([])
-
+const back = () => {
+  navigateBack()
+}
 const close = async () => {
   showSheet.value = false
 }
