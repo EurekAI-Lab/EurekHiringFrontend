@@ -117,3 +117,27 @@ export function interviewOver(url: string, companyName: string, jobName: string)
 export function aiInterviewSaved(): void {
   callPlatformMethod('aiInterviewSaved', null)
 }
+
+/**
+ * 通知原生用户切换身份
+ */
+export function userIdentityChange(): void {
+  const platform = getPlatformType()
+  if (platform === PlatformType.ANDROID) {
+    callPlatformMethod('userIdentityChange', '')
+  } else if (platform === PlatformType.IOS) {
+    callPlatformMethod('userIdentityChange', null)
+  }
+}
+
+/**
+ * 打开AI岗位列表
+ */
+export function openAiJobList(): void {
+  const platform = getPlatformType()
+  if (platform === PlatformType.ANDROID) {
+    callPlatformMethod('openAiJobList', '')
+  } else if (platform === PlatformType.IOS) {
+    callPlatformMethod('openAiJobList', null)
+  }
+}

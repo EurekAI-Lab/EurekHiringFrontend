@@ -4,16 +4,29 @@
 
 <template>
   <view class="w-full bg-#f5f7fb min-h-[210vw] h-auto relative overflow-y-auto">
-    <!-- <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-white ">
+    <!-- <view class="bg-white items-center z-1 w-full h-10 flex flex-row fixed">
+      <view class="i-carbon-chevron-left w-7 h-7 pl-5" @click="handleClickLeft"></view>
+      <view class="absolute left-1/3">个人Ai模拟面试</view>
+    </view> -->
+
+    <view
+      class="absolute top-0 z-1 w-full flex flex-row fixed"
+      :style="{
+        backgroundColor: `rgba(255, 255, 255, 1)`,
+        color: '#f4f4f4',
+        height: '44px',
+        paddingTop: '44px',
+      }"
+    >
       <view
-        class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1"
+        class="i-carbon-chevron-left w-8 h-8 absolute left-5 top-[48px] text-black"
         @click="handleClickLeft"
       ></view>
-      <view class="absolute left-2/5">Ai模拟面试</view>
-    </view> -->
+      <view class="absolute left-1.8/5 top-[52px] text-black">个人AI模拟面试</view>
+    </view>
     <!-- 背景图 点击跳转操作了流程 -->
     <view @click="goProcess()">
-      <image :src="aibg07" class="w-full h-40"></image>
+      <image :src="aibg07" class="w-full h-40 mt-[88px]"></image>
     </view>
 
     <view
@@ -73,7 +86,6 @@
       <wd-action-sheet v-model="showSheet" title="选择职位" @close="close">
         <view class="w-full h-auto flex justify-center items-center pb-5">
           <view class="w-[90%] text-gray-500">
-            <!-- 请选择您需要测试Ai面试的意向职位信息，我们将以该意向信息为您制定Ai面试题 -->
             请选择您想进行模拟面试的求职意向信息，我们将以该求职意向为您生成AI模拟面试题目
           </view>
         </view>
@@ -101,9 +113,9 @@
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
               <view class="text-#1778ff" style="text-align: center">{{ item.salary }}</view>
-              <view class="text-gray-400">
+              <view class="text-gray-400 flex flex-row items-center justify-end">
                 <image :src="dw" class="w-5 h-5" />
-                {{ item.expected_city }}
+                <view class="text-gray-400">{{ item.expected_city }}</view>
               </view>
             </view>
           </view>
@@ -191,8 +203,13 @@ const getPostionInfo = async () => {
     if (response.statusCode === 200) {
       response.data?.forEach((element) => {
         let salaryStr = ''
-        if (element.expected_salary_min == '待议' && element.expected_salary_max == '待议') {
-          salaryStr = '—'
+        if (element.expected_salary_min === '待议' && element.expected_salary_max === '待议') {
+          salaryStr = ''
+        } else if (
+          isNaN(Number(element.expected_salary_min)) ||
+          isNaN(Number(element.expected_salary_max))
+        ) {
+          salaryStr = ''
         } else {
           salaryStr = element.expected_salary_min + '-' + element.expected_salary_max
         }

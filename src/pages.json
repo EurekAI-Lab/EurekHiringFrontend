@@ -71,6 +71,13 @@
       }
     },
     {
+      "path": "pages/interviews/process-copy",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/interviews/process-simulation",
       "type": "page",
       "style": {

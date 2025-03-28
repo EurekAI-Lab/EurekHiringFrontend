@@ -235,8 +235,19 @@ const getInterviewInfo = async (positionsId: any) => {
       query.value.qualification = response.data.position.qualification
       query.value.tradeName = response.data.position.title
       query.value.workLife = response.data.position.work_life
-      query.value.miniWage = response.data.position.salary_range.split('-')[0]
-      query.value.maxWage = response.data.position.salary_range.split('-')[1]
+      console.log('salary_range', response.data.position.salary_range)
+
+      // 检查是否为具体工资范围(数字-数字格式)
+      const salaryRange = response.data.position.salary_range
+      const salaryPattern = /^\d+\s*-\s*\d+$/
+
+      if (!salaryPattern.test(salaryRange)) {
+        query.value.miniWage = '待议'
+        query.value.maxWage = '待议'
+      } else {
+        query.value.miniWage = salaryRange.split('-')[0].trim()
+        query.value.maxWage = salaryRange.split('-')[1].trim()
+      }
       query.value.jobDescription = response.data.position.description
       query.value.interviewTime = '五分钟'
       if (response.data.question != null) {

@@ -545,12 +545,13 @@ const overallSummary = ref('')
 const score = ref(0)
 
 function handleClickLeft() {
-  if (uni.getStorageSync('from') && uni.getStorageSync('from') == 'h5') {
-    uni.navigateBack()
-    uni.removeStorageSync('from')
-  } else {
-    navigateBack()
-  }
+  navigateBack()
+  // if (uni.getStorageSync('from') && uni.getStorageSync('from') == 'h5') {
+  //   uni.navigateBack()
+  //   uni.removeStorageSync('from')
+  // } else {
+  //   navigateBack()
+  // }
 }
 
 // 将秒数转换为"xx分钟xx秒"格式

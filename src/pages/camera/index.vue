@@ -1022,32 +1022,34 @@ onMounted(async () => {
     console.log('立即检查并隐藏视频封面元素...')
     const cover = document.querySelector('.uni-video-cover') as HTMLElement
     if (cover) {
-      console.log('找到视频封面元素，立即隐藏...')
       cover.style.display = 'none'
       cover.style.visibility = 'hidden'
       cover.style.opacity = '0'
       cover.style.pointerEvents = 'none'
-      console.log('视频封面元素已隐藏')
     }
 
     const playButton = document.querySelector('.uni-video-cover-play-button') as HTMLElement
     if (playButton) {
-      console.log('找到播放按钮元素，立即隐藏...')
       playButton.style.display = 'none'
       playButton.style.visibility = 'hidden'
       playButton.style.opacity = '0'
       playButton.style.pointerEvents = 'none'
-      console.log('播放按钮元素已隐藏')
     }
 
     const duration = document.querySelector('.uni-video-cover-duration') as HTMLElement
     if (duration) {
-      console.log('找到时长元素，立即隐藏...')
       duration.style.display = 'none'
       duration.style.visibility = 'hidden'
       duration.style.opacity = '0'
       duration.style.pointerEvents = 'none'
-      console.log('时长元素已隐藏')
+    }
+    // uni-video-bar uni-video-bar-full
+    const bar = document.querySelector('.uni-video-bar') as HTMLElement
+    if (bar) {
+      bar.style.display = 'none'
+      bar.style.visibility = 'hidden'
+      bar.style.opacity = '0'
+      bar.style.pointerEvents = 'none'
     }
   }
 

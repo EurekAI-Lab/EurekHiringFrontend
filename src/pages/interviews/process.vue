@@ -3,19 +3,28 @@
 </route>
 
 <template>
-  <view class="w-full bg-#f5f7fb min-h-[210vw] h-auto relative overflow-y-auto">
-    <view class="absolute top-10 z-1 w-full h-10 flex flex-row text-#f4f4f4">
+  <view class="w-full bg-#f4f4f4 min-h-[210vw] h-auto relative overflow-y-auto">
+    <view
+      class="absolute top-0 z-1 w-full flex flex-row fixed"
+      :style="{
+        backgroundColor: `rgba(255, 255, 255, ${headerOpacity})`,
+        color: headerOpacity > 0.5 ? '#333' : '#f4f4f4',
+        height: '44px',
+        paddingTop: '44px',
+      }"
+    >
       <view
-        class="i-carbon-chevron-left w-8 h-8 absolute left-5 -top-1"
+        class="i-carbon-chevron-left w-8 h-8 absolute left-5 top-[48px]"
         @click="handleClickLeft"
+        :style="{ color: headerOpacity > 0.5 ? '#333' : '#f4f4f4' }"
       ></view>
-      <view class="absolute left-1.8/5">企业AI面试应用</view>
+      <view class="absolute left-1.8/5 top-[52px]">企业AI面试应用</view>
     </view>
     <view>
       <image :src="aibg11" class="w-full h-70"></image>
     </view>
     <!-- 功能介绍 -->
-    <view class="w-full h-55 flex flex-row justify-center items-center -translate-y-30">
+    <!-- <view class="w-full h-55 flex flex-row justify-center items-center -translate-y-30">
       <view class="w-95% h-full rounded-2xl flex flex-col bg-#ebdcff">
         <view class="flex flex-row py-3 pl-3">
           <image :src="play" class="w-5 h-5 transform scale-x-[-1]" />
@@ -32,25 +41,23 @@
           </view>
         </view>
       </view>
-    </view>
-    <view class="w-full h-350 -translate-y-30 mt-3 flex justify-center items-center bg-white">
-      <view class="w-90% h-full rounded-2xl flex flex-col justify-center items-center">
+    </view> -->
+    <view class="w-full h-380 -translate-y-30 mt-3 flex justify-center items-center">
+      <view class="w-90% h-full rounded-2xl flex flex-col justify-center items-center bg-white">
         <image :src="sybz" class="flex flex-row rounded-t-2xl h-10 w-full" />
         <view class="-translate-y-7 -translate-x-30 flex flex-row">
-          <view
-            class="w-5 h-5 bg-white text-blue flex justify-center items-center rounded-full ml-2"
-          >
+          <view class="w-5 h-5 bg-white text-blue flex justify-center items-center rounded-full">
             ?
           </view>
-          <view class="text-sm pl-2 pt-0.4 text-white">使用帮助</view>
+          <view class="text-sm pl-1.5 pt-0.4 text-white font-bold">使用帮助</view>
         </view>
         <!-- </view> -->
-        <view class="text-sm p-2 text-gray-700 w-full tracking-wider -mt-5">
+        <view class="text-sm p-4 text-gray-700 w-91% tracking-wider -mt-5">
           系统会依据企业所发布的职位信息自动生成 A面试题目。平台上的求职者在受邀后，能够进行线上
           A视频面试。面试完成后，企业的
           Hr可以依据生成的面试报告，来判断是否与该候选人进一步进行沟通，或者邀约其进行线下面试。
         </view>
-        <image :src="processSimulation" class="w-90% h-full rounded-2xl" />
+        <image :src="processSimulation" class="w-90% h-full rounded-2xl -translate-x-1" />
       </view>
     </view>
     <view class="bottom-0 w-full h-10 flex justify-center items-center pt-4 pb-6 fixed bg-white">
@@ -74,12 +81,36 @@ import dw from '../../static/app/icons/icon_dw.png'
 import sybz from '../../static/app/icons/icon_sybz.png'
 import dh from '../../static/app/icons/icon_dh.png'
 import { useToast } from 'wot-design-uni'
-import { navigateBack } from '@/utils/platformUtils'
+import {
+  getPlatformType,
+  navigateBack,
+  openAiJobList,
+  PlatformType,
+  userIdentityChange,
+} from '@/utils/platformUtils'
+import { onPageScroll as uniPageScroll } from '@dcloudio/uni-app'
+
 const toast = useToast()
 const showSheet = ref(false)
 const items = ref([])
+const headerOpacity = ref(0)
+
+// 使用UniApp提供的页面滚动钩子
+uniPageScroll((e) => {
+  // 设置阈值，比如滚动100px后背景完全变白
+  const threshold = 100
+  headerOpacity.value = Math.min(e.scrollTop / threshold, 1)
+  console.log('页面滚动', e.scrollTop, headerOpacity.value)
+})
+
 const back = () => {
-  navigateBack()
+  const platform = getPlatformType()
+  if (platform === PlatformType.ANDROID) {
+    openAiJobList()
+    navigateBack()
+  } else if (platform === PlatformType.IOS) {
+    openAiJobList()
+  }
 }
 const close = async () => {
   showSheet.value = false
@@ -153,17 +184,18 @@ const submitTestInerview = async () => {
   }
 }
 function handleClickLeft() {
-  uni.navigateBack()
+  navigateBack()
 }
-// onLoad((options) => {
-//   if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
-//     uni.setStorageSync('token', options.token)
-//   } else if (storedToken) {
-//     uni.setStorageSync('token', storedToken)
-//   } else {
-//     alert('未找到 token 参数')
-//   }
-// })
+onLoad((options) => {
+  const storedToken = uni.getStorageSync('token')
+  if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
+    uni.setStorageSync('token', options.token)
+  } else if (storedToken) {
+    uni.setStorageSync('token', storedToken)
+  } else {
+    alert('未找到 token 参数')
+  }
+})
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 onMounted(() => {
   getPostionInfo()
