@@ -81,7 +81,12 @@ import dw from '../../static/app/icons/icon_dw.png'
 import sybz from '../../static/app/icons/icon_sybz.png'
 import dh from '../../static/app/icons/icon_dh.png'
 import { useToast } from 'wot-design-uni'
-import { navigateBack, userIdentityChange } from '@/utils/platformUtils'
+import {
+  getPlatformType,
+  navigateBack,
+  PlatformType,
+  userIdentityChange,
+} from '@/utils/platformUtils'
 import { onPageScroll as uniPageScroll } from '@dcloudio/uni-app'
 
 const toast = useToast()
@@ -98,8 +103,13 @@ uniPageScroll((e) => {
 })
 
 const back = () => {
-  userIdentityChange()
-  navigateBack()
+  const platform = getPlatformType()
+  if (platform === PlatformType.ANDROID) {
+    userIdentityChange()
+    navigateBack()
+  } else if (platform === PlatformType.IOS) {
+    userIdentityChange()
+  }
 }
 const close = async () => {
   showSheet.value = false

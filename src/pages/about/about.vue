@@ -470,8 +470,8 @@ const getInterviewList = async () => {
 const jumpInterviewResult = (interviewId: number) => {
   // 存储参数
   uni.setStorageSync('interviewId', interviewId)
-  uni.setStorageSync('from', 'h5')
-  uni.navigateTo({ url: '/pages/about/mspj' })
+  // uni.setStorageSync('from', 'h5')
+  uni.navigateTo({ url: '/pages/about/mspj?type=1' })
 }
 // 邀约面试或弃用
 const handleInterviewResult = (resultId, userId, nextStep) => {

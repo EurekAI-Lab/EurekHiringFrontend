@@ -83,7 +83,7 @@ const pollInterviewReport = () => {
             uni.showToast({
               title: '报告生成超时，请稍后重试',
               icon: 'none',
-              duration: 2000
+              duration: 2000,
             })
             setTimeout(() => {
               navigateBack()
@@ -97,7 +97,7 @@ const pollInterviewReport = () => {
           uni.showToast({
             title: '报告生成失败，请稍后重试',
             icon: 'none',
-            duration: 2000
+            duration: 2000,
           })
           setTimeout(() => {
             navigateBack()
@@ -113,14 +113,14 @@ const pollInterviewReport = () => {
         uni.showToast({
           title: '网络错误，请稍后重试',
           icon: 'none',
-          duration: 2000
+          duration: 2000,
         })
         setTimeout(() => {
           navigateBack()
         }, 2000)
       }
     }
-  }, 30000) // 每30秒查询一次
+  }, 50000) // 每30秒查询一次
 }
 
 // 跳转到面试报告页面
@@ -168,37 +168,44 @@ const handleExit = () => {
     },
   })
 }
+const interviewType = ref()
 onLoad((options) => {
-  console.info('options' + options)
+  console.info('options', options)
   if (options.interviewId) {
     interviewId.value = parseInt(options.interviewId, 10)
+  }
+  if (options.interviewType) {
+    interviewType.value = parseInt(options.interviewType, 10)
   }
 })
 onMounted(async () => {
   // 获取路由参数
   if (interviewId.value) {
     console.log('获取到面试ID:', interviewId.value)
-    
+
     // 先立即查询一次
     try {
-      const response = await uni.request({
-        url: baseUrl + `/interviews/interview_report/${interviewId.value}`,
-        method: 'GET',
-        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-      })
+      if (interviewType.value !== 1) {
 
-      // 如果第一次查询就成功且有数据
-      if (response.statusCode === 200) {
-        const responseData = response.data as any
-        if (responseData && responseData.report_data && responseData.report_data.length > 0) {
-          console.log('首次查询成功，直接跳转')
-          // 设置进度为100%
-          progress.value = 100
-          // 延迟跳转，让用户看到100%的进度
-          setTimeout(() => {
-            navigateToReportPage()
-          }, 1000)
-          return // 如果成功就不需要启动轮询
+        const response = await uni.request({
+          url: baseUrl + `/interviews/interview_report/${interviewId.value}`,
+          method: 'GET',
+          header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+        })
+
+        // 如果第一次查询就成功且有数据
+        if (response.statusCode === 200) {
+          const responseData = response.data as any
+          if (responseData && responseData.report_data && responseData.report_data.length > 0) {
+            console.log('首次查询成功，直接跳转')
+            // 设置进度为100%
+            progress.value = 100
+            // 延迟跳转，让用户看到100%的进度
+            setTimeout(() => {
+              navigateToReportPage()
+            }, 1000)
+            return // 如果成功就不需要启动轮询
+          }
         }
       }
 

@@ -312,7 +312,7 @@ const frameAnalysis = ref({
 onMounted(() => {
   // 处理视频播放器操作栏和封面元素的水平翻转
   const handleVideoElementsMirror = () => {
-    console.log('检查视频播放器元素...')
+    // console.log('检查视频播放器元素...')
 
     // 处理操作栏
     const videoBar = document.querySelector('.uni-video-bar') as HTMLElement
@@ -340,7 +340,7 @@ onMounted(() => {
 
   // 使用 MutationObserver 监听 DOM 变化
   const observer = new MutationObserver((mutations) => {
-    console.log('DOM发生变化，检查视频播放器元素...')
+    // console.log('DOM发生变化，检查视频播放器元素...')
     handleVideoElementsMirror()
   })
 
@@ -418,6 +418,7 @@ function numberToChinese(num) {
 function filiterNum(str) {
   return str.replace(/\d+/g, '')
 }
+const type = ref('')
 
 onLoad((options) => {
   const storedToken = uni.getStorageSync('token')
@@ -438,13 +439,13 @@ onLoad((options) => {
     // 两者都不存在时提示用户
     alert('未找到 interviewId 参数')
   }
+  if (options.type) {
+    type.value = options.type
+  }
 })
 const interviewId = ref()
 // 获取面试题目评价
 defineOptions({ name: 'Home' })
-// onLoad((option) => {
-//   interviewId = option.interviews_id
-// })
 const fetchInterviewReport = async (interviewId: number) => {
   isLoading.value = true
   try {
@@ -545,13 +546,12 @@ const overallSummary = ref('')
 const score = ref(0)
 
 function handleClickLeft() {
-  navigateBack()
-  // if (uni.getStorageSync('from') && uni.getStorageSync('from') == 'h5') {
-  //   uni.navigateBack()
-  //   uni.removeStorageSync('from')
-  // } else {
-  //   navigateBack()
-  // }
+  if (type.value === '1') {
+    uni.navigateBack()
+  } else {
+    navigateBack()
+  }
+
 }
 
 // 将秒数转换为"xx分钟xx秒"格式

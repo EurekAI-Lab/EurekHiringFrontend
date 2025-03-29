@@ -264,6 +264,17 @@ const startMediaRecorderMonitor = () => {
 
   // 每秒检查一次MediaRecorder状态
   mediaRecorderMonitorInterval = setInterval(() => {
+    // 首先检查当前页面是否还存在，如果不存在则停止监控
+    const currentPage = document.querySelector('.flex.w-full.h-115\\%.overflow-hidden.relative')
+    if (!currentPage) {
+      console.log('当前页面已不存在，停止MediaRecorder监控')
+      if (mediaRecorderMonitorInterval) {
+        clearInterval(mediaRecorderMonitorInterval)
+        mediaRecorderMonitorInterval = null
+      }
+      return
+    }
+
     if (!mediaRecorder) {
       console.warn('MediaRecorder不存在，尝试重新初始化')
 
@@ -830,6 +841,11 @@ const nextQuestion = async () => {
   }
 }
 
+// 添加一个全局数组存储所有观察器实例
+const allObservers = ref<MutationObserver[]>([])
+// 用于标识当前组件创建的观察器
+const OBSERVER_NAMESPACE = 'camera_page_' + Date.now()
+
 // 启动摄像头
 const startCamera = async () => {
   try {
@@ -847,7 +863,12 @@ const startCamera = async () => {
 
       // 使用 MutationObserver 监听 DOM 变化
       const observer = new MutationObserver((mutations) => {
-        const cover = document.querySelector('.uni-video-cover') as HTMLElement
+        const currentPage = document.querySelector('.flex.w-full.h-115\\%.overflow-hidden.relative')
+        if (!currentPage) {
+          return
+        }
+
+        const cover = currentPage.querySelector('.uni-video-cover') as HTMLElement
         if (cover) {
           cover.style.display = 'none'
           cover.style.visibility = 'hidden'
@@ -855,7 +876,7 @@ const startCamera = async () => {
           cover.style.pointerEvents = 'none'
         }
 
-        const playButton = document.querySelector('.uni-video-cover-play-button') as HTMLElement
+        const playButton = currentPage.querySelector('.uni-video-cover-play-button') as HTMLElement
         if (playButton) {
           playButton.style.display = 'none'
           playButton.style.visibility = 'hidden'
@@ -863,7 +884,7 @@ const startCamera = async () => {
           playButton.style.pointerEvents = 'none'
         }
 
-        const duration = document.querySelector('.uni-video-cover-duration') as HTMLElement
+        const duration = currentPage.querySelector('.uni-video-cover-duration') as HTMLElement
         if (duration) {
           duration.style.display = 'none'
           duration.style.visibility = 'hidden'
@@ -871,6 +892,12 @@ const startCamera = async () => {
           duration.style.pointerEvents = 'none'
         }
       })
+
+      // 标记观察器的命名空间
+      observer['namespace'] = OBSERVER_NAMESPACE
+
+      // 将观察器添加到列表中以便后续清理
+      allObservers.value.push(observer)
 
       // 开始观察 DOM 变化
       observer.observe(document.body, {
@@ -881,7 +908,13 @@ const startCamera = async () => {
       // 添加视频加载完成事件监听
       items[0].addEventListener('loadedmetadata', () => {
         console.log('视频元数据加载完成，检查封面元素...')
-        const cover = document.querySelector('.uni-video-cover') as HTMLElement
+        const currentPage = document.querySelector('.flex.w-full.h-115\\%.overflow-hidden.relative')
+        if (!currentPage) {
+          console.log('未找到当前页面元素')
+          return
+        }
+
+        const cover = currentPage.querySelector('.uni-video-cover') as HTMLElement
         if (cover) {
           console.log('找到视频封面元素，尝试隐藏...')
           cover.style.display = 'none'
@@ -891,7 +924,7 @@ const startCamera = async () => {
           console.log('视频封面元素样式已设置')
         }
 
-        const playButton = document.querySelector('.uni-video-cover-play-button') as HTMLElement
+        const playButton = currentPage.querySelector('.uni-video-cover-play-button') as HTMLElement
         if (playButton) {
           console.log('找到播放按钮元素，尝试隐藏...')
           playButton.style.display = 'none'
@@ -901,7 +934,7 @@ const startCamera = async () => {
           console.log('播放按钮元素样式已设置')
         }
 
-        const duration = document.querySelector('.uni-video-cover-duration') as HTMLElement
+        const duration = currentPage.querySelector('.uni-video-cover-duration') as HTMLElement
         if (duration) {
           console.log('找到时长元素，尝试隐藏...')
           duration.style.display = 'none'
@@ -915,7 +948,13 @@ const startCamera = async () => {
       // 添加定时检查
       setTimeout(() => {
         console.log('定时检查视频封面元素...')
-        const cover = document.querySelector('.uni-video-cover') as HTMLElement
+        const currentPage = document.querySelector('.flex.w-full.h-115\\%.overflow-hidden.relative')
+        if (!currentPage) {
+          console.log('未找到当前页面元素')
+          return
+        }
+
+        const cover = currentPage.querySelector('.uni-video-cover') as HTMLElement
         if (cover) {
           console.log('找到视频封面元素，尝试隐藏...')
           cover.style.display = 'none'
@@ -1020,7 +1059,13 @@ onMounted(async () => {
   // 立即处理视频封面元素
   const hideVideoCover = () => {
     console.log('立即检查并隐藏视频封面元素...')
-    const cover = document.querySelector('.uni-video-cover') as HTMLElement
+    const currentPage = document.querySelector('.flex.w-full.h-115\\%.overflow-hidden.relative')
+    if (!currentPage) {
+      console.log('未找到当前页面元素')
+      return
+    }
+
+    const cover = currentPage.querySelector('.uni-video-cover') as HTMLElement
     if (cover) {
       cover.style.display = 'none'
       cover.style.visibility = 'hidden'
@@ -1028,7 +1073,7 @@ onMounted(async () => {
       cover.style.pointerEvents = 'none'
     }
 
-    const playButton = document.querySelector('.uni-video-cover-play-button') as HTMLElement
+    const playButton = currentPage.querySelector('.uni-video-cover-play-button') as HTMLElement
     if (playButton) {
       playButton.style.display = 'none'
       playButton.style.visibility = 'hidden'
@@ -1036,7 +1081,7 @@ onMounted(async () => {
       playButton.style.pointerEvents = 'none'
     }
 
-    const duration = document.querySelector('.uni-video-cover-duration') as HTMLElement
+    const duration = currentPage.querySelector('.uni-video-cover-duration') as HTMLElement
     if (duration) {
       duration.style.display = 'none'
       duration.style.visibility = 'hidden'
@@ -1044,7 +1089,7 @@ onMounted(async () => {
       duration.style.pointerEvents = 'none'
     }
     // uni-video-bar uni-video-bar-full
-    const bar = document.querySelector('.uni-video-bar') as HTMLElement
+    const bar = currentPage.querySelector('.uni-video-bar') as HTMLElement
     if (bar) {
       bar.style.display = 'none'
       bar.style.visibility = 'hidden'
@@ -1058,9 +1103,15 @@ onMounted(async () => {
 
   // 使用 MutationObserver 监听 DOM 变化
   const observer = new MutationObserver((mutations) => {
-    console.log('DOM发生变化，立即检查视频封面元素...')
+    // console.log('DOM发生变化，立即检查视频封面元素...')
     hideVideoCover()
   })
+
+  // 标记观察器的命名空间
+  observer['namespace'] = OBSERVER_NAMESPACE
+
+  // 将观察器添加到列表中以便后续清理
+  allObservers.value.push(observer)
 
   // 开始观察 DOM 变化
   observer.observe(document.body, {
@@ -1074,14 +1125,148 @@ onMounted(async () => {
     console.error('未找到 interviews_id')
   }
 })
-// 组件卸载时关闭摄像头
+// 在组件卸载时彻底断开所有监听器和观察器
 onBeforeUnmount(() => {
-  // stopCamera()
+  console.log('===== 组件卸载，开始清理资源 =====')
+
+  // 停止摄像头
+  stopCamera()
+
+  // 清除计时器
   clearInterval(timer.value)
+
   // 清除MediaRecorder状态监控
   if (mediaRecorderMonitorInterval) {
     clearInterval(mediaRecorderMonitorInterval)
+    mediaRecorderMonitorInterval = null
+    console.log('已清理MediaRecorder监控')
   }
+
+  // 停止MediaRecorder
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    try {
+      mediaRecorder.stop()
+      console.log('已停止MediaRecorder录制')
+    } catch (error) {
+      console.error('停止MediaRecorder失败:', error)
+    }
+  }
+
+  // 销毁mediaRecorder
+  if (mediaRecorder) {
+    try {
+      mediaRecorder = null
+      console.log('已销毁MediaRecorder实例')
+    } catch (error) {
+      console.error('销毁MediaRecorder失败:', error)
+    }
+  }
+
+  // 显式断开所有保存的MutationObserver
+  console.log(`开始断开${allObservers.value.length}个MutationObserver实例`)
+  allObservers.value.forEach((observer) => {
+    if (observer) {
+      try {
+        observer.disconnect()
+        console.log('已断开一个MutationObserver实例')
+      } catch (error) {
+        console.error('断开MutationObserver失败:', error)
+      }
+    }
+  })
+
+  // 清空观察器数组
+  allObservers.value = []
+  console.log('已清空观察器数组')
+
+  // 全局查找并断开所有属于当前命名空间的MutationObserver
+  try {
+    // 定义一个函数来检索所有MutationObserver实例
+    const findObservers = () => {
+      const observers = []
+      const keys = Object.getOwnPropertyNames(window)
+      for (const key of keys) {
+        try {
+          const obj = window[key]
+          if (
+            obj &&
+            typeof obj === 'object' &&
+            obj.toString &&
+            obj.toString().includes('MutationObserver')
+          ) {
+            observers.push(obj)
+          }
+        } catch (e) {
+          // 忽略访问错误
+        }
+      }
+      return observers
+    }
+
+    // 尝试查找并断开所有观察器
+    const allGlobalObservers = findObservers()
+    allGlobalObservers.forEach((obs) => {
+      if (obs && obs.disconnect && obs['namespace'] === OBSERVER_NAMESPACE) {
+        try {
+          obs.disconnect()
+          console.log('断开全局MutationObserver成功')
+        } catch (e) {
+          console.error('断开全局MutationObserver失败:', e)
+        }
+      }
+    })
+  } catch (error) {
+    console.error('查找全局MutationObserver失败:', error)
+  }
+
+  // 断开加载在DOM上的所有事件监听器
+  const videoElements = document.querySelectorAll('video')
+  videoElements.forEach((video) => {
+    try {
+      video.removeEventListener('loadedmetadata', () => {})
+      video.srcObject = null
+      console.log('已清理视频元素事件监听器')
+    } catch (error) {
+      console.error('清理视频元素事件监听器失败:', error)
+    }
+  })
+
+  // 防止内存泄漏，强制进行垃圾回收
+  try {
+    window.addEventListener('unload', () => {
+      allObservers.value = []
+      mediaRecorder = null
+      videoRef.value = null
+      stream.value = null
+    })
+  } catch (error) {
+    console.error('添加unload事件监听器失败:', error)
+  }
+
+  // 延迟进行额外检查，确保所有观察器都已断开
+  setTimeout(() => {
+    try {
+      // 再次查找并尝试断开任何残留的观察器
+      document.querySelectorAll('*').forEach((el) => {
+        if (el['_observer'] && typeof el['_observer'].disconnect === 'function') {
+          el['_observer'].disconnect()
+          console.log('断开元素关联的观察器')
+        }
+      })
+    } catch (error) {
+      console.error('清理DOM元素关联观察器失败:', error)
+    }
+
+    // 确保MutationObserver监控已停止
+    if (mediaRecorderMonitorInterval) {
+      clearInterval(mediaRecorderMonitorInterval)
+      mediaRecorderMonitorInterval = null
+    }
+
+    console.log('===== 延迟检查完成，资源清理完毕 =====')
+  }, 500)
+
+  console.log('===== 资源清理完成 =====')
 })
 const test = ref(false)
 onLoad((options) => {
@@ -1301,7 +1486,10 @@ const handleExit = async () => {
                 navigateBack()
               } else {
                 uni.navigateTo({
-                  url: '/pages/about/mspj-loading?interviewId=' + interviewId.value,
+                  url:
+                    '/pages/about/mspj-loading?interviewId=' +
+                    interviewId.value +
+                    '&interviewType=1',
                 })
               }
               isRequesting.value = false
