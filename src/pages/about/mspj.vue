@@ -548,10 +548,13 @@ const score = ref(0)
 function handleClickLeft() {
   if (type.value === '1') {
     uni.navigateBack()
+  } else if (type.value === '2') {
+    uni.navigateTo({
+      url: '/pages/interviews/record-simulate?token=' + uni.getStorageSync('token'),
+    })
   } else {
     navigateBack()
   }
-
 }
 
 // 将秒数转换为"xx分钟xx秒"格式

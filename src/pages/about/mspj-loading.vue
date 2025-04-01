@@ -128,7 +128,7 @@ const navigateToReportPage = () => {
   console.info('传递的面试ID' + interviewId.value)
 
   uni.navigateTo({
-    url: `/pages/about/mspj?interviewId=${interviewId.value}`,
+    url: `/pages/about/mspj?interviewId=${interviewId.value}&type=${type.value}`,
     success: () => {
       console.log('成功跳转到面试报告页面')
     },
@@ -169,6 +169,8 @@ const handleExit = () => {
   })
 }
 const interviewType = ref()
+const type = ref()
+
 onLoad((options) => {
   console.info('options', options)
   if (options.interviewId) {
@@ -176,6 +178,9 @@ onLoad((options) => {
   }
   if (options.interviewType) {
     interviewType.value = parseInt(options.interviewType, 10)
+  }
+  if (options.type) {
+    type.value = options.type
   }
 })
 onMounted(async () => {
@@ -186,7 +191,6 @@ onMounted(async () => {
     // 先立即查询一次
     try {
       if (interviewType.value !== 1) {
-
         const response = await uni.request({
           url: baseUrl + `/interviews/interview_report/${interviewId.value}`,
           method: 'GET',

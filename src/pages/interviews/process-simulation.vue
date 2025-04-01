@@ -97,9 +97,9 @@
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
               <view class="text-#1778ff" style="text-align: center">{{ item.salary }}</view>
-              <view class="text-gray-400">
+              <view class="text-gray-400 flex flex-row items-center justify-end">
                 <image :src="dw" class="w-5 h-5" />
-                {{ item.expected_city }}
+                <view class="text-gray-400">{{ item.expected_city }}</view>
               </view>
             </view>
           </view>
@@ -174,8 +174,13 @@ const getPostionInfo = async () => {
     if (response.statusCode === 200) {
       response.data?.forEach((element) => {
         let salaryStr = ''
-        if (element.expected_salary_min == '待议' && element.expected_salary_max == '待议') {
-          salaryStr = '—'
+        if (element.expected_salary_min === '待议' && element.expected_salary_max === '待议') {
+          salaryStr = ''
+        } else if (
+          isNaN(Number(element.expected_salary_min)) ||
+          isNaN(Number(element.expected_salary_max))
+        ) {
+          salaryStr = ''
         } else {
           salaryStr = element.expected_salary_min + '-' + element.expected_salary_max
         }

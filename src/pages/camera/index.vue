@@ -5,11 +5,13 @@
   <view class="flex w-full h-115% overflow-hidden relative">
     <view>
       <video id="myvideo" class="fullscreen-video" autoplay muted loop></video>
+      <!-- 添加黑色遮罩层 -->
+      <view v-if="showVideoMask" class="video-mask"></view>
     </view>
 
     <view class="w-full flex justify-center fixed" v-if="!isInterviewStarted">
       <view
-        class="flex flex-row absolute rounded rounded-xl bg-#302920 top-8 h-20 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
+        class="flex flex-row absolute rounded rounded-xl bg-#302920 top-12 h-20 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
       >
         <view class="flex flex-col gap-y-2">
           <view class="flex flex-row gap-x-3 w-70">
@@ -26,7 +28,7 @@
       </view>
 
       <view
-        class="flex flex-row absolute rounded rounded-xl text-sm top-30 bg-#302920 h-22 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
+        class="flex flex-row absolute rounded rounded-xl text-sm top-34 bg-#302920 h-22 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
       >
         <view class="flex flex-col gap-y-2">
           您已进入AI视频面试测试环节，请确认您周围环境是否满足面试条件，以及您的设备是否已授权音视频权限
@@ -142,6 +144,9 @@ const message = useMessage()
 
 const toast = useToast()
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+
+// 控制视频黑色遮罩层显示/隐藏
+const showVideoMask = ref(true)
 
 // 获取当前平台的 MIME 类型
 const getMimeType = () => {
@@ -472,6 +477,8 @@ const stopRecordingAndSave = async () => {
 }
 
 const saveInterview = async () => {
+  isExiting.value = true
+
   console.log('开始提交面试数据，fileUrls:', fileFrom.fileUrls)
 
   // 检查是否所有题目都有对应的视频数据
@@ -699,6 +706,11 @@ const handleTimeUp = () => {
 const noticeShow = ref(false)
 const isRequesting = ref(false)
 const nextQuestion = async () => {
+  if (isExiting.value) {
+    console.log(2222)
+
+    return
+  }
   if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
     message
       .confirm({
@@ -725,7 +737,7 @@ const nextQuestion = async () => {
     isRequesting.value = true
     // 最后一题，点击完成面试
     console.log('完成面试，当前视频时长:', videoDuration.value)
-    toast.loading('保存视频中...')
+    toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
 
     // 停止计时器
     const stopTimer = startTimer()
@@ -1022,6 +1034,7 @@ const handleStart = () => {
 
         if (response.statusCode === 200) {
           console.log('开始播放语音')
+          // 移除视频遮罩
           triggerAnotherMethod()
           isInterviewStarted.value = true
           play()
@@ -1056,6 +1069,8 @@ const switchCamera = async () => {
 }
 
 onMounted(async () => {
+  // 显示视频遮罩
+  showVideoMask.value = true
   // 立即处理视频封面元素
   const hideVideoCover = () => {
     console.log('立即检查并隐藏视频封面元素...')
@@ -1304,6 +1319,8 @@ const fetchInterviewInfo = async (interviewId: number) => {
     console.error('请求失败:', error)
   }
   loading.value = false
+  showVideoMask.value = false
+
   startCamera()
 }
 // 对更多字符编码的 url encode 格式
@@ -1341,12 +1358,9 @@ const isExiting = ref(false) // 添加标志变量，防止多次触发退出逻
 const handleExit = async () => {
   // 如果已经在退出过程中，直接返回
   if (isExiting.value) {
-    console.log('已经在退出过程中，忽略重复点击')
+    console.log(1111)
     return
   }
-
-  // 设置退出标志
-  isExiting.value = true
 
   if (currentQuestionIndex.value === 0) {
     message
@@ -1355,6 +1369,8 @@ const handleExit = async () => {
         title: '提示',
         beforeConfirm: async ({ resolve }) => {
           try {
+            isExiting.value = true
+
             if (isInterviewStarted.value) {
               // 如果面试已开始，更新面试状态
               const response = await uni.request({
@@ -1364,7 +1380,6 @@ const handleExit = async () => {
               })
               if (response.statusCode !== 200) {
                 toast.error('更新面试状态失败')
-                isExiting.value = false // 重置退出标志
                 return
               }
 
@@ -1375,7 +1390,6 @@ const handleExit = async () => {
           } catch (error) {
             console.log('返回app函数报错', error)
             toast.error('更新面试状态失败')
-            isExiting.value = false // 重置退出标志
             isRequesting.value = false
           }
           toast.close()
@@ -1384,13 +1398,10 @@ const handleExit = async () => {
       .then(() => {
         uni.navigateBack()
       })
-      .catch(() => {
-        isExiting.value = false // 取消操作时重置退出标志
-      })
+      .catch(() => {})
   } else {
-    // 面试结束 TODO return url
-    toast.loading({ loadingType: 'ring', msg: '正在更新面试状态' })
-
+    isExiting.value = true
+    toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
     if (isInterviewStarted.value) {
       try {
         // 更新面试状态
@@ -1401,13 +1412,11 @@ const handleExit = async () => {
         })
         if (statusResponse.statusCode !== 200) {
           toast.error('更新面试状态失败')
-          isExiting.value = false // 重置退出标志
           return
         }
       } catch (error) {
         console.error('更新面试状态失败:', error)
         toast.error('更新面试状态失败')
-        isExiting.value = false // 重置退出标志
         return
       }
     }
@@ -1443,54 +1452,61 @@ const handleExit = async () => {
         method: 'POST',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
       })
-      toast.close()
+      // 检查是否所有视频都已上传完成
+      console.log('检查视频上传状态，当前已上传:', fileFrom.fileUrls.length, '条记录')
 
+      // 检查是否所有题目都有对应的视频数据
+      const totalQuestions = interviewDetails.value.data.questions.length
+      console.log(`总题目数: ${totalQuestions}, 已上传视频数: ${fileFrom.fileUrls.length}`)
+
+      // 检查最后一题是否已上传
+      const lastQuestionUploaded = fileFrom.fileUrls.some(
+        (item) => item.question_id === currentQuestionIndex.value,
+      )
+
+      if (!lastQuestionUploaded) {
+        console.warn(`最后一题(索引 ${currentQuestionIndex.value})未上传，尝试再次上传`)
+
+        // 如果有录制数据但未上传，尝试再次上传
+        if (blobData.value && blobData.value.size > 0) {
+          await getUploadInfo()
+          // 等待上传完成
+          await new Promise((resolve) => setTimeout(resolve, 2000))
+        }
+      }
+
+      // 等待一段时间，确保所有上传请求都已完成
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      // 提交面试数据
+      await saveInterview()
       // 显示确认对话框
       message
         .confirm({
           msg: '您已完成' + interviewDetails.value.data.position.title + '岗位的AI面试',
           title: '提示',
+          closeOnClickModal: false,
           beforeConfirm: async ({ resolve }) => {
-            toast.loading('正在提交中...')
             try {
-              // 检查是否所有视频都已上传完成
-              console.log('检查视频上传状态，当前已上传:', fileFrom.fileUrls.length, '条记录')
-
-              // 检查是否所有题目都有对应的视频数据
-              const totalQuestions = interviewDetails.value.data.questions.length
-              console.log(`总题目数: ${totalQuestions}, 已上传视频数: ${fileFrom.fileUrls.length}`)
-
-              // 检查最后一题是否已上传
-              const lastQuestionUploaded = fileFrom.fileUrls.some(
-                (item) => item.question_id === currentQuestionIndex.value,
-              )
-
-              if (!lastQuestionUploaded) {
-                console.warn(`最后一题(索引 ${currentQuestionIndex.value})未上传，尝试再次上传`)
-
-                // 如果有录制数据但未上传，尝试再次上传
-                if (blobData.value && blobData.value.size > 0) {
-                  await getUploadInfo()
-                  // 等待上传完成
-                  await new Promise((resolve) => setTimeout(resolve, 2000))
-                }
-              }
-
-              // 等待一段时间，确保所有上传请求都已完成
-              await new Promise((resolve) => setTimeout(resolve, 1500))
-
-              // 提交面试数据
-              await saveInterview()
               toast.close()
               if (!test.value) {
                 navigateBack()
               } else {
-                uni.navigateTo({
-                  url:
-                    '/pages/about/mspj-loading?interviewId=' +
-                    interviewId.value +
-                    '&interviewType=1',
-                })
+                if (test.value) {
+                  uni.navigateTo({
+                    url:
+                      '/pages/about/mspj-loading?interviewId=' +
+                      interviewId.value +
+                      '&interviewType=1&type=2',
+                  })
+                } else {
+                  uni.navigateTo({
+                    url:
+                      '/pages/about/mspj-loading?interviewId=' +
+                      interviewId.value +
+                      '&interviewType=1',
+                  })
+                }
               }
               isRequesting.value = false
             } catch (error) {
@@ -1506,15 +1522,15 @@ const handleExit = async () => {
         })
         .catch(() => {
           // 取消后也提交数据并返回
-          saveInterview()
-          uni.navigateBack()
+          // saveInterview()
+          // uni.navigateBack()
         })
     } catch (error) {
       console.error('获取重定向URL失败:', error)
       toast.error('获取重定向URL失败')
 
       // 即使获取URL失败，也尝试提交面试数据
-      saveInterview()
+      // saveInterview()
       uni.navigateBack()
     }
     isRequesting.value = false
@@ -1537,9 +1553,7 @@ const overTip = () => {
       .then(() => {
         handleExit()
       })
-      .catch(() => {
-        isExiting.value = false // 取消操作时重置退出标志
-      })
+      .catch(() => {})
   } else {
     handleExit()
   }
@@ -1570,6 +1584,17 @@ const stopMediaRecorderMonitor = () => {
   object-fit: cover;
   /* 确保视频按比例填充 */
   transform: scaleX(-1); /* 添加这一行来水平翻转视频 */
+}
+
+/* 视频黑色遮罩层 */
+.video-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+  z-index: 0; /* 确保遮罩在视频之上但在其他UI元素之下 */
 }
 
 /* 隐藏视频播放器的默认封面元素 */

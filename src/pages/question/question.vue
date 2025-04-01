@@ -318,15 +318,11 @@ const query = ref({
   testPaperId: '',
 })
 const chatStream = () => {
-  // 不再重置数组，只设置 loading 状态
+  // 清空现有题目
+  publicStore.questionState.questions = []
+  // 设置 loading 状态
   publicStore.questionState.loading = true
   let isStreamClosed = false
-
-  // 保存当前最大的 index，用于新题目的编号
-  const startIndex =
-    publicStore.questionState.questions.length > 0
-      ? Math.max(...publicStore.questionState.questions.map((q) => q.index))
-      : 0
 
   // 创建一个新的 ReadableStream
   const stream = new ReadableStream({
@@ -387,7 +383,7 @@ const chatStream = () => {
   const processStream = async () => {
     try {
       const streamReader = stream.getReader()
-      let currentIndex = startIndex // 从当前最大 index 开始
+      let currentIndex = 0 // 从0开始计数
 
       while (true) {
         try {
@@ -409,7 +405,7 @@ const chatStream = () => {
               publicStore.questionState.questions = []
             }
 
-            // 添加新题目到现有数组末尾
+            // 添加新题目到数组
             publicStore.questionState.questions.push({
               index: ++currentIndex,
               question: res.question,

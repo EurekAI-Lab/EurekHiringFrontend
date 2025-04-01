@@ -120,10 +120,6 @@
             </view>
           </view>
         </view>
-        <!-- 
-          <view class="mb-10">
-            <wd-status-tip image="search" tip="当前暂无职位信息" />
-          </view> -->
         <view class="mb-10 w-full pt-4 flex justify-center items-center">
           <view
             @click="generateInterview()"
@@ -278,7 +274,7 @@ const openInfo = (id) => {
 
   uni.setStorageSync('interviewId', id)
   uni.setStorageSync('from', 'h5')
-  uni.navigateTo({ url: '/pages/about/mspj' })
+  uni.navigateTo({ url: '/pages/about/mspj?type=1' })
 }
 const selectItem = (index) => {
   // 清除其他项的选中状态
