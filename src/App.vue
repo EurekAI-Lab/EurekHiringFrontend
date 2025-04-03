@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
-import VConsole from 'vconsole'
+// import VConsole from 'vconsole'
 
-const vConsole = new VConsole()
+// const vConsole = new VConsole()
 
 onLaunch(() => {
   console.log('App Launch')

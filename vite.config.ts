@@ -17,7 +17,7 @@ import UnoCSS from 'unocss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import { visualizer } from 'rollup-plugin-visualizer'
 import ViteRestart from 'vite-plugin-restart'
-import vConsole from 'vconsole'
+// import vConsole from 'vconsole'
 
 // https://vitejs.dev/config/
 export default ({ command, mode }) => {
