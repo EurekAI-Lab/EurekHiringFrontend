@@ -120,6 +120,7 @@ import bhg from '../../static/app/icons/icon_bhg.png'
 import rame from '../../static/app/icons/Frame-001.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import wxSdk from 'weixin-js-sdk'
+
 import { navigateBack } from '@/utils/platformUtils'
 function getENVIR() {
   let text = ''
@@ -164,6 +165,9 @@ watch(searchValue, (newValue) => {
 })
 
 onLoad((options) => {
+  // 打印路由信息
+  // console.info('当前路由路径:', options.path || '未获取到路径')
+  // console.info('路由携带参数:', options)
   const storedToken = uni.getStorageSync('token')
 
   if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
@@ -178,7 +182,6 @@ function formatCompletionTime(isoString) {
   return isoString.replace('T', ' ').substring(0, 19)
 }
 onMounted(() => {
-  // alert('获取当前环境：' + getENVIR())
   getInterviewList()
 })
 function handleClickLeft() {
