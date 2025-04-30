@@ -98,20 +98,18 @@
           <view class="text-sm font-bold">面试录屏：</view>
         </view>
         <view class="flex w-95% justify-start mt-2 ml-2" style="overflow: hidden; overflow-x: auto">
-          <template
-            v-if="frameAnalysis && frameAnalysis.samples && frameAnalysis.samples.length > 0"
-          >
+          <template v-if="interviewReport && interviewReport.length > 0">
             <view
               class="relative w-14 h-18 ml-2 mt-2"
-              v-for="(sample, index) in frameAnalysis.samples"
+              v-for="(sample, index) in interviewReport"
               :key="index"
             >
-              <image class="w-14 h-18" :src="sample.frame_url"></image>
+              <image class="w-14 h-18" :src="sample.video_url"></image>
               <image
                 class="absolute w-5 h-5 z-1"
                 style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
                 :src="iconframe"
-                @click="showVideoModal(sample.original_video_url)"
+                @click="showVideoModal(sample.video_url)"
               ></image>
 
               <view class="h-5 video_title" style="font-size: 12px">
