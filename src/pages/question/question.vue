@@ -183,7 +183,7 @@ import icon003 from '../../static/app/icons/Frame-003.png'
 import icoTs from '../../static/app/icons/icon_ts.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { usePublicStore } from '@/store'
-import { navigateBack, aiInterviewSaved } from '@/utils/platformUtils'
+import { navigateBack, aiInterviewSaved, PlatformType } from '@/utils/platformUtils'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 
@@ -500,7 +500,9 @@ const saveQusetion = async () => {
             try {
               // 只有当有题目时才调用返回APP的函数
               aiInterviewSaved()
-              navigateBack()
+              if (platform === PlatformType.ANDROID) {
+                navigateBack()
+              }
             } catch (error) {
               console.log('返回app函数报错', error)
             }
@@ -517,7 +519,16 @@ const saveQusetion = async () => {
       console.log(error)
     })
 }
-
+function getPlatformType(): PlatformType {
+  if (/android/i.test(navigator.userAgent)) {
+    return PlatformType.ANDROID
+  } else if (/iPad|iPhone|iPod/i.test(navigator.userAgent)) {
+    return PlatformType.IOS
+  } else {
+    return PlatformType.OTHER
+  }
+}
+const platform = getPlatformType()
 const { safeAreaInsets } = uni.getSystemInfoSync()
 </script>
 

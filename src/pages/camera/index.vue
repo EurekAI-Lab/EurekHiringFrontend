@@ -9,28 +9,35 @@
       <view v-if="showVideoMask" class="video-mask"></view>
     </view>
 
-    <view class="w-full flex justify-center fixed" v-if="!isInterviewStarted">
+    <view class="w-full flex flex-col items-center fixed" v-if="!isInterviewStarted">
       <view
-        class="flex flex-row absolute rounded rounded-xl bg-#302920 top-12 h-20 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
+        ref="topBoxRef"
+        id="topBox"
+        class="rounded rounded-xl bg-#302920 w-[90%] text-white opacity-75 mt-12"
       >
-        <view class="flex flex-col gap-y-2">
-          <view class="flex flex-row gap-x-3 w-70">
-            <img :src="icon02" class="w-5" />
-            {{ interviewDetails.data.position.enterprise_name }}
+        <view class="flex flex-col gap-y-2 py-2 w-full px-2">
+          <view class="flex flex-row gap-x-3 items-center">
+            <img :src="icon02" class="w-5 h-5 flex-shrink-0" />
+            <view class="break-words">
+              {{ interviewDetails.data.position.enterprise_name }}
+            </view>
           </view>
           <view>
-            <view class="flex flex-row gap-x-3 w-70">
-              <img :src="icon01" class="w-5" />
-              {{ interviewDetails.data.position.title }}
+            <view class="flex flex-row gap-x-3 items-center">
+              <img :src="icon01" class="w-5 h-5 flex-shrink-0" />
+              <view class="break-words">
+                {{ interviewDetails.data.position.title }}
+              </view>
             </view>
           </view>
         </view>
       </view>
 
       <view
-        class="flex flex-row absolute rounded rounded-xl text-sm top-34 bg-#302920 h-22 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
+        ref="bottomBoxRef"
+        class="rounded rounded-xl text-sm bg-#302920 w-[90%] text-white opacity-75 mt-2"
       >
-        <view class="flex flex-col gap-y-2">
+        <view class="flex flex-col gap-y-2 py-2 px-2">
           您已进入AI视频面试测试环节，请确认您周围环境是否满足面试条件，以及您的设备是否已授权音视频权限
         </view>
       </view>
@@ -134,19 +141,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from 'vue'
+import { ref, onBeforeUnmount, computed, onMounted, nextTick, watch } from 'vue'
 import icon01 from '../../static/app/icons/Frame-001.png'
 import icon02 from '../../static/app/icons/Frame-002.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { navigateBack, interviewOver, getPlatformType, PlatformType } from '@/utils/platformUtils'
 
 const message = useMessage()
-
 const toast = useToast()
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 
 // 控制视频黑色遮罩层显示/隐藏
 const showVideoMask = ref(true)
+
+// 添加顶部框和底部框的引用
+const topBoxRef = ref(null)
+const bottomBoxRef = ref(null)
 
 // 获取当前平台的 MIME 类型
 const getMimeType = () => {
@@ -1071,6 +1081,7 @@ const switchCamera = async () => {
 onMounted(async () => {
   // 显示视频遮罩
   showVideoMask.value = true
+
   // 立即处理视频封面元素
   const hideVideoCover = () => {
     console.log('立即检查并隐藏视频封面元素...')

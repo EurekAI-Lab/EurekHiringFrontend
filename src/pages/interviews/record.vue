@@ -101,6 +101,13 @@
       <!-- <wd-status-tip image="search" tip="当前搜索无结果" /> -->
     </view>
 
+    <view
+      v-if="interviewResults.length === 0 && !loading"
+      class="w-full flex justify-center items-center mt-10"
+    >
+      <wd-status-tip image="search" tip="当前尚无AI面试记录数据" />
+    </view>
+
     <!-- <view class="flex justify-center items-center">
         <wd-overlay :show="loading">
           <view class="wrapper flex flex-col text-white">
