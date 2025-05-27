@@ -380,8 +380,8 @@ const isSmallTabTwoActive = ref(true)
 const isSticky = ref(false)
 const offsetTop = ref(null)
 function handleClickLeft() {
-  // uni.navigateBack()
-  navigateBack()
+  uni.navigateBack()
+  // navigateBack()
 }
 
 // 监视这两个计算属性

@@ -87,13 +87,13 @@
               <image :src="dh" class="w-6 h-6" />
             </view>
             <view
-              class="flex justify-center items-center bg-#e8f1ff rounded-full w-8 h-8 ml-2 mt-3.5"
+              class="flex justify-center items-center bg-#e8f1ff rounded-full min-w-8 w-8 h-8 ml-2 mt-3.5"
             >
               <image :src="zfj" class="w-5 h-5" />
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5">
-              <view class="w-75%">{{ item.title }}</view>
-              <view class="text-gray-400 w-80%">{{ item.description }}</view>
+              <view class="w-50">{{ item.title.split('·')[1] }}</view>
+              <view class="text-gray-400 w-75%">{{ item.title.split('·')[0] }}</view>
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
               <view class="text-#1778ff" style="text-align: center">{{ item.salary }}</view>

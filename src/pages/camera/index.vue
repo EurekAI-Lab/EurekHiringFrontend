@@ -1144,12 +1144,26 @@ onMounted(async () => {
     childList: true,
     subtree: true,
   })
-
-  if (interviewId.value) {
-    await fetchInterviewInfo(interviewId.value)
-  } else {
-    console.error('未找到 interviews_id')
-  }
+  message
+    .confirm({
+      msg: '相机及录音权限申请说明：用于AI面试评估',
+      title: '权限获取说明',
+    })
+    .then(async () => {
+      try {
+        if (interviewId.value) {
+          await fetchInterviewInfo(interviewId.value)
+        } else {
+          console.error('未找到 interviews_id')
+        }
+      } catch (error) {
+        console.error('未找到 interviews_id')
+        toast.error('未找到 interviews_id')
+      }
+    })
+    .catch(() => {
+      navigateBack()
+    })
 })
 // 在组件卸载时彻底断开所有监听器和观察器
 onBeforeUnmount(() => {
