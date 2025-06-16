@@ -404,6 +404,9 @@ const startRecording = async () => {
 const stopRecordingAndSave = async () => {
   console.log(`停止录制并保存题目 ${currentQuestionIndex.value} 的视频`)
 
+  // 保存当前题目索引，避免提前更新
+  const currentIndex = currentQuestionIndex.value
+
   // 停止MediaRecorder状态监控
   stopMediaRecorderMonitor()
 
@@ -413,7 +416,7 @@ const stopRecordingAndSave = async () => {
 
     if (mediaRecorder.state === 'recording') {
       mediaRecorder.onstop = async () => {
-        console.log(`题目 ${currentQuestionIndex.value} 录制停止，处理数据`)
+        console.log(`题目 ${currentIndex} 录制停止，处理数据`)
 
         // 将所有 Blob 数据合并为一个 Blob
         if (recordedData.value.length > 0) {
@@ -422,21 +425,43 @@ const stopRecordingAndSave = async () => {
           blobData.value = finalBlob // 存储合并后的 Blob 到专门的引用
           console.log(`合并 ${recordedData.value.length} 个数据块，总大小: ${finalBlob.size}`)
 
-          // 上传当前题目的视频
-          await getUploadInfo()
+          try {
+            // 上传当前题目的视频
+            await getUploadInfo()
 
-          // 在录制停止后，再处理下一题
-          if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
-            console.log(`进入下一题: ${currentQuestionIndex.value + 1}`)
-            currentQuestionIndex.value++
-            play()
-            triggerAnotherMethod()
-          } else {
-            console.log('已完成所有题目，退出面试')
-            handleExit()
+            // 关闭loading提示
+            if (window._currentLoadingClose) {
+              window._currentLoadingClose()
+              window._currentLoadingClose = null
+            }
+
+            // 上传成功后才更新索引和处理下一题
+            if (currentIndex < interviewDetails.value.data.questions.length - 1) {
+              currentQuestionIndex.value++
+              console.log(`成功进入下一题: ${currentQuestionIndex.value}`)
+              play()
+              triggerAnotherMethod()
+            } else {
+              console.log('已完成所有题目，退出面试')
+              handleExit()
+            }
+          } catch (error) {
+            console.error('上传视频失败:', error)
+            toast.error('视频上传失败，请重试')
+            // 关闭loading
+            if (window._currentLoadingClose) {
+              window._currentLoadingClose()
+              window._currentLoadingClose = null
+            }
+            // 失败时不更新索引，保持在当前题目
           }
         } else {
-          console.warn(`题目 ${currentQuestionIndex.value} 没有录制到数据`)
+          console.warn(`题目 ${currentIndex} 没有录制到数据`)
+          // 关闭loading
+          if (window._currentLoadingClose) {
+            window._currentLoadingClose()
+            window._currentLoadingClose = null
+          }
         }
       }
 
@@ -445,11 +470,14 @@ const stopRecordingAndSave = async () => {
     } else {
       console.warn(`MediaRecorder 不在录制状态，当前状态: ${mediaRecorder.state}`)
 
+      // 关闭loading
+      if (window._currentLoadingClose) {
+        window._currentLoadingClose()
+        window._currentLoadingClose = null
+      }
+
       // 即使不在录制状态，也继续处理下一题
-      if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
-        console.log(
-          `MediaRecorder不在录制状态，但仍准备进入下一题: ${currentQuestionIndex.value + 1}`,
-        )
+      if (currentIndex < interviewDetails.value.data.questions.length - 1) {
         currentQuestionIndex.value++
         console.log(`进入下一题: ${currentQuestionIndex.value}`)
         play()
@@ -462,9 +490,14 @@ const stopRecordingAndSave = async () => {
   } else {
     console.error('MediaRecorder 未初始化')
 
+    // 关闭loading
+    if (window._currentLoadingClose) {
+      window._currentLoadingClose()
+      window._currentLoadingClose = null
+    }
+
     // 如果没有 mediaRecorder，直接处理下一题
-    if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
-      console.log(`MediaRecorder未初始化，但仍准备进入下一题: ${currentQuestionIndex.value + 1}`)
+    if (currentIndex < interviewDetails.value.data.questions.length - 1) {
       currentQuestionIndex.value++
       console.log(`进入下一题: ${currentQuestionIndex.value}`)
       play()
@@ -718,7 +751,8 @@ const nextQuestion = async () => {
         title: '进入下一题',
       })
       .then(() => {
-        toast.loading('保存视频中...')
+        // 使用wot-design-uni的loading方法，返回一个关闭函数
+        const { close: closeLoading } = toast.loading('保存视频中...')
 
         if (currentQuestionIndex.value === interviewDetails.value.data.questions.length - 2) {
           console.log('进入最后一题，设置完成面试按钮')
@@ -727,6 +761,10 @@ const nextQuestion = async () => {
         console.log('点击下一题，当前视频时长:', videoDuration.value)
         isTiming.value = false
         isTimeUp.value = true
+
+        // 保存关闭函数到全局，以便在stopRecordingAndSave中使用
+        window._currentLoadingClose = closeLoading
+
         handleTimeUp()
       })
       .catch(() => {})
@@ -737,7 +775,7 @@ const nextQuestion = async () => {
     isRequesting.value = true
     // 最后一题，点击完成面试
     console.log('完成面试，当前视频时长:', videoDuration.value)
-    toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
+    const { close: closeLoading } = toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
 
     // 停止计时器
     const stopTimer = startTimer()
@@ -1033,24 +1071,29 @@ const handleStart = () => {
         })
 
         if (response.statusCode === 200) {
-          console.log('开始播放语音')
+          console.log('面试状态更新成功，开始播放语音')
           // 移除视频遮罩
           triggerAnotherMethod()
           isInterviewStarted.value = true
           play()
+
+          // 检查是否只有一道题
+          if (interviewDetails.value.data.questions.length === 1) {
+            overQuestion.value = true
+          }
         } else {
-          toast.error('更新面试状态失败')
+          // API返回非200状态码
+          console.error('更新面试状态失败，状态码:', response.statusCode)
+          console.error('响应数据:', response.data)
+          toast.error('更新面试状态失败，请重试')
         }
       } catch (error) {
         console.error('更新面试状态失败:', error)
-        toast.error('更新面试状态失败')
-      }
-      if (interviewDetails.value.data.questions.length === 1 && isInterviewStarted.value) {
-        overQuestion.value = true
+        toast.error('网络错误，请检查网络连接')
       }
     })
     .catch((error) => {
-      console.log(error)
+      console.log('用户取消面试确认')
     })
 }
 // 关闭摄像头
@@ -1401,7 +1444,7 @@ const handleExit = async () => {
       .catch(() => {})
   } else {
     isExiting.value = true
-    toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
+    const { close: closeLoading } = toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
     if (isInterviewStarted.value) {
       try {
         // 更新面试状态
@@ -1411,11 +1454,13 @@ const handleExit = async () => {
           header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         })
         if (statusResponse.statusCode !== 200) {
+          closeLoading() // 关闭loading
           toast.error('更新面试状态失败')
           return
         }
       } catch (error) {
         console.error('更新面试状态失败:', error)
+        closeLoading() // 关闭loading
         toast.error('更新面试状态失败')
         return
       }
@@ -1488,7 +1533,7 @@ const handleExit = async () => {
           closeOnClickModal: false,
           beforeConfirm: async ({ resolve }) => {
             try {
-              toast.close()
+              closeLoading() // 关闭loading
               if (!test.value) {
                 navigateBack()
               } else {
@@ -1527,6 +1572,7 @@ const handleExit = async () => {
         })
     } catch (error) {
       console.error('获取重定向URL失败:', error)
+      closeLoading() // 关闭loading
       toast.error('获取重定向URL失败')
 
       // 即使获取URL失败，也尝试提交面试数据

@@ -40,8 +40,8 @@ export function callPlatformMethod(method: string, params?: any): void {
         console.log('安卓调用函数' + `appApi.callback(${method}, ${params})`)
         appApi.callback(method, params)
       } else {
-        console.log('安卓调用函数' + `appApi.callback(${method})`)
-        appApi.callback(method)
+        console.log('安卓调用函数' + `appApi.callback(${method}, "")`)
+        appApi.callback(method, "")  // 传空字符串而不是不传参数
       }
     } else if (platform === PlatformType.IOS) {
       console.log(
