@@ -165,7 +165,6 @@ watch(searchValue, (newValue) => {
 
 onLoad((options) => {
   const storedToken = uni.getStorageSync('token')
-
   if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
     uni.setStorageSync('token', options.token)
   } else if (storedToken) {

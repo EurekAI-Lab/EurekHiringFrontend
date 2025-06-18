@@ -154,9 +154,6 @@ export default ({ command, mode }) => {
           drop_debugger: true,
         },
       },
-      // rollupOptions: {
-      //   external: ['vconsole'],
-      // },
     },
   })
 }

@@ -45,10 +45,11 @@ export function callPlatformMethod(method: string, params?: any): void {
       }
     } else if (platform === PlatformType.IOS) {
       console.log(
-        `iOS调用函数: window.webkit.messageHandlers.${method}.postMessage(${params || 'null'})`,
+        `iOS调用函数: window.webkit.messageHandlers.${method}.postMessage(${params || ''})`,
       )
       // 直接使用方法名作为消息处理程序的名称
-      window.webkit.messageHandlers[method].postMessage(params || null)
+      // window.webkit.messageHandlers[method].postMessage(params || null)
+      window.webkit.messageHandlers[method].postMessage(params || '')
     } else {
       console.warn(`Platform method call not supported on ${platform}`)
     }

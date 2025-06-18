@@ -3,9 +3,22 @@ import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
 // import VConsole from 'vconsole'
 
 // const vConsole = new VConsole()
-
+const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 onLaunch(() => {
   console.log('App Launch')
+  // 调用登录接口
+  uni.request({
+    url: baseUrl + '/users/login',
+    method: 'POST',
+    data: {
+      phone: '13175525101',
+      password: 'ian23',
+    },
+    success: (res: any) => {
+      console.log('登录成功')
+      uni.setStorageSync('token', res.data.access_token)
+    },
+  })
 })
 onShow(() => {
   console.log('App Show')

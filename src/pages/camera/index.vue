@@ -582,6 +582,7 @@ const saveInterview = async () => {
     throw error
   }
 }
+
 const downloadRecordedVideo = () => {
   if (blobData.value instanceof Blob) {
     const url = URL.createObjectURL(blobData.value)
@@ -605,7 +606,11 @@ const getUploadInfo = async () => {
     // 添加类型断言
     const responseData = response.data as any
     await uploadFile(responseData.data)
-  } catch (error) {}
+  } catch (error) {
+    console.error('获取上传凭证失败:', error)
+    toast.error('获取上传凭证失败，请重试')
+    throw error // 向上传播错误
+  }
 }
 
 // 修改 uploadFile 函数
@@ -738,6 +743,7 @@ const handleTimeUp = () => {
 }
 const noticeShow = ref(false)
 const isRequesting = ref(false)
+
 const nextQuestion = async () => {
   if (isExiting.value) {
     console.log(2222)

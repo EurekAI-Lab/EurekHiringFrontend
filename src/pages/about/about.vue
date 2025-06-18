@@ -254,9 +254,10 @@
   import jobIcon from '../../static/app/icons/icon_job.png'
   import { useQueue, useToast, useMessage } from 'wot-design-uni'
   import { navigateBack, inviteInterview, openUserVitaeInfo } from '@/utils/platformUtils'
+  import { getInterviewListAPI, inviteDiscardAPI } from '@/service/api'
 
   const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-  const interviewResults = ref([]) // 存储面试结果
+  const interviewResults:any = ref([]) // 存储面试结果
   const interviewShowData = ref([])
   const loading = ref(false)
   const searchValue = ref()
@@ -402,25 +403,34 @@
   const getInterviewList = async () => {
     // 构建URL，仅在enterpriseId.value有效时添加参数
     let url = baseUrl + '/interviews/getList/';
+    let aId = '';
     if (enterpriseId.value !== undefined && enterpriseId.value !== null) {
       url += `?enterprise_id=${enterpriseId.value}`;
+      aId = enterpriseId.value
     }
-    
-    await uni.request({
-      url: url,
-      method: 'GET',
-      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-      success: (res: any) => {
-        loading.value = false
-        interviewResults.value = res.data
-        // 更新状态
-        changeShowData()
-      },
-      fail: (err) => {
-        console.error('获取面试结果失败:', err)
-      },
-      complete: () => { },
-    })
+    console.log('enterpriseId', aId)
+    // await uni.request({
+    //   url: url,
+    //   method: 'GET',
+    //   header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+    //   success: (res: any) => {
+    //     loading.value = false
+    //     interviewResults.value = res.data
+    //     // 更新状态
+    //     changeShowData()
+    //   },
+    //   fail: (err) => {
+    //     console.error('获取面试结果失败:', err)
+    //   },
+    //   complete: () => { },
+    // })
+
+    const resData = await getInterviewListAPI(aId)
+    loading.value = false
+    interviewResults.value = resData;
+    // 更新状态
+    changeShowData()
+    console.log('interviewResults', resData)
   }
   const jumpInterviewResult = (interviewId: number) => {
     // 存储参数
@@ -433,7 +443,7 @@
     // 验证 nextStep
     if (!['INVITE', 'DISCARD'].includes(nextStep)) {
       console.error('无效的 next_step:', nextStep)
-      alert('无效的 next_step')
+      // alert('无效的 next_step')
       return
     }
     message
@@ -443,6 +453,7 @@
       })
       .then(() => {
         loading.value = true
+        // await inviteDiscardAPI(resultId,{ result_id: resultId, next_step: nextStep });
         uni.request({
           url: baseUrl + '/interview-results/evaluation_with_score/' + resultId + '/finalize',
           method: 'PATCH',

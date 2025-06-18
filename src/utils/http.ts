@@ -6,11 +6,13 @@ export const http = <T>(options: CustomRequestOptions) => {
     uni.request({
       ...options,
       dataType: 'json',
+      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
       // #ifndef MP-WEIXIN
       responseType: 'json',
       // #endif
       // 响应成功
       success(res) {
+        console.log('相应成功', res)
         // 状态码 2xx，参考 axios 的设计
         if (res.statusCode >= 200 && res.statusCode < 300) {
           // 2.1 提取核心数据 res.data
@@ -76,5 +78,26 @@ export const httpPost = <T>(
   })
 }
 
+/**
+ * PATCH请求
+ * @param url 后台地址
+ * @param data 请求body参数
+ * @param query 请求query参数，post请求也支持query，很多微信接口都需要
+ * @returns
+ */
+export const httpPatch = <T>(
+  url: string,
+  data?: Record<string, any>,
+  query?: Record<string, any>,
+) => {
+  return http<T>({
+    url,
+    query,
+    data,
+    method: 'POST',
+  })
+}
+
 http.get = httpGet
 http.post = httpPost
+http.patch = httpPatch

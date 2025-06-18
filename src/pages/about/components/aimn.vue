@@ -8,7 +8,7 @@
         <view class="text-white text-sm ml-10">AI模拟</view>
       </view>
       <view class="flex">
-        <wd-col span="18">
+        <wd-col :span="18">
           <view class="flex mt-2">
             <view class="text-sm ml-4 text-gray font-bold">面试职位：</view>
             <view class="text-sm font-bold">上海·操作工·5千-1.2万</view>
@@ -22,7 +22,7 @@
             <view class="text-sm font-bold">15分30秒</view>
           </view>
         </wd-col>
-        <wd-col span="6">
+        <wd-col :span="6">
           <view class="flex justify_center items_center">
             <image class="w-20 h-20 mt-2" :src="iconbhg"></image>
           </view>

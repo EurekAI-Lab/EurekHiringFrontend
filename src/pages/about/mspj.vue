@@ -61,10 +61,12 @@
           </wd-col>
         </wd-row>
       </view>
-      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md">
+      <!-- 综合评价 -->
+      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md" style="overflow: hidden;" v-if="overallSummary">
+        <view class="pjbg"></view>
         <view class="flex items-center justify-center mt-2">
-          <image class="w-4 h-4 ml-2 mt-2" :src="iconjt"></image>
-          <view class="ml-5 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
+          <image class="w-5 h-5 ml-2 mt-2" :src="iconpj"></image>
+          <view class="ml-3 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
             综合评价
           </view>
         </view>
@@ -72,21 +74,36 @@
           {{ overallSummary }}
         </view>
       </view>
-      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md pb-2">
-        <wd-row>
+      <!-- 能力提升建议 -->
+      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md" style="overflow: hidden;" v-if="improvementSuggestions">
+        <view class="pjbg"></view>
+        <view class="flex items-center justify-center mt-2">
+          <image class="w-5 h-5 ml-2 mt-2" :src="iconpj"></image>
+          <view class="ml-3 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
+            能力提升建议
+          </view>
+        </view>
+        <view class="m-3 text-xs mt-5 text-#a1a1aa">
+          {{ improvementSuggestions }}
+        </view>
+      </view>
+      <!-- 风险评价 -->
+      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md pb-2"  style="overflow: hidden;">
+        <view class="fxbg"></view>
+        <wd-row class="mt-2">
           <wd-col :span="4">
             <image class="w-6 h-6 ml-2 mt-2" src=""></image>
           </wd-col>
           <wd-col :span="16">
             <view class="flex items-center justify-center">
-              <image class="w-4 h-4 ml-2 mt-2" :src="iconjt"></image>
-              <view class="ml-5 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
+              <image class="w-5 h-5 ml-2 mt-2" :src="iconfx"></image>
+              <view class="ml-3 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
                 风险评价
               </view>
             </view>
           </wd-col>
           <wd-col :span="4">
-            <image class="w-10 h-10" :src="iconfxpg"></image>
+            <image class="w-10 h-10" src=""></image>
           </wd-col>
         </wd-row>
         <view class="flex ml-2">
@@ -219,6 +236,10 @@ import iconzdsc from '@/static/app/icons/icon_zdsc.png'
 import iconframe from '@/static/app/icons/icon-frame.png'
 import iconhg from '@/static/app/icons/icon_hg.png'
 import iconbhg from '@/static/app/icons/icon_bhg.png'
+import iconpjbg from '@/static/app/icons/icon-pjbg.png'
+import iconpj from '@/static/app/icons/icon-pj.png'
+import iconfxbg from '@/static/app/icons/icon-fxbg.png'
+import iconfx from '@/static/app/icons/icon-fx.png'
 
 import Aizdsc from '@/pages/about/components/aizdsc.vue'
 import Aimn from '@/pages/about/components/aimn.vue'
@@ -227,7 +248,7 @@ import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { navigateBack } from '@/utils/platformUtils'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-
+console.log('env', import.meta.env.MODE)
 const options = reactive({
   width: '800px', // 播放器高度
   height: '450px', // 播放器高度
@@ -459,6 +480,7 @@ const fetchInterviewReport = async (interviewId: number) => {
       // 处理响应数据类型
       const responseData = response.data as {
         report_data: InterviewReportItem[]
+        improvement_suggestions: string
         info: {
           position_name: string
           user_name: string
@@ -497,6 +519,7 @@ const fetchInterviewReport = async (interviewId: number) => {
       bgscTime.value = responseData.info.interview_result_time
       userAvatar.value = responseData.info.user_avatar
       overallSummary.value = responseData.info.overall_summary
+      improvementSuggestions.value = responseData.improvement_suggestions || ''
       score.value = responseData.info.score
       pgjg.value = responseData.info.interview_result === 'PASS' ? '通过' : '不通过'
 
@@ -543,6 +566,7 @@ const dtsc = ref('')
 const showModal = ref(false)
 const userAvatar = ref('')
 const overallSummary = ref('')
+const improvementSuggestions = ref('')
 const score = ref(0)
 
 function handleClickLeft() {
@@ -619,5 +643,23 @@ uni-page-body,
 .mirror {
   transform: scaleX(-1); /* 实现镜像效果 */
   -webkit-transform: scaleX(-1); /* Safari 支持 */
+}
+
+.pjbg,.fxbg{
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  width: 100%;
+  height: 46px;
+}
+.pjbg{
+  background: url('../../static/app/icons/icon-pjbg.png') top left;
+  background-size: 100% 100%;
+}
+.fxbg{
+  background: url('../../static/app/icons/icon-fxbg.png') top left;
+  background-size: 100% 100%;
 }
 </style>
