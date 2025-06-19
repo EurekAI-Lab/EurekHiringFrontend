@@ -391,9 +391,13 @@ const startRecording = async () => {
       }
     }
 
-    // 清空之前的录制数据
-    recordedData.value = []
-    console.log(`开始录制题目 ${currentQuestionIndex.value}`)
+    // 只在开始新题目录制时清空之前的录制数据
+    if (currentQuestionIndex.value === 0 || recordedData.value.length === 0) {
+      recordedData.value = []
+      console.log(`开始录制题目 ${currentQuestionIndex.value}`)
+    } else {
+      console.log(`继续录制题目 ${currentQuestionIndex.value}，当前已有 ${recordedData.value.length} 个数据块`)
+    }
     mediaRecorder.start()
   } else {
     console.error('MediaRecorder 未初始化')
@@ -423,10 +427,11 @@ const stopRecordingAndSave = async () => {
           const mimeType = getMimeType()
           const finalBlob = new Blob(recordedData.value, { type: mimeType })
           blobData.value = finalBlob // 存储合并后的 Blob 到专门的引用
-          console.log(`合并 ${recordedData.value.length} 个数据块，总大小: ${finalBlob.size}`)
+          console.log(`题目 ${currentIndex} 合并 ${recordedData.value.length} 个数据块，总大小: ${finalBlob.size}，MIME类型: ${mimeType}`)
 
-          try {
+                      try {
             // 上传当前题目的视频
+            console.log(`开始上传题目 ${currentIndex} 的视频，大小: ${finalBlob.size} bytes`)
             await getUploadInfo()
 
             // 关闭loading提示
@@ -440,8 +445,12 @@ const stopRecordingAndSave = async () => {
               currentQuestionIndex.value++
               console.log(`成功进入下一题: ${currentQuestionIndex.value}`)
               
-
-
+              // 重置录制状态为下一题准备
+              recordedData.value = []
+              blobData.value = null
+              videoDuration.value = 0
+              console.log('已重置录制状态，准备录制下一题')
+              
               play()
               triggerAnotherMethod()
             } else {
@@ -449,8 +458,8 @@ const stopRecordingAndSave = async () => {
               handleExit()
             }
           } catch (error) {
-            console.error('上传视频失败:', error)
-            toast.error('视频上传失败，请重试')
+            console.error(`题目 ${currentIndex} 上传视频失败:`, error)
+            toast.error(`第${currentIndex + 1}题视频上传失败，请重试`)
             // 关闭loading
             if (window._currentLoadingClose) {
               window._currentLoadingClose()
@@ -605,13 +614,17 @@ const downloadRecordedVideo = () => {
 // 修改 getUploadInfo 函数中的文件扩展名
 const getUploadInfo = async () => {
   try {
+    console.log('获取上传凭证...')
     const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=mp4` })
     // 添加类型断言
     const responseData = response.data as any
-    await uploadFile(responseData.data)
+    console.log('上传凭证获取成功，开始上传文件...')
+    const uploadResult = await uploadFile(responseData.data)
+    console.log('文件上传完成:', uploadResult)
+    return uploadResult
   } catch (error) {
-    console.error('获取上传凭证失败:', error)
-    toast.error('获取上传凭证失败，请重试')
+    console.error('上传流程失败:', error)
+    toast.error('视频上传失败，请重试')
     throw error // 向上传播错误
   }
 }
@@ -656,46 +669,53 @@ const uploadFile = async (opt: any) => {
 
   console.log(`开始上传题目 ${currentQuestionIdx} 的视频，时长: ${currentVideoDuration}秒`)
 
-  uni.uploadFile({
-    url: 'https://' + opt.cosHost,
-    file: fileToUpload,
-    name: 'file',
-    formData,
-    success: (res) => {
-      if (![200, 204].includes(res.statusCode)) {
-        console.error('上传失败，状态码:', res.statusCode)
-        return
-      }
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: 'https://' + opt.cosHost,
+      file: fileToUpload,
+      name: 'file',
+      formData,
+      success: (res) => {
+        console.log(`题目 ${currentQuestionIdx} 上传响应:`, res)
+        
+        if (![200, 204].includes(res.statusCode)) {
+          console.error(`题目 ${currentQuestionIdx} 上传失败，状态码:`, res.statusCode, 'response:', res.data)
+          reject(new Error(`上传失败，状态码: ${res.statusCode}`))
+          return
+        }
 
-      const uploadedFileUrl =
-        'https://' + opt.cosHost + '/' + camSafeUrlEncode(opt.cosKey).replace(/%2F/g, '/')
+        const uploadedFileUrl =
+          'https://' + opt.cosHost + '/' + camSafeUrlEncode(opt.cosKey).replace(/%2F/g, '/')
 
-      const fileData = {
-        question_id: currentQuestionIdx + 1,
-        video_url: uploadedFileUrl,
-        video_duration: currentVideoDuration,
-      }
+        const fileData = {
+          question_id: currentQuestionIdx + 1,
+          video_url: uploadedFileUrl,
+          video_duration: currentVideoDuration,
+        }
 
-      const existingIndex = fileFrom.fileUrls.findIndex(
-        (item) => item.question_id === currentQuestionIdx + 1,
-      )
+        const existingIndex = fileFrom.fileUrls.findIndex(
+          (item) => item.question_id === currentQuestionIdx + 1,
+        )
 
-      if (existingIndex >= 0) {
-        console.log(`题目 ${currentQuestionIdx} 已有上传记录，更新数据:`, fileData)
-        fileFrom.fileUrls[existingIndex] = fileData
-      } else {
-        console.log('上传成功，添加数据:', fileData)
-        fileFrom.fileUrls.push(fileData)
-      }
+        if (existingIndex >= 0) {
+          console.log(`题目 ${currentQuestionIdx} 已有上传记录，更新数据:`, fileData)
+          fileFrom.fileUrls[existingIndex] = fileData
+        } else {
+          console.log(`题目 ${currentQuestionIdx} 上传成功，添加数据:`, fileData)
+          fileFrom.fileUrls.push(fileData)
+        }
 
-      console.log('当前所有上传数据:', JSON.stringify(fileFrom.fileUrls))
-    },
-    fail: (err) => {
-      console.error('上传失败:', err)
-    },
-    complete: () => {
-      toast.close()
-    },
+        console.log('当前所有上传数据:', JSON.stringify(fileFrom.fileUrls))
+        resolve(fileData)
+      },
+      fail: (err) => {
+        console.error(`题目 ${currentQuestionIdx} 上传失败:`, err)
+        reject(new Error(`上传失败: ${JSON.stringify(err)}`))
+      },
+      complete: () => {
+        toast.close()
+      },
+    })
   })
 }
 
@@ -797,21 +817,25 @@ const nextQuestion = async () => {
       try {
         // 如果正在录制，先停止录制
         if (mediaRecorder.state === 'recording') {
-          recordedData.value = []
+          // recordedData.value = [] // 注释掉这行，避免清空正在录制的数据
           mediaRecorder.onstop = async () => {
-            const finalBlob = new Blob(recordedData.value, { type: getMimeType() })
-            blobData.value = finalBlob // 使用 blobData 存储
+            if (recordedData.value.length > 0) {
+              const finalBlob = new Blob(recordedData.value, { type: getMimeType() })
+              blobData.value = finalBlob // 使用 blobData 存储
 
-            // 确保最后一题的视频上传完成
-            console.log('上传最后一题的视频，视频时长:', videoDuration.value)
-            await getUploadInfo()
+              // 确保最后一题的视频上传完成
+              console.log('上传最后一题的视频，视频时长:', videoDuration.value)
+              await getUploadInfo()
 
-            // 等待一段时间确保上传完成
-            setTimeout(() => {
+              // 等待一段时间确保上传完成
+              setTimeout(() => {
+                handleExit()
+              }, 2000)
+            } else {
+              console.warn('最后一题没有获取到视频数据')
               handleExit()
-            }, 2000)
+            }
           }
-          mediaRecorder.stop()
         } else {
           // 如果不是录制状态，可能是暂停或已停止
           console.log('MediaRecorder 不在录制状态，当前状态:', mediaRecorder.state)
@@ -1084,7 +1108,23 @@ const handleStart = () => {
           // 移除视频遮罩
           triggerAnotherMethod()
           isInterviewStarted.value = true
-          play()
+          
+          // 重新获取面试详情，这时会检查TTS问题
+          await fetchInterviewInfo(interviewId.value)
+          
+          // 检查音频是否可用，如果TTS有问题，fetchInterviewInfo已经显示了错误提示
+          // 但我们仍然需要继续面试流程
+          const currentQuestion = interviewDetails.value.data.questions[currentQuestionIndex.value]
+          if (currentQuestion.audio_url && currentQuestion.audio_url !== null) {
+            console.log('音频可用，开始播放')
+            play()
+          } else {
+            console.warn('音频不可用，跳过音频播放，直接开始面试')
+            // 给用户一些时间阅读题目，然后开始面试
+            setTimeout(() => {
+              startInterview()
+            }, 5000) // 2秒阅读时间
+          }
 
           // 检查是否只有一道题
           if (interviewDetails.value.data.questions.length === 1) {
@@ -1361,14 +1401,52 @@ const fetchInterviewInfo = async (interviewId: number) => {
       // 添加类型断言
       const responseData = response.data as any
       interviewDetails.value = responseData
+      
+      // 检查是否有TTS服务问题
+      const hasAudioIssues = interviewDetails.value.data.questions.some(
+        (question: any) => !question.audio_url || question.audio_url === null
+      )
+      
+      if (hasAudioIssues) {
+        console.warn('检测到TTS服务问题，部分问题缺少音频')
+        // 如果是在面试开始时检测到TTS问题，显示相应提示
+        if (isInterviewStarted.value) {
+          toast.error('语音转文字接口调用失败')
+          // 不要提前返回，继续执行后续逻辑
+        }
+      }
+      
       if (interviewDetails.value.data.questions.length === 1 && isInterviewStarted.value) {
         overQuestion.value = true
       }
     } else {
       console.error('获取面试信息失败:', response.data)
+      
+      // 检查错误类型，提供更准确的错误提示
+      const errorDetail = response.data?.detail || ''
+      if (errorDetail.includes('Questions not found')) {
+        // 面试数据异常
+        if (isInterviewStarted.value) {
+          toast.error('面试数据异常，请联系管理员')
+        }
+      } else if (errorDetail.includes('Interview not found')) {
+        // 面试记录不存在
+        if (isInterviewStarted.value) {
+          toast.error('面试记录不存在')
+        }
+      } else {
+        // 其他API错误
+        if (isInterviewStarted.value) {
+          toast.error('更新面试状态失败')
+        }
+      }
     }
   } catch (error) {
     console.error('请求失败:', error)
+    // 只有在真正的网络错误时才显示面试状态失败
+    if (isInterviewStarted.value) {
+      toast.error('网络错误，请检查网络连接')
+    }
   }
   loading.value = false
   showVideoMask.value = false
