@@ -439,6 +439,9 @@ const stopRecordingAndSave = async () => {
             if (currentIndex < interviewDetails.value.data.questions.length - 1) {
               currentQuestionIndex.value++
               console.log(`成功进入下一题: ${currentQuestionIndex.value}`)
+              
+
+
               play()
               triggerAnotherMethod()
             } else {
