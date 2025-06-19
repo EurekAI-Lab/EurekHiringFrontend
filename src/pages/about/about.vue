@@ -254,7 +254,7 @@
   import jobIcon from '../../static/app/icons/icon_job.png'
   import { useQueue, useToast, useMessage } from 'wot-design-uni'
   import { navigateBack, inviteInterview, openUserVitaeInfo } from '@/utils/platformUtils'
-  import { getInterviewListAPI, inviteDiscardAPI } from '@/service/api'
+  import { getInterviewListAPI } from '@/service/api'
 
   const baseUrl = import.meta.env.VITE_SERVER_BASEURL
   const interviewResults:any = ref([]) // 存储面试结果
