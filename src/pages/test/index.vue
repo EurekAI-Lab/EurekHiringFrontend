@@ -55,7 +55,10 @@ const callFunction = () => {
       functionResponse.value = '当前环境不支持函数调用！'
     }
   } catch (error) {
-    alert('调用函数时发生错误: ' + error.message)
+    uni.showToast({
+        title: '调用函数时发生错误: ' + error.message,
+        icon: 'none'
+      })
   }
 }
 

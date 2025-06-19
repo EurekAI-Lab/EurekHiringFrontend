@@ -207,12 +207,18 @@ onLoad((options) => {
   if (options.token) {
     uni.setStorageSync('token', options.token)
   } else {
-    alert('未找到 token 参数')
+    uni.showToast({
+        title: '未找到 token 参数',
+        icon: 'none'
+      })
   }
   if (options.positionsId) {
     positionsId.value = parseInt(options.positionsId, 10) // 将字符串转换为数字
   } else {
-    alert('未找到 positionsId 参数')
+    uni.showToast({
+        title: '未找到 positionsId 参数',
+        icon: 'none'
+      })
   }
 })
 const getInterviewInfo = async (positionsId: any) => {
@@ -263,7 +269,10 @@ const getInterviewInfo = async (positionsId: any) => {
         chatStream()
       }
     } else {
-      alert('获取面试信息失败')
+      uni.showToast({
+        title: '获取面试信息失败',
+        icon: 'none'
+      })
     }
     console.log('Response:', response) // 断点：检查响应内容
   } catch (error) {
@@ -505,12 +514,18 @@ const saveQusetion = async () => {
               console.log('返回app函数报错', error)
             }
           } else {
-            alert('保存面试题接口发生错误' + res.statusCode)
+            uni.showToast({
+        title: '保存面试题接口发生错误' + res.statusCode,
+        icon: 'none'
+      })
           }
         })
         console.log('Fetch response:', res) // 断点：检查fetch响应
       } catch (error) {
-        alert('保存面试题接口发生错误' + error)
+        uni.showToast({
+        title: '保存面试题接口发生错误' + error,
+        icon: 'none'
+      })
       }
     })
     .catch((error) => {

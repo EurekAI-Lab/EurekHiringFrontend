@@ -246,6 +246,7 @@ import Aimn from '@/pages/about/components/aimn.vue'
 import Xzzw from '@/pages/about/components/xzzw.vue'
 import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { navigateBack } from '@/utils/platformUtils'
+import { handleToken } from "@/utils/useAuth"
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 console.log('env', import.meta.env.MODE)
@@ -442,15 +443,20 @@ function filiterNum(str) {
 const type = ref('')
 
 onLoad((options) => {
-  const storedToken = uni.getStorageSync('token')
+  // const storedToken = uni.getStorageSync('token')
 
-  if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
-    uni.setStorageSync('token', options.token)
-  } else if (storedToken) {
-    uni.setStorageSync('token', storedToken)
-  } else {
-    alert('未找到 token 参数')
-  }
+  // if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
+  //   uni.setStorageSync('token', options.token)
+  // } else if (storedToken) {
+  //   uni.setStorageSync('token', storedToken)
+  // } else {
+  //   uni.showToast({
+  //       title: '未找到 token 参数',
+  //       icon: 'none'
+  //     })
+  // }
+
+  handleToken(options)
   const storedInterviewId = uni.getStorageSync('interviewId')
   if (options.interviewId && !isNaN(options.interviewId)) {
     interviewId.value = parseInt(options.interviewId, 10)
@@ -458,7 +464,10 @@ onLoad((options) => {
     interviewId.value = parseInt(storedInterviewId, 10)
   } else {
     // 两者都不存在时提示用户
-    alert('未找到 interviewId 参数')
+    uni.showToast({
+        title: '未找到 interviewId 参数',
+        icon: 'none'
+      })
   }
   if (options.type) {
     type.value = options.type

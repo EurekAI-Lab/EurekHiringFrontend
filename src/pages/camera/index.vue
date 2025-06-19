@@ -1061,9 +1061,15 @@ const startCamera = async () => {
     }
   } catch (error) {
     if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-      alert('请在浏览器设置中允许摄像头权限')
+      uni.showToast({
+        title: '请在浏览器设置中允许摄像头权限',
+        icon: 'none'
+      })
     } else {
-      alert('启动摄像头失败:' + JSON.stringify(error))
+      uni.showToast({
+        title: '启动摄像头失败:' + JSON.stringify(error),
+        icon: 'none'
+      })
     }
   }
 }

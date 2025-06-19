@@ -252,9 +252,10 @@
   import yyy from '../../static/app/icons/icon_yyy.png'
   // import fchs from '../../static/app/icons/icon_fchs.png'
   import jobIcon from '../../static/app/icons/icon_job.png'
-  import { useQueue, useToast, useMessage } from 'wot-design-uni'
+  import { useToast, useMessage } from 'wot-design-uni'
   import { navigateBack, inviteInterview, openUserVitaeInfo } from '@/utils/platformUtils'
   import { getInterviewListAPI } from '@/service/api'
+  import { handleToken } from "@/utils/useAuth"
 
   const baseUrl = import.meta.env.VITE_SERVER_BASEURL
   const interviewResults:any = ref([]) // 存储面试结果
@@ -443,7 +444,6 @@
     // 验证 nextStep
     if (!['INVITE', 'DISCARD'].includes(nextStep)) {
       console.error('无效的 next_step:', nextStep)
-      // alert('无效的 next_step')
       return
     }
     message
@@ -496,11 +496,15 @@
   }
   const enterpriseId = ref()
   onLoad((options) => {
-    if (options.token) {
-      uni.setStorageSync('token', options.token)
-    } else {
-      alert('未找到 token 参数')
-    }
+    // if (options.token) {
+    //   uni.setStorageSync('token', options.token)
+    // } else {
+    //   uni.showToast({
+    //     title: '未找到 token 参数',
+    //     icon: 'none'
+    //   })
+    // }
+    handleToken(options)
     // enterpriseId
     if (options.enterpriseId) {
       enterpriseId.value = options.enterpriseId

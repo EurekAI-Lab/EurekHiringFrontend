@@ -144,6 +144,7 @@ import dw from '../../static/app/icons/icon_dw.png'
 import dh from '../../static/app/icons/icon_dh.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { navigateBack } from '@/utils/platformUtils'
+ import { handleToken } from "@/utils/useAuth"
 const toast = useToast()
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
@@ -228,14 +229,18 @@ const getPostionInfo = async () => {
   }
 }
 onLoad((options) => {
-  const storedToken = uni.getStorageSync('token')
-  if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
-    uni.setStorageSync('token', options.token)
-  } else if (storedToken) {
-    uni.setStorageSync('token', storedToken)
-  } else {
-    alert('未找到 token 参数')
-  }
+  // const storedToken = uni.getStorageSync('token')
+  // if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
+  //   uni.setStorageSync('token', options.token)
+  // } else if (storedToken) {
+  //   uni.setStorageSync('token', storedToken)
+  // } else {
+  //   uni.showToast({
+  //       title: '未找到 token 参数',
+  //       icon: 'none'
+  //     })
+  // }
+  handleToken(options)
 })
 function handleClickLeft() {
   navigateBack()

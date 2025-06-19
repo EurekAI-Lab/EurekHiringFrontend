@@ -131,18 +131,23 @@ import { onPageScroll as uniPageScroll } from '@dcloudio/uni-app'
 
 import { useToast } from 'wot-design-uni'
 import { navigateBack } from '@/utils/platformUtils'
+ import { handleToken } from "@/utils/useAuth"
 const toast = useToast()
 const showSheet = ref(false)
 const items = ref([])
 onLoad((options) => {
-  const storedToken = uni.getStorageSync('token')
-  if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
-    uni.setStorageSync('token', options.token)
-  } else if (storedToken) {
-    uni.setStorageSync('token', storedToken)
-  } else {
-    alert('未找到 token 参数')
-  }
+  // const storedToken = uni.getStorageSync('token')
+  // if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
+  //   uni.setStorageSync('token', options.token)
+  // } else if (storedToken) {
+  //   uni.setStorageSync('token', storedToken)
+  // } else {
+  //   uni.showToast({
+  //       title: '未找到 token 参数',
+  //       icon: 'none'
+  //     })
+  // }
+  handleToken(options)
 })
 const headerOpacity = ref(0)
 

@@ -121,6 +121,8 @@ import rame from '../../static/app/icons/Frame-001.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import wxSdk from 'weixin-js-sdk'
 import { navigateBack } from '@/utils/platformUtils'
+import { handleToken } from "@/utils/useAuth"
+
 function getENVIR() {
   let text = ''
   let ua = navigator.userAgent.toLowerCase()
@@ -164,20 +166,23 @@ watch(searchValue, (newValue) => {
 })
 
 onLoad((options) => {
-  const storedToken = uni.getStorageSync('token')
-  if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
-    uni.setStorageSync('token', options.token)
-  } else if (storedToken) {
-    uni.setStorageSync('token', storedToken)
-  } else {
-    alert('未找到 token 参数')
-  }
+  // const storedToken = uni.getStorageSync('token')
+  // if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
+  //   uni.setStorageSync('token', options.token)
+  // } else if (storedToken) {
+  //   uni.setStorageSync('token', storedToken)
+  // } else {
+  //   uni.showToast({
+  //       title: '未找到 token 参数',
+  //       icon: 'none'
+  //     })
+  // }ss
+  handleToken(options)
 })
 function formatCompletionTime(isoString) {
   return isoString.replace('T', ' ').substring(0, 19)
 }
 onMounted(() => {
-  // alert('获取当前环境：' + getENVIR())
   getInterviewList()
 })
 function handleClickLeft() {
@@ -221,11 +226,17 @@ async function getInterviewList(keyword = '') {
       originalInterviewResults.value = response.data.data || [] // 保存原始数据
       interviewResults.value = originalInterviewResults.value // 初始显示所有数据
     } else {
-      alert('获取面试记录失败，请稍后再试')
+      uni.showToast({
+        title: '获取面试记录失败，请稍后再试',
+        icon: 'none'
+      })
     }
   } catch (error) {
     console.error('Error fetching interview list:', error)
-    alert('网络错误，请检查您的连接')
+    uni.showToast({
+        title: '网络错误，请检查您的连接',
+        icon: 'none'
+      })
   } finally {
     loading.value = false
   }
