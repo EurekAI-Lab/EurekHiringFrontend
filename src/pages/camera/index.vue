@@ -405,7 +405,7 @@ const startMediaRecorderMonitor = () => {
               recordedData.value.push(event.data)
             }
           }
-          mediaRecorder.start()
+          mediaRecorder.start(1000)
         } catch (error) {
           console.error('MediaRecorder重新初始化失败:', error)
         }
@@ -422,7 +422,7 @@ const startMediaRecorderMonitor = () => {
                     recordedData.value.push(event.data)
                   }
                 }
-                mediaRecorder.start()
+                mediaRecorder.start(1000)
               } catch (error) {
                 console.error('重新获取媒体流后初始化MediaRecorder失败:', error)
               }
@@ -441,7 +441,7 @@ const startMediaRecorderMonitor = () => {
       try {
         // 如果是非活动状态，重新启动录制
         if (mediaRecorder.state === 'inactive') {
-          mediaRecorder.start()
+          mediaRecorder.start(1000)
         } else if (mediaRecorder.state === 'paused') {
           // 如果是暂停状态，恢复录制
           mediaRecorder.resume()
@@ -463,7 +463,7 @@ const startMediaRecorderMonitor = () => {
                 recordedData.value.push(event.data)
               }
             }
-            mediaRecorder.start()
+            mediaRecorder.start(1000)
           } catch (error) {
             console.error('MediaRecorder重新初始化失败:', error)
           }
@@ -511,7 +511,27 @@ const startRecording = async () => {
     } else {
       console.log(`继续录制题目 ${currentQuestionIndex.value}，当前已有 ${recordedData.value.length} 个数据块`)
     }
-    mediaRecorder.start()
+    
+    // 使用timeslice参数，每秒生成一个数据块
+    try {
+      mediaRecorder.start(1000)
+      console.log(`MediaRecorder 已启动录制，状态: ${mediaRecorder.state}`)
+      
+      // 添加状态变化监听
+      mediaRecorder.onstart = () => {
+        console.log('MediaRecorder onstart 事件触发')
+      }
+      
+      mediaRecorder.onstop = () => {
+        console.log('MediaRecorder onstop 事件触发，收集到的数据块数量:', recordedData.value.length)
+      }
+      
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder 错误:', event)
+      }
+    } catch (error) {
+      console.error('启动 MediaRecorder 失败:', error)
+    }
   } else {
     console.error('MediaRecorder 未初始化')
   }
@@ -591,6 +611,23 @@ const stopRecordingAndSave = async () => {
           if (window._currentLoadingClose) {
             window._currentLoadingClose()
             window._currentLoadingClose = null
+          }
+          
+          // 即使没有数据也要继续处理下一题
+          if (currentIndex < interviewDetails.value.data.questions.length - 1) {
+            currentQuestionIndex.value++
+            console.log(`进入下一题: ${currentQuestionIndex.value}`)
+            
+            // 清除之前的音频播放超时
+            if (audioPlayTimeout) {
+              clearTimeout(audioPlayTimeout)
+              audioPlayTimeout = null
+            }
+            
+            play()
+          } else {
+            console.log('已完成所有题目，退出面试')
+            handleExit()
           }
         }
       }
@@ -1019,7 +1056,7 @@ const nextQuestion = async () => {
                 }
 
                 // 启动录制
-                mediaRecorder.start()
+                mediaRecorder.start(1000)
                 console.log('开始最后一题的短暂录制')
 
                 // 录制一小段时间后停止
@@ -1187,7 +1224,10 @@ const startCamera = async () => {
 
     mediaRecorder = new MediaRecorder(stream.value, { mimeType })
     mediaRecorder.ondataavailable = (event) => {
-      recordedData.value.push(event.data)
+      if (event.data && event.data.size > 0) {
+        recordedData.value.push(event.data)
+        console.log(`[startCamera] 收到数据块，大小: ${event.data.size}, 总块数: ${recordedData.value.length}`)
+      }
     }
   } catch (error) {
     if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
