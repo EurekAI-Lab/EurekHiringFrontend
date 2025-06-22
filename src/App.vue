@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
-// import VConsole from 'vconsole'
 
-// const vConsole = new VConsole()
+// 在 H5 平台始终启用 vConsole（包括生产环境）
+// #ifdef H5
+import VConsole from 'vconsole'
+const vConsole = new VConsole()
+console.log('vConsole 已启用（全局调试模式）')
+// #endif
+
 // const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 onLaunch(() => {
   console.log('App Launch')

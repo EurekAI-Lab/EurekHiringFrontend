@@ -63,6 +63,14 @@
       }
     },
     {
+      "path": "pages/camera/index-refactored",
+      "type": "page",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "视频面试"
+      }
+    },
+    {
       "path": "pages/camera/index",
       "type": "page",
       "style": {
