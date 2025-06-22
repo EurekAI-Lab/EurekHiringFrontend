@@ -1746,6 +1746,16 @@ const stopMediaRecorderMonitor = () => {
   pointer-events: none !important;
 }
 
+video::-webkit-media-controls-play-button {
+    display: none !important; /* Chrome/Safari */
+}
+video::-webkit-media-controls-start-playback-button {
+    display: none !important; /* Chrome/Safari */
+}
+video::-webkit-media-controls {
+    overflow: hidden !important; /* 可能需要隐藏其他默认控件 */
+}
+
 /* 或者使用 visibility */
 .wrapper {
   display: flex;
