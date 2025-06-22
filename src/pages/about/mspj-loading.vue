@@ -127,7 +127,7 @@ const pollInterviewReport = () => {
 const navigateToReportPage = () => {
   console.info('传递的面试ID' + interviewId.value)
 
-  uni.navigateTo({
+  uni.redirectTo({
     url: `/pages/about/mspj?interviewId=${interviewId.value}&type=${type.value}`,
     success: () => {
       console.log('成功跳转到面试报告页面')

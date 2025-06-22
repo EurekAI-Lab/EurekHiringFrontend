@@ -1631,14 +1631,14 @@ const handleExit = async () => {
                 navigateBack()
               } else {
                 if (test.value) {
-                  uni.navigateTo({
+                  uni.redirectTo({
                     url:
                       '/pages/about/mspj-loading?interviewId=' +
                       interviewId.value +
                       '&interviewType=1&type=2',
                   })
                 } else {
-                  uni.navigateTo({
+                  uni.redirectTo({
                     url:
                       '/pages/about/mspj-loading?interviewId=' +
                       interviewId.value +
