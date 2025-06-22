@@ -18,11 +18,8 @@
       <view class="w-full h-11"></view>
       <view class="relative h-11 flex flex-row text-white">
         <!-- -top-1 -->
-        <view
-          class="i-carbon-chevron-left w-6 h-6 absolute left-5"
-          style="top: 50%; transform: translateY(-50%)"
-          @click="handleClickLeft"
-        ></view>
+        <view class="i-carbon-chevron-left w-6 h-6 absolute left-5" style="top: 50%; transform: translateY(-50%)"
+          @click="handleClickLeft"></view>
         <view class="absolute left-2/5" style="top: 50%; transform: translateY(-50%)"></view>
         <!-- <view class="absolute left-4/5" @click="saveQuestion()">确定</view> -->
       </view>
@@ -30,10 +27,8 @@
     <!-- h-50 h-auto  pt-24-->
     <view class="relative w-full h-auto flex flex-wrap justify-center pt-24" style="">
       <!-- 顶部背景 -->
-      <view
-        class="absolute w-100% h-50 z-0 top-22"
-        style="background: linear-gradient(180deg, #145eff 0%, #0cd0ff 100%)"
-      ></view>
+      <view class="absolute w-100% h-50 z-0 top-22"
+        style="background: linear-gradient(180deg, #145eff 0%, #0cd0ff 100%)"></view>
       <view class="relative z-1 bg-#fafafa h-10 w-85 flex items-center rounded">
         <image class="w-4 h-4 ml-4" :src="icon001"></image>
         <view class="pl-3 text-xs">面试职位：{{ mszw }}</view>
@@ -41,11 +36,7 @@
       <view class="relative z-1 bg-#fafafa h-22 w-85 rounded mt-2 shadow-md">
         <wd-row>
           <wd-col :span="4">
-            <image
-              class="w-12 h-18 ml-2 mt-2"
-              :src="userAvatar || icon001"
-              mode="aspectFit"
-            ></image>
+            <image class="w-12 h-18 ml-2 mt-2" :src="userAvatar || icon001" mode="aspectFit"></image>
           </wd-col>
           <wd-col :span="16">
             <view class="ml-5 mt-3 font-bold text-sm">{{ msrName }}</view>
@@ -62,7 +53,8 @@
         </wd-row>
       </view>
       <!-- 综合评价 -->
-      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md" style="overflow: hidden;" v-if="overallSummary">
+      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md" style="overflow: hidden;"
+        v-if="overallSummary">
         <view class="pjbg"></view>
         <view class="flex items-center justify-center mt-2">
           <image class="w-5 h-5 ml-2 mt-2" :src="iconpj"></image>
@@ -75,7 +67,8 @@
         </view>
       </view>
       <!-- 能力提升建议 -->
-      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md" style="overflow: hidden;" v-if="improvementSuggestions">
+      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md" style="overflow: hidden;"
+        v-if="improvementSuggestions">
         <view class="pjbg"></view>
         <view class="flex items-center justify-center mt-2">
           <image class="w-5 h-5 ml-2 mt-2" :src="iconpj"></image>
@@ -88,7 +81,7 @@
         </view>
       </view>
       <!-- 风险评价 -->
-      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md pb-2"  style="overflow: hidden;">
+      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md pb-2" style="overflow: hidden;">
         <view class="fxbg"></view>
         <wd-row class="mt-2">
           <wd-col :span="4">
@@ -115,21 +108,11 @@
           <view class="text-sm font-bold">面试录屏：</view>
         </view>
         <view class="flex w-95% justify-start mt-2 ml-2" style="overflow: hidden; overflow-x: auto">
-          <template
-            v-if="frameAnalysis && frameAnalysis.samples && frameAnalysis.samples.length > 0"
-          >
-            <view
-              class="relative w-14 h-18 ml-2 mt-2"
-              v-for="(sample, index) in frameAnalysis.samples"
-              :key="index"
-            >
+          <template v-if="frameAnalysis && frameAnalysis.samples && frameAnalysis.samples.length > 0">
+            <view class="relative w-14 h-18 ml-2 mt-2" v-for="(sample, index) in frameAnalysis.samples" :key="index">
               <image class="w-14 h-18" :src="sample.frame_url"></image>
-              <image
-                class="absolute w-5 h-5 z-1"
-                style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
-                :src="iconframe"
-                @click="showVideoModal(sample.original_video_url)"
-              ></image>
+              <image class="absolute w-5 h-5 z-1" style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
+                :src="iconframe" @click="showVideoModal(sample.original_video_url)"></image>
 
               <view class="h-5 video_title" style="font-size: 12px">
                 第{{ numberToChinese(index + 1) }}题
@@ -156,10 +139,7 @@
         <view v-if="isLoading" class="flex justify-center items-center p-10">
           <view class="text-center text-gray-500">面试内容正在处理，请稍后再试</view>
         </view>
-        <view
-          v-else-if="interviewReport.length === 0"
-          class="flex justify-center items-center p-10"
-        >
+        <view v-else-if="interviewReport.length === 0" class="flex justify-center items-center p-10">
           <view class="text-center text-gray-500">暂无面试数据</view>
         </view>
         <view v-else v-for="(item, index) in interviewReport" :key="index">
@@ -171,11 +151,7 @@
               </view>
             </view>
             <view class="flex justify-right mr-2">
-              <image
-                class="w-5 h-5 ml-2"
-                :src="iconframe"
-                @click="showVideoModal(item.video_url)"
-              ></image>
+              <image class="w-5 h-5 ml-2" :src="iconframe" @click="showVideoModal(item.video_url)"></image>
               <view class="text-xs ml-2 mt-0.5 text-#a1a1aa">
                 第{{ numberToChinese(index + 1) }}题录屏
               </view>
@@ -197,11 +173,7 @@
             </view>
             <view class="flex pt-1 pr-3 pl-3">
               <view class="" style="font-size: 12px; word-break: keep-all">打分：</view>
-              <wd-progress
-                :percentage="item.score * 10"
-                hide-text
-                style="width: 220px"
-              ></wd-progress>
+              <wd-progress :percentage="item.score * 10" hide-text style="width: 220px"></wd-progress>
               <view class="font-bold ml-3">{{ item.score * 10 }}</view>
             </view>
           </view>
@@ -213,13 +185,7 @@
             <xzzw class="my-10" />
             <xzzw class="my-10" /> -->
       <wd-popup v-model="isModalVisible">
-        <video
-          class="mirror"
-          :src="showVideo"
-          controls
-          preload="metadata"
-          style="width: 380px; height: 214px"
-        ></video>
+        <video class="mirror" :src="showVideo" controls preload="metadata" style="width: 380px; height: 214px"></video>
       </wd-popup>
     </view>
   </view>
@@ -465,9 +431,9 @@ onLoad((options) => {
   } else {
     // 两者都不存在时提示用户
     uni.showToast({
-        title: '未找到 interviewId 参数',
-        icon: 'none'
-      })
+      title: '未找到 interviewId 参数',
+      icon: 'none'
+    })
   }
   if (options.type) {
     type.value = options.type
@@ -639,6 +605,7 @@ uni-page-body,
   // background: linear-gradient(180deg, #145eff 0%, #1383ff 100%);
   background-color: #145eff;
 }
+
 .video_title {
   position: absolute;
   top: 0;
@@ -650,11 +617,14 @@ uni-page-body,
 }
 
 .mirror {
-  transform: scaleX(-1); /* 实现镜像效果 */
-  -webkit-transform: scaleX(-1); /* Safari 支持 */
+  transform: scaleX(-1);
+  /* 实现镜像效果 */
+  -webkit-transform: scaleX(-1);
+  /* Safari 支持 */
 }
 
-.pjbg,.fxbg{
+.pjbg,
+.fxbg {
   position: absolute;
   top: 0;
   left: 0;
@@ -663,11 +633,13 @@ uni-page-body,
   width: 100%;
   height: 46px;
 }
-.pjbg{
+
+.pjbg {
   background: url('../../static/app/icons/icon-pjbg.png') top left;
   background-size: 100% 100%;
 }
-.fxbg{
+
+.fxbg {
   background: url('../../static/app/icons/icon-fxbg.png') top left;
   background-size: 100% 100%;
 }
