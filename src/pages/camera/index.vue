@@ -226,19 +226,132 @@ const fileFrom = reactive({ interview_id: ref(), fileUrls: [] })
 // 创建音频
 const innerAudioContext = uni.createInnerAudioContext()
 // innerAudioContext.autoplay = true;
+let audioPlayTimeout: number | null = null
+
 innerAudioContext.onPlay(() => {
   console.log('开始播放')
+  // 清除超时计时器，因为音频已经开始播放
+  if (audioPlayTimeout) {
+    clearTimeout(audioPlayTimeout)
+    audioPlayTimeout = null
+  }
 })
 innerAudioContext.onError((res) => {
-  console.log(res.errMsg)
-  console.log(res.errCode)
+  if (res) {
+    console.log('音频播放错误:', res.errMsg || '未知错误')
+    console.log('错误代码:', res.errCode || '无错误代码')
+    
+    // 根据错误类型提供不同的用户提示
+    if (res.errCode === 10001) {
+      console.error('系统错误：音频系统初始化失败')
+    } else if (res.errCode === 10002) {
+      console.error('网络错误：音频文件加载失败')
+    } else if (res.errCode === 10003) {
+      console.error('文件错误：音频文件格式不支持')
+    } else if (res.errCode === 10004) {
+      console.error('格式错误：音频编码格式不支持')
+    } else if (res.errCode === -1) {
+      console.error('未知错误：音频播放失败')
+    }
+  } else {
+    console.log('音频播放错误: 未知错误')
+  }
+  
+  // 音频播放出错时，提示用户但继续面试流程
+  console.warn('音频播放失败，将继续面试流程')
+  
+  // 如果是第一题，给用户更多时间阅读
+  const readingTime = currentQuestionIndex.value === 0 ? 3000 : 2000
+  
+  // 显示简短提示，告知用户音频播放失败但面试继续
+  toast.error({
+    msg: '音频播放失败，请阅读题目',
+    duration: 1500
+  })
+  
+  setTimeout(() => {
+    triggerAnotherMethod()
+  }, readingTime)
+})
+innerAudioContext.onEnded(() => {
+  console.log('音频播放结束，开始面试')
+  // 清除超时计时器
+  if (audioPlayTimeout) {
+    clearTimeout(audioPlayTimeout)
+    audioPlayTimeout = null
+  }
+  // 音频播放结束后自动开始面试
+  triggerAnotherMethod()
 })
 
 const play = () => {
   console.log('currentQuestionIndex.value', currentQuestionIndex.value)
-  innerAudioContext.src =
-    interviewDetails.value.data.questions[currentQuestionIndex.value].audio_url
-  innerAudioContext.play()
+  
+  // 清除之前的超时计时器
+  if (audioPlayTimeout) {
+    clearTimeout(audioPlayTimeout)
+    audioPlayTimeout = null
+  }
+  
+  // 检查当前问题是否存在以及是否有音频URL
+  const currentQuestion = interviewDetails.value.data.questions[currentQuestionIndex.value]
+  if (!currentQuestion) {
+    console.warn('当前问题不存在，索引:', currentQuestionIndex.value)
+    // 即使问题不存在，也要继续面试流程
+    setTimeout(() => {
+      triggerAnotherMethod()
+    }, 2000)
+    return
+  }
+  
+  if (!currentQuestion.audio_url || currentQuestion.audio_url === null) {
+    console.warn('当前问题没有音频URL，跳过播放，直接开始面试')
+    // 给用户一些时间阅读题目，然后开始面试
+    setTimeout(() => {
+      triggerAnotherMethod()
+    }, 3000) // 3秒阅读时间
+    return
+  }
+  
+  try {
+    // 验证音频URL格式
+    const audioUrl = currentQuestion.audio_url
+    if (!audioUrl.startsWith('http://') && !audioUrl.startsWith('https://')) {
+      console.error('无效的音频URL格式:', audioUrl)
+      throw new Error('无效的音频URL格式')
+    }
+    
+    // 设置音频源并播放
+    innerAudioContext.src = audioUrl
+    console.log('尝试播放音频:', audioUrl)
+    
+    // 设置音频播放超时机制（10秒）
+    audioPlayTimeout = setTimeout(() => {
+      console.warn('音频播放超时（10秒），跳过音频继续面试')
+      // 停止音频播放尝试
+      innerAudioContext.stop()
+      
+      // 提示用户
+      toast.error({
+        msg: '音频加载超时，请阅读题目',
+        duration: 1500
+      })
+      
+      // 继续面试流程
+      setTimeout(() => {
+        triggerAnotherMethod()
+      }, 2000)
+    }, 10000) as unknown as number
+    
+    // 开始播放
+    innerAudioContext.play()
+  } catch (error) {
+    console.error('音频播放设置失败:', error)
+    // 播放失败时继续面试流程
+    setTimeout(() => {
+      triggerAnotherMethod()
+    }, 2000)
+  }
 }
 
 const startInterview = () => {
@@ -445,6 +558,12 @@ const stopRecordingAndSave = async () => {
               currentQuestionIndex.value++
               console.log(`成功进入下一题: ${currentQuestionIndex.value}`)
               
+              // 清除之前的音频播放超时
+              if (audioPlayTimeout) {
+                clearTimeout(audioPlayTimeout)
+                audioPlayTimeout = null
+              }
+              
               // 重置录制状态为下一题准备
               recordedData.value = []
               blobData.value = null
@@ -452,7 +571,6 @@ const stopRecordingAndSave = async () => {
               console.log('已重置录制状态，准备录制下一题')
               
               play()
-              triggerAnotherMethod()
             } else {
               console.log('已完成所有题目，退出面试')
               handleExit()
@@ -492,8 +610,14 @@ const stopRecordingAndSave = async () => {
       if (currentIndex < interviewDetails.value.data.questions.length - 1) {
         currentQuestionIndex.value++
         console.log(`进入下一题: ${currentQuestionIndex.value}`)
+        
+        // 清除之前的音频播放超时
+        if (audioPlayTimeout) {
+          clearTimeout(audioPlayTimeout)
+          audioPlayTimeout = null
+        }
+        
         play()
-        triggerAnotherMethod()
       } else {
         console.log('已完成所有题目，退出面试')
         handleExit()
@@ -512,8 +636,14 @@ const stopRecordingAndSave = async () => {
     if (currentIndex < interviewDetails.value.data.questions.length - 1) {
       currentQuestionIndex.value++
       console.log(`进入下一题: ${currentQuestionIndex.value}`)
+      
+      // 清除之前的音频播放超时
+      if (audioPlayTimeout) {
+        clearTimeout(audioPlayTimeout)
+        audioPlayTimeout = null
+      }
+      
       play()
-      triggerAnotherMethod()
     } else {
       console.log('已完成所有题目，退出面试')
       handleExit()
@@ -1128,8 +1258,8 @@ const handleStart = () => {
             console.warn('音频不可用，跳过音频播放，直接开始面试')
             // 给用户一些时间阅读题目，然后开始面试
             setTimeout(() => {
-              startInterview()
-            }, 5000) // 2秒阅读时间
+              triggerAnotherMethod()
+            }, 3000) // 3秒阅读时间
           }
 
           // 检查是否只有一道题
@@ -1247,6 +1377,20 @@ onBeforeUnmount(() => {
 
   // 清除计时器
   clearInterval(timer.value)
+  
+  // 清除音频播放超时计时器
+  if (audioPlayTimeout) {
+    clearTimeout(audioPlayTimeout)
+    audioPlayTimeout = null
+  }
+  
+  // 停止音频播放
+  try {
+    innerAudioContext.stop()
+    innerAudioContext.destroy()
+  } catch (error) {
+    console.error('停止音频播放失败:', error)
+  }
 
   // 清除MediaRecorder状态监控
   if (mediaRecorderMonitorInterval) {
