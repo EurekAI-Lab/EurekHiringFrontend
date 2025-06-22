@@ -1,8 +1,8 @@
 const STORAGE_KEYS = {
-  AUTH_TOKEN: 'authToken',
+  AUTH_TOKEN: 'token', // 修改为与旧代码一致
   INTERVIEW_DRAFT: 'interview_draft_',
   CAMERA_PREFERENCE: 'camera_preference',
-  LAST_INTERVIEW_ID: 'last_interview_id'
+  LAST_INTERVIEW_ID: 'last_interview_id',
 } as const
 
 export class StorageService {
@@ -15,14 +15,14 @@ export class StorageService {
       return null
     }
   }
-  
+
   // 保存面试草稿
   static saveInterviewDraft(interviewId: string, data: any): boolean {
     try {
       const key = `${STORAGE_KEYS.INTERVIEW_DRAFT}${interviewId}`
       uni.setStorageSync(key, {
         data,
-        savedAt: new Date().toISOString()
+        savedAt: new Date().toISOString(),
       })
       return true
     } catch (error) {
@@ -30,7 +30,7 @@ export class StorageService {
       return false
     }
   }
-  
+
   // 获取面试草稿
   static getInterviewDraft(interviewId: string): any | null {
     try {
@@ -41,7 +41,7 @@ export class StorageService {
       return null
     }
   }
-  
+
   // 删除面试草稿
   static removeInterviewDraft(interviewId: string): boolean {
     try {
@@ -53,7 +53,7 @@ export class StorageService {
       return false
     }
   }
-  
+
   // 保存摄像头偏好设置
   static saveCameraPreference(preference: 'user' | 'environment'): boolean {
     try {
@@ -64,7 +64,7 @@ export class StorageService {
       return false
     }
   }
-  
+
   // 获取摄像头偏好设置
   static getCameraPreference(): 'user' | 'environment' {
     try {
@@ -74,7 +74,7 @@ export class StorageService {
       return 'user'
     }
   }
-  
+
   // 保存最后的面试ID
   static saveLastInterviewId(interviewId: string): boolean {
     try {
@@ -85,7 +85,7 @@ export class StorageService {
       return false
     }
   }
-  
+
   // 获取最后的面试ID
   static getLastInterviewId(): string | null {
     try {
@@ -95,15 +95,15 @@ export class StorageService {
       return null
     }
   }
-  
+
   // 清理过期的草稿（超过7天）
   static cleanupExpiredDrafts(): void {
     try {
       const storageInfo = uni.getStorageInfoSync()
       const now = new Date().getTime()
       const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000
-      
-      storageInfo.keys.forEach(key => {
+
+      storageInfo.keys.forEach((key) => {
         if (key.startsWith(STORAGE_KEYS.INTERVIEW_DRAFT)) {
           const draft = uni.getStorageSync(key)
           if (draft && draft.savedAt) {

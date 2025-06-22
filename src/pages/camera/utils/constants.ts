@@ -4,61 +4,63 @@ export const MEDIA_CONSTANTS = {
   MIME_TYPES: {
     IOS: 'video/mp4',
     ANDROID: 'video/webm;codecs=vp8,opus',
-    DEFAULT: 'video/webm'
+    DEFAULT: 'video/webm',
   },
-  
+
   // 录制配置
   RECORDING: {
     VIDEO_BITS_PER_SECOND: 1000000, // 1 Mbps
-    AUDIO_BITS_PER_SECOND: 128000,  // 128 kbps
+    AUDIO_BITS_PER_SECOND: 128000, // 128 kbps
     MIME_TYPE_IOS: 'video/mp4',
-    MIME_TYPE_OTHER: 'video/webm;codecs=vp8,opus'
+    MIME_TYPE_OTHER: 'video/webm;codecs=vp8,opus',
   },
-  
-  // 摄像头配置
+
+  // 摄像头配置（与原代码一致）
   CAMERA: {
     DEFAULT_FACING: 'user',
-    WIDTH: { ideal: 1280, min: 640 },
-    HEIGHT: { ideal: 720, min: 480 },
-    FRAME_RATE: { ideal: 30, max: 30 }
-  }
+    WIDTH: { exact: 1000 },
+    HEIGHT: { exact: 525 },
+    FRAME_RATE: { ideal: 30, max: 30 },
+  },
 } as const
 
 // 时间相关常量
 export const TIME_CONSTANTS = {
   // 超时时间（毫秒）
-  LOADING_TIMEOUT: 30000,           // 30秒
-  UPLOAD_TIMEOUT: 60000,            // 60秒
-  AUDIO_LOAD_TIMEOUT: 10000,        // 10秒
-  RECORDER_STOP_TIMEOUT: 5000,      // 5秒
-  
+  LOADING_TIMEOUT: 30000, // 30秒
+  UPLOAD_TIMEOUT: 60000, // 60秒
+  AUDIO_LOAD_TIMEOUT: 10000, // 10秒
+  RECORDER_STOP_TIMEOUT: 5000, // 5秒
+
   // 延迟时间（毫秒）
-  NEXT_QUESTION_DELAY: 1500,        // 1.5秒
-  AUDIO_PLAY_DELAY: 500,            // 0.5秒
-  RECORDER_START_DELAY: 100,        // 0.1秒
-  
+  NEXT_QUESTION_DELAY: 1500, // 1.5秒
+  AUDIO_PLAY_DELAY: 500, // 0.5秒
+  RECORDER_START_DELAY: 100, // 0.1秒
+
   // 倒计时
-  COUNTDOWN_START: 3                // 3秒倒计时
+  COUNTDOWN_START: 3, // 3秒倒计时
 } as const
 
 // API 相关常量
 export const API_CONSTANTS = {
   // API 路径
-  INTERVIEW_STATUS: '/api/interview-management/interview-status',
-  INTERVIEW_INFO: '/api/interview-management/get-interview-info',
-  SAVE_INTERVIEW: '/api/interview-management/save-interview',
-  UPLOAD_INFO: '/api/common/get-upload-url',
-  
+  INTERVIEW_STATUS: '/interviews/update_status',
+  INTERVIEW_INFO: '/interviews/interview_details',
+  SAVE_INTERVIEW: '/interviews/submit_interview',
+  UPLOAD_INFO: '/files/post-policy', // 使用与旧代码一致的COS上传接口
+  REDIRECT_URL: '/interviews/redirect-url/',
+  NOTIFY_RESULT: '/interviews/notify_interview_result',
+
   // 请求头
   CONTENT_TYPE: 'application/json',
-  UPLOAD_TYPE: 'interview_video'
+  UPLOAD_TYPE: 'interview_video',
 } as const
 
 // 路由相关常量
 export const ROUTE_CONSTANTS = {
   INTERVIEW_COMPLETE: '/pages/InterviewComplete/index',
   JOB_DETAIL: '/pages/jobDetail/index',
-  MY_INTERVIEW: '/pages/myInterview/index'
+  MY_INTERVIEW: '/pages/myInterview/index',
 } as const
 
 // 错误消息
@@ -71,7 +73,7 @@ export const ERROR_MESSAGES = {
   NETWORK_ERROR: '网络连接异常，请检查网络',
   INTERVIEW_NOT_FOUND: '未找到面试信息',
   AUDIO_LOAD_FAILED: '音频加载失败',
-  RECORDER_INIT_FAILED: 'MediaRecorder初始化失败'
+  RECORDER_INIT_FAILED: 'MediaRecorder初始化失败',
 } as const
 
 // UI 文本
@@ -85,5 +87,5 @@ export const UI_TEXT = {
   NEXT_QUESTION: '正在加载下一题...',
   COMPLETE: '面试已完成',
   TERMINATE_CONFIRM: '确定要终止面试吗？终止后将无法继续答题。',
-  EXIT_CONFIRM: '确定要退出面试吗？退出后可以稍后继续。'
+  EXIT_CONFIRM: '确定要退出面试吗？退出后可以稍后继续。',
 } as const

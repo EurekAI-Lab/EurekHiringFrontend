@@ -63,7 +63,7 @@
       }
     },
     {
-      "path": "pages/camera/index-refactored",
+      "path": "pages/camera/index",
       "type": "page",
       "style": {
         "navigationStyle": "custom",
@@ -71,7 +71,7 @@
       }
     },
     {
-      "path": "pages/camera/index",
+      "path": "pages/camera/index_old",
       "type": "page",
       "style": {
         "navigationStyle": "custom",

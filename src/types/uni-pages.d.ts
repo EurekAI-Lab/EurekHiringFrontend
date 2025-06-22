@@ -8,8 +8,8 @@ interface NavigateToOptions {
        "/pages/about/about" |
        "/pages/about/mspj-loading" |
        "/pages/about/mspj" |
-       "/pages/camera/index-refactored" |
        "/pages/camera/index" |
+       "/pages/camera/index_old" |
        "/pages/interviews/process-copy" |
        "/pages/interviews/process-simulation" |
        "/pages/interviews/process" |

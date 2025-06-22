@@ -12,11 +12,11 @@
       <text class="debug-text">×</text>
     </view>
   </view>
-  
+
   <!-- 浮动按钮 -->
-  <view 
-    v-if="!showPanel" 
-    class="debug-float-btn" 
+  <view
+    v-if="!showPanel"
+    class="debug-float-btn"
     @click="showPanel = true"
     @longpress="handleLongPress"
   >
@@ -49,30 +49,30 @@ const clearStorage = () => {
         uni.clearStorageSync()
         uni.showToast({
           title: '缓存已清除',
-          icon: 'success'
+          icon: 'success',
         })
       }
-    }
+    },
   })
 }
 
 // 长按显示环境信息
 const handleLongPress = () => {
   const envInfo = {
-    '环境': import.meta.env.MODE,
-    '平台': uni.getSystemInfoSync().platform,
-    'API地址': import.meta.env.VITE_SERVER_BASEURL || '未配置',
-    '版本': import.meta.env.VITE_APP_VERSION || '未知'
+    环境: import.meta.env.MODE,
+    平台: uni.getSystemInfoSync().platform,
+    API地址: import.meta.env.VITE_SERVER_BASEURL || '未配置',
+    版本: import.meta.env.VITE_APP_VERSION || '未知',
   }
-  
+
   const content = Object.entries(envInfo)
     .map(([key, value]) => `${key}: ${value}`)
     .join('\n')
-  
+
   uni.showModal({
     title: '环境信息',
     content,
-    showCancel: false
+    showCancel: false,
   })
 }
 </script>
@@ -89,7 +89,7 @@ const handleLongPress = () => {
 }
 
 .debug-btn {
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
   padding: 8px 16px;
   margin: 5px 0;

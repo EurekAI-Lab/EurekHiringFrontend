@@ -11,7 +11,7 @@
         <text class="info-text">{{ position?.title || '职位名称' }}</text>
       </view>
     </view>
-    
+
     <!-- 提示信息 -->
     <view class="tips-card">
       <text class="tips-text">
@@ -40,7 +40,7 @@ const props = defineProps<Props>()
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 48px;
+  padding-top: 12px; /* 原版使用 top-12 */
   z-index: 10;
 }
 
@@ -82,6 +82,7 @@ const props = defineProps<Props>()
   background-color: rgba(48, 41, 32, 0.75);
   border-radius: 12px;
   padding: 16px;
+  margin-top: 24px; /* 原版 top-34, 所以 34-12=22 */
 }
 
 .tips-text {

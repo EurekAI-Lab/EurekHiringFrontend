@@ -22,7 +22,7 @@ const formattedTime = computed(() => formatTimeToMinSec(props.timeLeft))
 <style scoped>
 .countdown-timer {
   position: fixed;
-  bottom: 128px;
+  bottom: 128px; /* 原版使用 bottom-32 = 32 * 4px = 128px */
   left: 0;
   right: 0;
   display: flex;

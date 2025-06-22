@@ -13,20 +13,22 @@ export function useMediaRecorder() {
   const startTime = ref<number | null>(null)
   const duration = ref(0)
   const mimeType = ref(getSupportedMimeType())
-  
+  let monitorInterval: number | null = null
+  let monitorEnabled = false
+
   // 计算属性
   const recorderState = computed(() => mediaRecorder.value?.state || 'inactive')
   const canRecord = computed(() => mediaRecorder.value && recorderState.value === 'inactive')
   const canPause = computed(() => mediaRecorder.value && recorderState.value === 'recording')
   const canResume = computed(() => mediaRecorder.value && recorderState.value === 'paused')
-  
+
   // 初始化 MediaRecorder
   const initializeRecorder = async (stream: MediaStream): Promise<boolean> => {
     try {
       if (!stream || !stream.active) {
         throw new Error('媒体流无效或未激活')
       }
-      
+
       // 清理旧的录制器
       if (mediaRecorder.value) {
         if (mediaRecorder.value.state !== 'inactive') {
@@ -34,16 +36,16 @@ export function useMediaRecorder() {
         }
         mediaRecorder.value = null
       }
-      
+
       // 创建新的录制器
       const options: MediaRecorderOptions = {
         mimeType: mimeType.value,
         videoBitsPerSecond: 1000000,
-        audioBitsPerSecond: 128000
+        audioBitsPerSecond: 128000,
       }
-      
+
       mediaRecorder.value = new MediaRecorder(stream, options)
-      
+
       // 设置事件处理器
       mediaRecorder.value.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
@@ -51,14 +53,14 @@ export function useMediaRecorder() {
           console.log(`录制数据块: ${event.data.size} bytes`)
         }
       }
-      
+
       mediaRecorder.value.onstart = () => {
         console.log('MediaRecorder started')
         isRecording.value = true
         isPaused.value = false
         startTime.value = Date.now()
       }
-      
+
       mediaRecorder.value.onstop = () => {
         console.log('MediaRecorder stopped')
         isRecording.value = false
@@ -67,23 +69,23 @@ export function useMediaRecorder() {
           duration.value = calculateVideoDuration(startTime.value, Date.now())
         }
       }
-      
+
       mediaRecorder.value.onpause = () => {
         console.log('MediaRecorder paused')
         isPaused.value = true
       }
-      
+
       mediaRecorder.value.onresume = () => {
         console.log('MediaRecorder resumed')
         isPaused.value = false
       }
-      
+
       mediaRecorder.value.onerror = (event: any) => {
         console.error('MediaRecorder error:', event)
         const error = handleError(event.error || event, 'MediaRecorder')
         showErrorToast(error)
       }
-      
+
       return true
     } catch (error) {
       console.error('初始化 MediaRecorder 失败:', error)
@@ -92,7 +94,7 @@ export function useMediaRecorder() {
       return false
     }
   }
-  
+
   // 开始录制
   const startRecording = async (stream?: MediaStream): Promise<boolean> => {
     try {
@@ -101,23 +103,26 @@ export function useMediaRecorder() {
         const initialized = await initializeRecorder(stream)
         if (!initialized) return false
       }
-      
+
       if (!mediaRecorder.value) {
         throw new Error('MediaRecorder 未初始化')
       }
-      
+
       if (mediaRecorder.value.state !== 'inactive') {
         console.warn(`MediaRecorder 当前状态: ${mediaRecorder.value.state}`)
         return false
       }
-      
+
       // 清空之前的录制数据
       recordedChunks.value = []
       duration.value = 0
-      
+
       // 开始录制
       mediaRecorder.value.start(1000) // 每秒生成一个数据块
-      
+
+      // 启动状态监控（每5秒检查一次）
+      startMediaRecorderMonitor()
+
       return true
     } catch (error) {
       console.error('开始录制失败:', error)
@@ -126,7 +131,7 @@ export function useMediaRecorder() {
       return false
     }
   }
-  
+
   // 停止录制并返回视频数据
   const stopRecording = async (): Promise<{ blob: Blob; duration: number } | null> => {
     return new Promise((resolve) => {
@@ -136,10 +141,10 @@ export function useMediaRecorder() {
           resolve(null)
           return
         }
-        
+
         const currentState = mediaRecorder.value.state
         console.log(`停止录制，当前状态: ${currentState}`)
-        
+
         if (currentState === 'inactive') {
           // 如果已经停止，检查是否有数据
           if (recordedChunks.value.length > 0) {
@@ -150,20 +155,24 @@ export function useMediaRecorder() {
           }
           return
         }
-        
+
         // 设置停止回调
         const handleStop = () => {
           try {
+            // 停止监控
+            stopMediaRecorderMonitor()
+
             if (recordedChunks.value.length === 0) {
               console.warn('没有录制数据')
               resolve(null)
               return
             }
-            
+
             const blob = mergeBlobs(recordedChunks.value, mimeType.value)
-            const videoDuration = duration.value || 
+            const videoDuration =
+              duration.value ||
               (startTime.value ? calculateVideoDuration(startTime.value, Date.now()) : 0)
-            
+
             console.log(`录制完成: ${blob.size} bytes, ${videoDuration}秒`)
             resolve({ blob, duration: videoDuration })
           } catch (error) {
@@ -171,34 +180,33 @@ export function useMediaRecorder() {
             resolve(null)
           }
         }
-        
+
         // 设置一次性的 stop 事件监听器
         mediaRecorder.value.addEventListener('stop', handleStop, { once: true })
-        
+
         // 设置超时
         const timeout = setTimeout(() => {
           console.warn('停止录制超时')
           mediaRecorder.value?.removeEventListener('stop', handleStop)
           resolve(null)
         }, TIME_CONSTANTS.RECORDER_STOP_TIMEOUT)
-        
+
         // 修改原有的 stop 监听器以清除超时
         const originalOnstop = mediaRecorder.value.onstop
         mediaRecorder.value.onstop = (event) => {
           clearTimeout(timeout)
           if (originalOnstop) originalOnstop.call(mediaRecorder.value, event)
         }
-        
+
         // 停止录制
         mediaRecorder.value.stop()
-        
       } catch (error) {
         console.error('停止录制失败:', error)
         resolve(null)
       }
     })
   }
-  
+
   // 暂停录制
   const pauseRecording = (): boolean => {
     try {
@@ -212,7 +220,7 @@ export function useMediaRecorder() {
       return false
     }
   }
-  
+
   // 恢复录制
   const resumeRecording = (): boolean => {
     try {
@@ -226,7 +234,7 @@ export function useMediaRecorder() {
       return false
     }
   }
-  
+
   // 获取录制状态
   const getRecorderState = (): MediaRecorderState => {
     return {
@@ -234,12 +242,90 @@ export function useMediaRecorder() {
       isPaused: isPaused.value,
       recordedChunks: recordedChunks.value,
       startTime: startTime.value,
-      duration: duration.value
+      duration: duration.value,
     }
   }
-  
+
+  // 启动MediaRecorder状态监控（与原代码一致）
+  const startMediaRecorderMonitor = () => {
+    monitorEnabled = true
+
+    // 清除旧的监控
+    if (monitorInterval) {
+      clearInterval(monitorInterval)
+    }
+
+    // 每秒检查一次状态（原代码每秒检查）
+    monitorInterval = setInterval(() => {
+      if (!monitorEnabled || !mediaRecorder.value) {
+        return
+      }
+
+      // 检查页面是否存在（与原代码一致）
+      const currentPage = document.querySelector('.flex.w-full.h-115\\%.overflow-hidden.relative')
+      if (!currentPage) {
+        console.log('[MediaRecorder Monitor] 页面不存在，停止监控')
+        stopMediaRecorderMonitor()
+        return
+      }
+
+      const state = mediaRecorder.value.state
+      const chunks = recordedChunks.value.length
+
+      console.log(`[MediaRecorder Monitor] 状态: ${state}, 数据块数: ${chunks}`)
+
+      // 如果应该在录制但实际不在录制状态，尝试重启（原代码关键逻辑）
+      if (isRecording.value && state !== 'recording') {
+        console.error('[MediaRecorder Monitor] 录制器状态异常，尝试重启')
+        
+        // 保存当前stream
+        const currentStream = stream.value
+        
+        if (currentStream && currentStream.active) {
+          try {
+            // 重新初始化录制器
+            initializeRecorder(currentStream)
+            
+            // 重新开始录制
+            if (mediaRecorder.value) {
+              mediaRecorder.value.start()
+              console.log('[MediaRecorder Monitor] 录制器已重启')
+            }
+          } catch (error) {
+            console.error('[MediaRecorder Monitor] 重启录制器失败:', error)
+          }
+        } else {
+          console.error('[MediaRecorder Monitor] 媒体流不可用，无法重启录制器')
+        }
+      }
+
+      // 如果录制中但没有数据，可能有问题
+      if (state === 'recording' && chunks === 0 && startTime.value) {
+        const recordingTime = (Date.now() - startTime.value) / 1000
+        if (recordingTime > 10) {
+          console.warn('[MediaRecorder Monitor] 录制超过10秒但没有数据，可能存在问题')
+        }
+      }
+    }, 1000) as unknown as number
+  }
+
+  // 停止MediaRecorder状态监控（与原代码一致）
+  const stopMediaRecorderMonitor = () => {
+    // 先禁用监控标志
+    monitorEnabled = false
+
+    // 再清除定时器
+    if (monitorInterval) {
+      clearInterval(monitorInterval)
+      monitorInterval = null
+    }
+  }
+
   // 重置状态
   const reset = () => {
+    // 停止监控
+    stopMediaRecorderMonitor()
+
     if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
       try {
         mediaRecorder.value.stop()
@@ -247,7 +333,7 @@ export function useMediaRecorder() {
         console.error('停止录制器失败:', error)
       }
     }
-    
+
     mediaRecorder.value = null
     recordedChunks.value = []
     isRecording.value = false
@@ -255,12 +341,12 @@ export function useMediaRecorder() {
     startTime.value = null
     duration.value = 0
   }
-  
+
   // 组件卸载时清理
   onUnmounted(() => {
     reset()
   })
-  
+
   return {
     // 状态
     mediaRecorder,
@@ -271,7 +357,7 @@ export function useMediaRecorder() {
     canRecord,
     canPause,
     canResume,
-    
+
     // 方法
     initializeRecorder,
     startRecording,
@@ -279,6 +365,6 @@ export function useMediaRecorder() {
     pauseRecording,
     resumeRecording,
     getRecorderState,
-    reset
+    reset,
   }
 }

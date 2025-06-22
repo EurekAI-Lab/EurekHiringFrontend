@@ -1,21 +1,21 @@
 <template>
   <view class="video-preview-container">
-    <video 
-      id="myvideo" 
-      class="fullscreen-video" 
+    <video
+      id="myvideo"
+      class="fullscreen-video"
       :class="{ 'video-hidden': !showVideo }"
-      autoplay 
-      muted 
+      autoplay
+      muted
       playsinline
       webkit-playsinline
     ></video>
-    
+
     <!-- 黑色遮罩层 -->
     <view v-if="showMask" class="video-mask"></view>
-    
+
     <!-- 切换摄像头按钮 -->
-    <view 
-      v-if="showCameraSwitch && canSwitchCamera" 
+    <view
+      v-if="showCameraSwitch && canSwitchCamera"
       class="camera-switch-btn"
       @click="handleSwitchCamera"
     >
@@ -38,7 +38,7 @@ const props = withDefaults(defineProps<Props>(), {
   showMask: false,
   showVideo: true,
   showCameraSwitch: true,
-  canSwitchCamera: false
+  canSwitchCamera: false,
 })
 
 const emit = defineEmits<{
@@ -59,10 +59,14 @@ const handleSwitchCamera = () => {
 }
 
 .fullscreen-video {
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  top: -2px;
+  left: 0;
+  width: 101vw;
+  height: 100vh;
   object-fit: cover;
   background-color: #000;
+  transform: scaleX(-1); /* 镜像效果 */
 }
 
 .video-hidden {

@@ -4,7 +4,7 @@
       <wd-icon name="check-circle" size="48px" color="#52c41a" />
       <text class="complete-title">面试已完成</text>
       <text class="complete-subtitle">感谢您的参与，我们会尽快处理您的面试结果</text>
-      
+
       <view class="stats-container" v-if="showStats">
         <view class="stat-item">
           <text class="stat-label">总题数</text>
@@ -38,8 +38,8 @@ withDefaults(defineProps<Props>(), {
   stats: () => ({
     total: 0,
     answered: 0,
-    percentage: 0
-  })
+    percentage: 0,
+  }),
 })
 </script>
 

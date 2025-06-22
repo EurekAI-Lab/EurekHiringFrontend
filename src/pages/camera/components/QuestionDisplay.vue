@@ -2,9 +2,7 @@
   <view class="question-display">
     <view class="question-card">
       <view class="question-header">
-        <text class="question-number">
-          题目（{{ currentNumber }}/{{ totalQuestions }}）
-        </text>
+        <text class="question-number">题目（{{ currentNumber }}/{{ totalQuestions }}）</text>
       </view>
       <view class="question-content">
         <text class="question-text">{{ question?.question || '' }}</text>
@@ -33,7 +31,7 @@ const currentNumber = computed(() => {
 <style scoped>
 .question-display {
   position: fixed;
-  bottom: 180px;
+  bottom: 180px; /* 原版使用 bottom-45 = 45 * 4px = 180px */
   left: 0;
   right: 0;
   display: flex;
@@ -45,7 +43,7 @@ const currentNumber = computed(() => {
   width: 90%;
   background-color: rgba(48, 41, 32, 0.75);
   border-radius: 12px;
-  padding: 12px 16px;
+  padding: 12px 8px; /* 原版使用 pl-2 */
 }
 
 .question-header {

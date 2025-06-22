@@ -10,26 +10,30 @@ export interface Question {
   id: number
   question: string
   audio_url: string
-  think_time: number
-  answer_time: number
-  order: number
+  interview_aspect?: string
+  interview_time: number // 旧代码使用 interview_time 而不是 answer_time
+  order?: number
 }
 
 export interface InterviewDetails {
   code: number
   msg: string
   data: {
-    id: number
-    interview_id: string
-    status: InterviewStatus
     position: Position
     questions: Question[]
-    created_at: string
-    updated_at: string
+    status?: InterviewStatus // 可能不存在
   }
 }
 
-export type InterviewStatus = 'not_started' | 'in_progress' | 'completed' | 'terminated'
+export type InterviewStatus =
+  | 0
+  | 1
+  | 2
+  | 3
+  | 'not_started'
+  | 'in_progress'
+  | 'completed'
+  | 'terminated'
 
 export interface UploadedVideo {
   questionId: number

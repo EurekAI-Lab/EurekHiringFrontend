@@ -1,144 +1,115 @@
-/**
- * 平台调用工具类
- * 用于判断当前环境并调用对应平台的方法
- */
+// 平台相关的方法（与原代码保持一致）
 
-/**
- * 当前运行环境
- */
+// 平台类型枚举
 export enum PlatformType {
-  ANDROID = 'Android',
-  IOS = 'iOS',
-  OTHER = 'Other',
+  IOS = 'ios',
+  ANDROID = 'android',
+  H5 = 'h5',
+  MP_WEIXIN = 'mp-weixin',
+  UNKNOWN = 'unknown'
 }
 
-/**
- * 获取当前运行环境
- * @returns 当前环境类型
- */
+// 获取当前平台类型
 export function getPlatformType(): PlatformType {
-  if (/android/i.test(navigator.userAgent)) {
-    return PlatformType.ANDROID
-  } else if (/iPad|iPhone|iPod/i.test(navigator.userAgent)) {
+  // #ifdef H5
+  const userAgent = navigator.userAgent.toLowerCase()
+  if (/iphone|ipad|ipod/.test(userAgent)) {
     return PlatformType.IOS
+  } else if (/android/.test(userAgent)) {
+    return PlatformType.ANDROID
+  }
+  return PlatformType.H5
+  // #endif
+  
+  // #ifdef MP-WEIXIN
+  return PlatformType.MP_WEIXIN
+  // #endif
+  
+  // #ifdef APP-PLUS
+  const systemInfo = uni.getSystemInfoSync()
+  const platform = systemInfo.platform?.toLowerCase()
+  if (platform === 'ios') {
+    return PlatformType.IOS
+  } else if (platform === 'android') {
+    return PlatformType.ANDROID
+  }
+  // #endif
+  
+  return PlatformType.UNKNOWN
+}
+
+// 平台特定的返回方法
+export function navigateBack() {
+  if (typeof (window as any).navigateBack === 'function') {
+    console.log('调用平台特定的 navigateBack 方法')
+    ;(window as any).navigateBack()
   } else {
-    return PlatformType.OTHER
+    console.log('平台方法不存在，使用 uni.navigateBack')
+    uni.navigateBack()
   }
 }
 
-/**
- * 调用平台方法
- * @param method 方法名
- * @param params 参数（可选）
- */
-export function callPlatformMethod(method: string, params?: any): void {
-  const platform = getPlatformType()
-  try {
-    if (platform === PlatformType.ANDROID) {
-      // 安卓调用
-      if (params !== undefined) {
-        console.log('安卓调用函数' + `appApi.callback(${method}, ${params})`)
-        appApi.callback(method, params)
-      } else {
-        console.log('安卓调用函数' + `appApi.callback(${method}, "")`)
-        appApi.callback(method, "")  // 传空字符串而不是不传参数
-      }
-    } else if (platform === PlatformType.IOS) {
-      console.log(
-        `iOS调用函数: window.webkit.messageHandlers.${method}.postMessage(${params || ''})`,
-      )
-      // 直接使用方法名作为消息处理程序的名称
-      // window.webkit.messageHandlers[method].postMessage(params || null)
-      window.webkit.messageHandlers[method].postMessage(params || '')
-    } else {
-      console.warn(`Platform method call not supported on ${platform}`)
-    }
-  } catch (error) {
-    console.error('Error calling platform method:', error)
+// 平台特定的面试结束方法
+export function interviewOver(redirectUrl: string, enterpriseName: string, positionTitle: string) {
+  if (typeof (window as any).interviewOver === 'function') {
+    console.log('调用平台特定的 interviewOver 方法', { redirectUrl, enterpriseName, positionTitle })
+    ;(window as any).interviewOver(redirectUrl, enterpriseName, positionTitle)
+  } else {
+    console.log('平台方法 interviewOver 不存在')
   }
 }
 
-/**
- * 返回到原生界面
- */
-export function navigateBack(): void {
-  callPlatformMethod('pagerFinish', null)
-}
-
-/**
- * 打开用户简历详情
- * @param userId 用户ID
- */
-export function openUserVitaeInfo(userId: string): void {
-  const platform = getPlatformType()
-  if (platform === PlatformType.ANDROID) {
-    callPlatformMethod('openUserVitaeInfo', userId)
-  } else if (platform === PlatformType.IOS) {
-    callPlatformMethod('openUserVitaeInfo', userId)
+// 通知原生面试题保存成功
+export function aiInterviewSaved() {
+  if (typeof (window as any).aiInterviewSaved === 'function') {
+    console.log('调用平台特定的 aiInterviewSaved 方法')
+    ;(window as any).aiInterviewSaved()
+  } else {
+    console.log('平台方法 aiInterviewSaved 不存在')
   }
 }
 
-/**
- * 发起面试邀约
- * @param employeeUserid 被邀约人ID（必传）
- * @param positionId 职位ID（非必传）
- */
-export function inviteInterview(employeeUserid: string, positionId?: number): void {
+// 发起面试邀约
+export function inviteInterview(employeeUserid: string, positionId?: number) {
   const params = {
     employeeUserid,
-    ...(positionId ? { positionId } : {}),
+    ...(positionId ? { positionId } : {})
   }
-  const platform = getPlatformType()
-  if (platform === PlatformType.ANDROID) {
-    callPlatformMethod('inviteInterview', JSON.stringify(params))
-  } else if (platform === PlatformType.IOS) {
-    callPlatformMethod('inviteInterview', JSON.stringify(params))
-  }
-}
-
-/**
- * AI视频面试结束
- * @param url 面试完成后生成的h5地址
- * @param companyName 当前职位对应的公司名称
- * @param jobName AI面试的职位名称
- */
-export function interviewOver(url: string, companyName: string, jobName: string): void {
-  const params = { url, companyName, jobName }
-  const platform = getPlatformType()
-  if (platform === PlatformType.ANDROID) {
-    callPlatformMethod('Interview_over', JSON.stringify(params))
-  } else if (platform === PlatformType.IOS) {
-    callPlatformMethod('Interview_over', JSON.stringify(params))
+  
+  if (typeof (window as any).inviteInterview === 'function') {
+    console.log('调用平台特定的 inviteInterview 方法', params)
+    ;(window as any).inviteInterview(JSON.stringify(params))
+  } else {
+    console.log('平台方法 inviteInterview 不存在')
   }
 }
 
-/**
- * 通知原生面试题保存成功
- */
-export function aiInterviewSaved(): void {
-  callPlatformMethod('aiInterviewSaved', null)
-}
-
-/**
- * 通知原生用户切换身份
- */
-export function userIdentityChange(): void {
-  const platform = getPlatformType()
-  if (platform === PlatformType.ANDROID) {
-    callPlatformMethod('userIdentityChange', '')
-  } else if (platform === PlatformType.IOS) {
-    callPlatformMethod('userIdentityChange', null)
+// 打开用户简历详情
+export function openUserVitaeInfo(userId: string) {
+  if (typeof (window as any).openUserVitaeInfo === 'function') {
+    console.log('调用平台特定的 openUserVitaeInfo 方法', userId)
+    ;(window as any).openUserVitaeInfo(userId)
+  } else {
+    console.log('平台方法 openUserVitaeInfo 不存在')
   }
 }
 
-/**
- * 打开AI岗位列表
- */
-export function openAiJobList(): void {
-  const platform = getPlatformType()
-  if (platform === PlatformType.ANDROID) {
-    callPlatformMethod('openAiJobList', '')
-  } else if (platform === PlatformType.IOS) {
-    callPlatformMethod('openAiJobList', null)
+// 用户身份切换
+export function userIdentityChange() {
+  if (typeof (window as any).userIdentityChange === 'function') {
+    console.log('调用平台特定的 userIdentityChange 方法')
+    ;(window as any).userIdentityChange()
+  } else {
+    console.log('平台方法 userIdentityChange 不存在')
+  }
+}
+
+// 打开AI职位列表
+export function openAiJobList() {
+  if (typeof (window as any).openAiJobList === 'function') {
+    console.log('调用平台特定的 openAiJobList 方法')
+    ;(window as any).openAiJobList()
+  } else {
+    console.log('平台方法 openAiJobList 不存在')
   }
 }

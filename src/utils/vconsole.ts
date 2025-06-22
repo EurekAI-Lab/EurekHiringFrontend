@@ -10,13 +10,13 @@ export function initVConsole(forceEnable = false) {
   // #ifdef H5
   // 始终启用 vConsole（包括生产环境）
   const shouldEnable = true
-  
+
   if (shouldEnable && !vConsoleInstance) {
     vConsoleInstance = new VConsole({
       theme: 'dark', // 使用暗色主题
       onReady: () => {
         console.log('vConsole 已初始化')
-      }
+      },
     })
   }
   // #endif

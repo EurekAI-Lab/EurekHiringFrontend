@@ -1,208 +1,251 @@
 import { ref, computed } from 'vue'
-import { uploadVideoFile, uploadVideoFileXHR } from '../services/uploadService'
-import { getFileExtension } from '../utils/mediaUtils'
-import { UI_TEXT } from '../utils/constants'
+import { API_CONSTANTS, TIME_CONSTANTS, ERROR_MESSAGES } from '../utils/constants'
 import { handleError, showErrorToast } from '../utils/errorHandler'
-// 使用 uni 的内置 API
+import { useInterviewStore } from '../stores/interviewStore'
 
-export interface UploadResult {
-  success: boolean
-  url?: string
-  error?: Error
+export interface FileUploadOptions {
+  onUploadStart?: () => void
+  onUploadProgress?: (progress: number) => void
+  onUploadComplete?: (url: string) => void
+  onUploadError?: (error: Error) => void
 }
 
-export function useFileUpload() {
+export function useFileUpload(options: FileUploadOptions = {}) {
+  const { onUploadStart, onUploadProgress, onUploadComplete, onUploadError } = options
+  const store = useInterviewStore()
+  // 状态
   const isUploading = ref(false)
   const uploadProgress = ref(0)
-  const currentUploadUrl = ref<string>('')
-  const uploadQueue = ref<Array<{ blob: Blob; filename: string }>>([])
-  
-  // 生成文件名
-  const generateFilename = (questionId: number, mimeType: string): string => {
-    const timestamp = Date.now()
-    const extension = getFileExtension(mimeType)
-    return `interview_${questionId}_${timestamp}.${extension}`
+  const currentUploadId = ref('')
+  const uploadedFiles = ref<Map<string, string>>(new Map())
+  // 计算属性
+  const hasUploads = computed(() => uploadedFiles.value.size > 0)
+  const uploadCount = computed(() => uploadedFiles.value.size)
+  // 获取文件扩展名（与原代码完全一致）
+  const getFileExtension = (): string => {
+    // 检测平台类型
+    const userAgent = navigator.userAgent.toLowerCase()
+    const isIOS = /iphone|ipad|ipod/.test(userAgent)
+    // iOS 平台使用 mp4，其他平台使用 webm
+    return isIOS ? 'mp4' : 'webm'
   }
-  
-  // 上传单个文件
-  const uploadFile = async (
-    blob: Blob, 
-    filename: string
-  ): Promise<UploadResult> => {
-    uni.showLoading({
-      title: `${UI_TEXT.UPLOADING} ${Math.round(uploadProgress.value)}%`,
-      mask: true
-    })
-    
-    const loadingClose = () => uni.hideLoading()
-    
+  // 获取 MIME 类型（与原代码完全一致）
+  const getMimeType = (): string => {
+    const userAgent = navigator.userAgent.toLowerCase()
+    const isIOS = /iphone|ipad|ipod/.test(userAgent)
+    return isIOS ? 'video/mp4' : 'video/webm;codecs=vp8,opus'
+  }
+  // URL 编码（与原代码完全一致）
+  const camSafeUrlEncode = (str: string): string => {
+    return encodeURIComponent(str)
+      .replace(/!/g, '%21')
+      .replace(/'/g, '%27')
+      .replace(/\(/g, '%28')
+      .replace(/\)/g, '%29')
+      .replace(/\*/g, '%2A')
+  }
+  // 获取上传凭证（与原代码完全一致）
+  const getUploadPolicy = async (): Promise<any> => {
     try {
-      isUploading.value = true
-      uploadProgress.value = 0
-      
-      // 进度回调
-      const onProgress = (progress: number) => {
-        uploadProgress.value = progress
-        // 更新loading文本
-        uni.showLoading({
-          title: `${UI_TEXT.UPLOADING} ${progress}%`,
-          mask: true
-        })
+      console.log('获取上传凭证...')
+      const fileExt = getFileExtension()
+      const response = await uni.request({
+        url: store.baseUrl + `/files/post-policy?ext=${fileExt}`,
+        method: 'GET',
+        header: {
+          Authorization: `Bearer ${uni.getStorageSync('token')}`,
+        },
+      })
+      // 添加类型断言
+      const responseData = response.data as any
+      console.log('上传凭证响应:', JSON.stringify(responseData))
+      if (!responseData.data || !responseData.data.cosHost) {
+        throw new Error('上传凭证无效')
       }
-      
-      console.log(`开始上传文件: ${filename}, 大小: ${blob.size} bytes`)
-      
-      // 尝试使用 uni.uploadFile
-      let url: string
-      try {
-        url = await uploadVideoFile(blob, filename, { onProgress })
-      } catch (uniError) {
-        console.warn('uni.uploadFile 失败，尝试使用 XMLHttpRequest:', uniError)
-        // 回退到 XMLHttpRequest
-        url = await uploadVideoFileXHR(blob, filename, { onProgress })
-      }
-      
-      currentUploadUrl.value = url
-      console.log('文件上传成功:', url)
-      
-      return {
-        success: true,
-        url
-      }
+      console.log('上传凭证获取成功，开始上传文件...')
+      return responseData.data
     } catch (error) {
-      const interviewError = handleError(error, 'uploadFile')
-      console.error('文件上传失败:', interviewError)
-      
-      return {
-        success: false,
-        error: interviewError
-      }
-    } finally {
-      isUploading.value = false
-      uploadProgress.value = 0
-      loadingClose()
+      console.error('获取上传凭证失败:', error)
+      throw error
     }
   }
-  
-  // 上传视频（带重试机制）
+  // 上传文件到 COS（与原代码完全一致）
+  const uploadToCOS = async (
+    blob: Blob,
+    questionId: number,
+    videoDuration: number,
+  ): Promise<string> => {
+    const opt = await getUploadPolicy()
+    return new Promise((resolve, reject) => {
+      const formData: any = {
+        key: opt.cosKey,
+        policy: opt.policy,
+        success_action_status: 200,
+        'q-sign-algorithm': opt.qSignAlgorithm,
+        'q-ak': opt.qAk,
+        'q-key-time': opt.qKeyTime,
+        'q-signature': opt.qSignature,
+      }
+      if (opt.securityToken) formData['x-cos-security-token'] = opt.securityToken
+      let fileToUpload: any = blob
+      if (typeof File !== 'undefined' && blob instanceof Blob) {
+        try {
+          const mimeType = getMimeType()
+          const fileExt = getFileExtension()
+          fileToUpload = new File([blob], `video.${fileExt}`, { type: mimeType })
+          console.log(`成功创建 File 对象，类型: ${mimeType}，大小: ${fileToUpload.size}`)
+        } catch (e) {
+          console.error('创建 File 对象失败，使用 Blob:', e)
+          console.log('使用 Blob 对象，大小:', blob.size)
+        }
+      } else {
+        console.warn('不支持 File 构造函数或 blobData 不是 Blob 类型')
+        if (blob) {
+          console.log('blobData 类型:', typeof blob, '大小:', blob.size || '未知')
+        } else {
+          reject(new Error('无效的文件数据'))
+          return
+        }
+      }
+      const currentQuestionIdx = questionId - 1 // 转换为索引
+      console.log(`开始上传题目 ${currentQuestionIdx} 的视频，时长: ${videoDuration}秒`)
+      uni.uploadFile({
+        url: 'https://' + opt.cosHost,
+        file: fileToUpload,
+        name: 'file',
+        formData,
+        success: (res) => {
+          console.log(`题目 ${currentQuestionIdx} 上传响应:`, res)
+          console.log('上传响应状态码:', res.statusCode)
+          console.log('上传响应头:', res.header)
+          if (![200, 204].includes(res.statusCode)) {
+            console.error(
+              `题目 ${currentQuestionIdx} 上传失败，状态码:`,
+              res.statusCode,
+              'response:',
+              res.data,
+            )
+            reject(new Error(`上传失败，状态码: ${res.statusCode}`))
+            return
+          }
+          const uploadedFileUrl =
+            'https://' + opt.cosHost + '/' + camSafeUrlEncode(opt.cosKey).replace(/%2F/g, '/')
+          const fileData = {
+            question_id: questionId,
+            video_url: uploadedFileUrl,
+            video_duration: videoDuration,
+          }
+          // 保存到 store（使用action而不是直接修改）
+          console.log(`题目 ${currentQuestionIdx} 上传成功，保存数据:`, fileData)
+          store.saveVideoUrl(questionId, uploadedFileUrl, videoDuration)
+          console.log('当前所有上传数据:', JSON.stringify(store.fileUrls))
+          resolve(uploadedFileUrl)
+        },
+        fail: (err) => {
+          console.error(`题目 ${currentQuestionIdx} 上传失败:`, err)
+          console.error('上传失败详情:', JSON.stringify(err))
+          console.error('上传URL:', 'https://' + opt.cosHost)
+          console.error('文件大小:', fileToUpload.size || '未知')
+          reject(new Error(`上传失败: ${JSON.stringify(err)}`))
+        },
+        complete: () => {
+          console.log('上传请求完成')
+        },
+      })
+    })
+  }
+  // 上传视频文件（与原代码保持一致）
   const uploadVideo = async (
     blob: Blob,
     questionId: number,
-    maxRetries: number = 3
-  ): Promise<UploadResult> => {
-    const filename = generateFilename(questionId, blob.type)
-    let lastError: Error | undefined
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      console.log(`上传尝试 ${attempt}/${maxRetries}`)
-      
-      const result = await uploadFile(blob, filename)
-      
-      if (result.success) {
-        return result
-      }
-      
-      lastError = result.error
-      
-      // 如果不是最后一次尝试，等待一段时间再重试
-      if (attempt < maxRetries) {
-        const delay = attempt * 2000 // 递增延迟
-        console.log(`等待 ${delay}ms 后重试...`)
-        await new Promise(resolve => setTimeout(resolve, delay))
-      }
+    videoDuration: number,
+  ): Promise<string> => {
+    if (isUploading.value) {
+      console.warn('已有上传任务进行中')
+      throw new Error('已有上传任务进行中')
     }
-    
-    // 所有重试都失败
-    showErrorToast(`上传失败，已重试 ${maxRetries} 次`)
-    
+    try {
+      isUploading.value = true
+      uploadProgress.value = 0
+      currentUploadId.value = `${questionId}_${Date.now()}`
+      console.log(
+        `开始上传视频 - 题目ID: ${questionId}, 大小: ${blob.size}, 时长: ${videoDuration}秒`,
+      )
+      // 触发开始回调
+      if (onUploadStart) {
+        onUploadStart()
+      }
+      // 直接上传到 COS
+      const videoUrl = await uploadToCOS(blob, questionId, videoDuration)
+      // 保存上传记录
+      uploadedFiles.value.set(`question_${questionId}`, videoUrl)
+      uploadProgress.value = 100
+      console.log('视频上传成功:', videoUrl)
+      // 触发完成回调
+      if (onUploadComplete) {
+        onUploadComplete(videoUrl)
+      }
+      return videoUrl
+    } catch (error) {
+      console.error('视频上传失败:', error)
+      const uploadError = handleError(error, 'uploadVideo')
+      // 触发错误回调
+      if (onUploadError) {
+        onUploadError(uploadError)
+      }
+      showErrorToast('视频上传失败，请重试')
+      throw uploadError
+    } finally {
+      isUploading.value = false
+      currentUploadId.value = ''
+    }
+  }
+  // 重试上传
+  const retryUpload = async (
+    blob: Blob,
+    questionId: number,
+    videoDuration: number,
+  ): Promise<string> => {
+    console.log(`重试上传视频 - 题目ID: ${questionId}`)
+    return uploadVideo(blob, questionId, videoDuration)
+  }
+  // 获取已上传的视频URL
+  const getUploadedUrl = (questionId: number): string | null => {
+    return uploadedFiles.value.get(`question_${questionId}`) || null
+  }
+
+  // 清除上传记录
+  const clearUploads = () => {
+    uploadedFiles.value.clear()
+    uploadProgress.value = 0
+    currentUploadId.value = ''
+  }
+
+  // 获取上传状态
+  const getUploadState = () => {
     return {
-      success: false,
-      error: lastError
+      isUploading: isUploading.value,
+      progress: uploadProgress.value,
+      uploadCount: uploadCount.value,
+      uploadedFiles: Array.from(uploadedFiles.value.entries()),
     }
   }
-  
-  // 批量上传
-  const uploadBatch = async (
-    videos: Array<{ blob: Blob; questionId: number }>
-  ): Promise<Map<number, UploadResult>> => {
-    const results = new Map<number, UploadResult>()
-    
-    for (const { blob, questionId } of videos) {
-      const result = await uploadVideo(blob, questionId)
-      results.set(questionId, result)
-      
-      // 如果某个上传失败，询问是否继续
-      if (!result.success) {
-        const continueUpload = await new Promise<boolean>((resolve) => {
-          uni.showModal({
-            title: '上传失败',
-            content: '是否继续上传剩余文件？',
-            success: (res) => {
-              resolve(res.confirm)
-            }
-          })
-        })
-        
-        if (!continueUpload) {
-          break
-        }
-      }
-    }
-    
-    return results
-  }
-  
-  // 添加到上传队列
-  const addToQueue = (blob: Blob, filename: string) => {
-    uploadQueue.value.push({ blob, filename })
-  }
-  
-  // 处理上传队列
-  const processQueue = async (): Promise<UploadResult[]> => {
-    const results: UploadResult[] = []
-    const queue = [...uploadQueue.value]
-    uploadQueue.value = []
-    
-    for (const { blob, filename } of queue) {
-      const result = await uploadFile(blob, filename)
-      results.push(result)
-    }
-    
-    return results
-  }
-  
-  // 取消上传（如果支持）
-  const cancelUpload = () => {
-    // 这里可以实现取消逻辑，如果使用 XMLHttpRequest
-    console.log('取消上传请求')
-    isUploading.value = false
-    uploadProgress.value = 0
-    closeToast()
-  }
-  
-  // 清理
-  const cleanup = () => {
-    isUploading.value = false
-    uploadProgress.value = 0
-    currentUploadUrl.value = ''
-    uploadQueue.value = []
-  }
-  
+
   return {
     // 状态
     isUploading: computed(() => isUploading.value),
     uploadProgress: computed(() => uploadProgress.value),
-    currentUploadUrl: computed(() => currentUploadUrl.value),
-    queueSize: computed(() => uploadQueue.value.length),
-    
+    hasUploads,
+    uploadCount,
+
     // 方法
-    uploadFile,
     uploadVideo,
-    uploadBatch,
-    addToQueue,
-    processQueue,
-    cancelUpload,
-    cleanup,
-    generateFilename
+    retryUpload,
+    getUploadedUrl,
+    clearUploads,
+    getUploadState,
+    // 暴露工具方法供其他地方使用
+    getFileExtension,
+    getMimeType,
   }
 }

@@ -3,7 +3,7 @@ import { ERROR_MESSAGES } from './constants'
 export class InterviewError extends Error {
   code: string
   details?: any
-  
+
   constructor(message: string, code: string, details?: any) {
     super(message)
     this.name = 'InterviewError'
@@ -22,61 +22,54 @@ export const ErrorCodes = {
   INTERVIEW_NOT_FOUND: 'INTERVIEW_NOT_FOUND',
   AUDIO_LOAD_FAILED: 'AUDIO_LOAD_FAILED',
   RECORDER_INIT_FAILED: 'RECORDER_INIT_FAILED',
-  UNKNOWN: 'UNKNOWN'
+  UNKNOWN: 'UNKNOWN',
 } as const
 
-export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes]
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]
 
 export function handleError(error: any, context: string): InterviewError {
   console.error(`[${context}] Error:`, error)
-  
+
   // 处理已知的 InterviewError
   if (error instanceof InterviewError) {
     return error
   }
-  
+
   // 处理 DOMException（媒体权限相关）
   if (error instanceof DOMException) {
     if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
       return new InterviewError(
         ERROR_MESSAGES.CAMERA_PERMISSION_DENIED,
         ErrorCodes.CAMERA_PERMISSION,
-        error
+        error,
       )
     }
     if (error.name === 'NotFoundError') {
       return new InterviewError(
         ERROR_MESSAGES.MEDIA_DEVICE_NOT_FOUND,
         ErrorCodes.MEDIA_DEVICE_NOT_FOUND,
-        error
+        error,
       )
     }
   }
-  
+
   // 处理网络错误
   if (error.message?.includes('network') || error.message?.includes('Network')) {
-    return new InterviewError(
-      ERROR_MESSAGES.NETWORK_ERROR,
-      ErrorCodes.NETWORK_ERROR,
-      error
-    )
+    return new InterviewError(ERROR_MESSAGES.NETWORK_ERROR, ErrorCodes.NETWORK_ERROR, error)
   }
-  
+
   // 默认错误
-  return new InterviewError(
-    error.message || '未知错误',
-    ErrorCodes.UNKNOWN,
-    error
-  )
+  return new InterviewError(error.message || '未知错误', ErrorCodes.UNKNOWN, error)
 }
 
-export function showErrorToast(error: InterviewError | string) {
+export function showErrorToast(error: InterviewError | string, duration: number = 3000) {
   const message = typeof error === 'string' ? error : error.message
   
+  // 使用uni.showToast暂时替代，因为useToast只能在setup中使用
   uni.showToast({
     title: message,
     icon: 'none',
-    duration: 3000
+    duration: duration,
   })
 }
 
@@ -87,7 +80,7 @@ export function setupGlobalErrorHandler() {
       console.error('Unhandled promise rejection:', event.reason)
       event.preventDefault()
     })
-    
+
     window.addEventListener('error', (event) => {
       console.error('Global error:', event.error)
       event.preventDefault()

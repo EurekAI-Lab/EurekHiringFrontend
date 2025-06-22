@@ -17,23 +17,23 @@ interface RequestResponse<T = any> {
 
 export async function request<T = any>(options: RequestOptions): Promise<T> {
   const token = uni.getStorageSync('authToken') || uni.getStorageSync('token')
-  
+
   const header = {
     'Content-Type': 'application/json',
-    ...options.header
+    ...options.header,
   }
-  
+
   if (token) {
-    header['Authorization'] = `Bearer ${token}`
+    header.Authorization = `Bearer ${token}`
   }
-  
+
   try {
     const response = await uni.request({
       ...options,
       header,
-      timeout: 60000 // 60秒超时
+      timeout: 60000, // 60秒超时
     })
-    
+
     if (response.statusCode === 200) {
       return response.data as T
     } else {
