@@ -554,10 +554,13 @@ const stopRecordingAndSave = async () => {
   if (mediaRecorder) {
     // 检查 mediaRecorder 状态
     console.log(`MediaRecorder 当前状态: ${mediaRecorder.state}`)
+    console.log(`当前已录制数据块数量: ${recordedData.value.length}`)
 
     if (mediaRecorder.state === 'recording') {
+      console.log('设置 onstop 事件处理器')
       mediaRecorder.onstop = async () => {
         console.log(`题目 ${currentIndex} 录制停止，处理数据`)
+        console.log(`最终录制数据块数量: ${recordedData.value.length}`)
 
         // 将所有 Blob 数据合并为一个 Blob
         if (recordedData.value.length > 0) {
@@ -637,7 +640,9 @@ const stopRecordingAndSave = async () => {
       }
 
       // 停止录制
+      console.log('调用 mediaRecorder.stop()')
       mediaRecorder.stop()
+      console.log('mediaRecorder.stop() 调用完成')
     } else {
       console.warn(`MediaRecorder 不在录制状态，当前状态: ${mediaRecorder.state}`)
 
@@ -785,13 +790,15 @@ const downloadRecordedVideo = () => {
 // 修改 getUploadInfo 函数中的文件扩展名
 const getUploadInfo = async () => {
   try {
-    console.log('获取上传凭证...')
+    console.log('=== 开始获取上传凭证 ===')
     const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=mp4` })
+    console.log('上传凭证响应:', response)
     // 添加类型断言
     const responseData = response.data as any
-    console.log('上传凭证获取成功，开始上传文件...')
+    console.log('上传凭证数据:', responseData)
+    console.log('=== 上传凭证获取成功，开始上传文件 ===')
     const uploadResult = await uploadFile(responseData.data)
-    console.log('文件上传完成:', uploadResult)
+    console.log('=== 文件上传完成 ===', uploadResult)
     return uploadResult
   } catch (error) {
     console.error('上传流程失败:', error)
@@ -802,6 +809,9 @@ const getUploadInfo = async () => {
 
 // 修改 uploadFile 函数
 const uploadFile = async (opt: any) => {
+  console.log('=== 开始处理上传文件 ===')
+  console.log('上传选项:', opt)
+  
   const formData = {
     key: opt.cosKey,
     policy: opt.policy,
@@ -813,8 +823,10 @@ const uploadFile = async (opt: any) => {
   }
 
   if (opt.securityToken) formData['x-cos-security-token'] = opt.securityToken
+  console.log('表单数据:', formData)
 
   let fileToUpload: any = blobData.value
+  console.log('blobData.value 状态:', blobData.value ? '存在' : '不存在', 'size:', blobData.value?.size)
 
   if (typeof File !== 'undefined' && blobData.value instanceof Blob) {
     try {
@@ -839,14 +851,19 @@ const uploadFile = async (opt: any) => {
   const currentQuestionIdx = currentQuestionIndex.value
 
   console.log(`开始上传题目 ${currentQuestionIdx} 的视频，时长: ${currentVideoDuration}秒`)
+  console.log('上传URL:', 'https://' + opt.cosHost)
+  console.log('上传文件大小:', fileToUpload?.size || '未知')
 
   return new Promise((resolve, reject) => {
+    console.log('=== 调用 uni.uploadFile ===')
     uni.uploadFile({
       url: 'https://' + opt.cosHost,
       file: fileToUpload,
       name: 'file',
       formData,
       success: (res) => {
+        console.log('=== uni.uploadFile 成功回调 ===')
+        console.log(`题目 ${currentQuestionIdx} 上传响应:`, res)
         console.log(`题目 ${currentQuestionIdx} 上传响应:`, res)
         
         if (![200, 204].includes(res.statusCode)) {
@@ -880,10 +897,12 @@ const uploadFile = async (opt: any) => {
         resolve(fileData)
       },
       fail: (err) => {
+        console.log('=== uni.uploadFile 失败回调 ===')
         console.error(`题目 ${currentQuestionIdx} 上传失败:`, err)
         reject(new Error(`上传失败: ${JSON.stringify(err)}`))
       },
       complete: () => {
+        console.log('=== uni.uploadFile 完成回调 ===')
         toast.close()
       },
     })
