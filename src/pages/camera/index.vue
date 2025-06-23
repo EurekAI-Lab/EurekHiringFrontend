@@ -549,6 +549,35 @@ const stopRecordingAndSave = async () => {
   // 保存当前题目索引，避免提前更新
   const currentIndex = currentQuestionIndex.value
 
+  // 兜底检查：如果没有录制数据，直接跳下一题
+  if (!recordedData.value || recordedData.value.length === 0) {
+    console.warn(`题目 ${currentIndex} 没有录制数据，直接跳到下一题`)
+    toast.warning(`第${currentIndex + 1}题没有录制到视频，已跳过`)
+    
+    // 关闭loading
+    if (window._currentLoadingClose) {
+      window._currentLoadingClose()
+      window._currentLoadingClose = null
+    }
+    
+    // 重置处理标志
+    isProcessing.value = false
+    
+    // 跳到下一题
+    if (currentIndex < interviewDetails.value.data.questions.length - 1) {
+      currentQuestionIndex.value++
+      console.log(`跳到下一题: ${currentQuestionIndex.value}`)
+      recordedData.value = []
+      blobData.value = null
+      videoDuration.value = 0
+      play()
+    } else {
+      console.log('已完成所有题目，退出面试')
+      handleExit()
+    }
+    return
+  }
+
   // 停止MediaRecorder状态监控
   stopMediaRecorderMonitor()
 
@@ -806,7 +835,9 @@ const downloadRecordedVideo = () => {
 const getUploadInfo = async () => {
   try {
     console.log('=== 开始获取上传凭证 ===')
-    const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=mp4` })
+    const ext = getFileExtension() // 动态获取扩展名：iOS为mp4，其他为webm
+    console.log('使用文件扩展名:', ext)
+    const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=${ext}` })
     console.log('上传凭证响应:', response)
     // 添加类型断言
     const responseData = response.data as any
@@ -871,16 +902,32 @@ const uploadFile = async (opt: any) => {
 
   return new Promise((resolve, reject) => {
     console.log('=== 调用 uni.uploadFile ===')
+    
+    // 添加超时保护，防止uploadFile挂起
+    let isCompleted = false
+    const uploadTimeout = setTimeout(() => {
+      if (!isCompleted) {
+        console.error('uploadFile超时，强制触发失败回调')
+        isCompleted = true
+        reject(new Error('上传超时（30秒）'))
+      }
+    }, 30000) // 30秒超时
+    
     uni.uploadFile({
       url: 'https://' + opt.cosHost,
       file: fileToUpload,
       name: 'file',
       formData,
       success: (res) => {
+        if (isCompleted) return // 防止超时后重复回调
+        isCompleted = true
+        clearTimeout(uploadTimeout)
+        
         console.log('=== uni.uploadFile 成功回调 ===')
         console.log(`题目 ${currentQuestionIdx} 上传响应:`, res)
-        console.log(`题目 ${currentQuestionIdx} 上传响应:`, res)
+        console.log(`题目 ${currentQuestionIdx} 状态码:`, res.statusCode)
         
+        // 前端自检：检查状态码
         if (![200, 204].includes(res.statusCode)) {
           console.error(`题目 ${currentQuestionIdx} 上传失败，状态码:`, res.statusCode, 'response:', res.data)
           reject(new Error(`上传失败，状态码: ${res.statusCode}`))
@@ -912,12 +959,17 @@ const uploadFile = async (opt: any) => {
         resolve(fileData)
       },
       fail: (err) => {
+        if (isCompleted) return // 防止超时后重复回调
+        isCompleted = true
+        clearTimeout(uploadTimeout)
+        
         console.log('=== uni.uploadFile 失败回调 ===')
         console.error(`题目 ${currentQuestionIdx} 上传失败:`, err)
         reject(new Error(`上传失败: ${JSON.stringify(err)}`))
       },
       complete: () => {
         console.log('=== uni.uploadFile 完成回调 ===')
+        clearTimeout(uploadTimeout)
         toast.close()
       },
     })
