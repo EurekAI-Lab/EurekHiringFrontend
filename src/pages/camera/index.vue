@@ -7,8 +7,9 @@
     <!-- 视频预览 -->
     <VideoPreview
       :show-mask="showVideoMask"
+      :show-video="true"
       :show-camera-switch="isInterviewStarted"
-      :can-switch-camera="cameraStream.canSwitchCamera.value"
+      :can-switch-camera="true"
       @switch-camera="handleSwitchCamera"
     />
 
@@ -76,7 +77,7 @@ import { useCameraStream } from './composables/useCameraStream'
 import { useMediaRecorder } from './composables/useMediaRecorder'
 import { useFileUpload } from './composables/useFileUpload'
 import { useInterviewTimer } from './composables/useInterviewTimer'
-import { useAudioPlayer } from './composables/useAudioPlayer'
+// import { useAudioPlayer } from './composables/useAudioPlayer' // TTS音频播放暂时禁用
 import { useDOMObserver } from './composables/useDOMObserver'
 
 // 常量和工具
@@ -133,18 +134,19 @@ const timer = useInterviewTimer({
   onTimeUp: handleTimeUp,
 })
 
-const audioPlayer = useAudioPlayer({
-  onEnded: () => {
-    console.log('题目音频播放完成')
-    // 直接开始录制，不显示倒计时（与原代码一致）
-    startRecording()
-  },
-  onError: (error) => {
-    console.error('音频播放错误:', error)
-    // 即使音频播放失败，也要继续录制
-    startRecording()
-  },
-})
+// TTS音频播放功能暂时禁用
+// const audioPlayer = useAudioPlayer({
+//   onEnded: () => {
+//     console.log('题目音频播放完成')
+//     // 直接开始录制，不显示倒计时（与原代码一致）
+//     startRecording()
+//   },
+//   onError: (error) => {
+//     console.error('音频播放错误:', error)
+//     // 即使音频播放失败，也要继续录制
+//     startRecording()
+//   },
+// })
 
 // DOM观察器
 const domObserver = useDOMObserver()
@@ -297,10 +299,25 @@ async function handleStart() {
   }
 }
 
-// 播放当前题目
+// 播放当前题目（TTS音频播放功能已暂时禁用）
 async function playCurrentQuestion() {
   if (!currentQuestion.value) return
 
+  console.log('题目准备完成，TTS音频播放已禁用，直接开始录制')
+
+  // TTS音频播放功能暂时禁用，直接开始录制
+  // 给用户3秒阅读题目时间
+  uni.showToast({
+    title: '请阅读题目，即将开始录制',
+    icon: 'none',
+    duration: 1500,
+  })
+
+  setTimeout(() => {
+    startRecording()
+  }, 3000)
+
+  /* 原TTS音频播放代码已注释掉
   console.log('播放题目音频:', currentQuestion.value.audio_url)
 
   // 检查音频URL是否存在
@@ -339,6 +356,7 @@ async function playCurrentQuestion() {
       startRecording()
     }, 3000)
   }
+  */
 }
 
 // 注释掉倒计时功能，保留函数以防其他地方调用
@@ -363,8 +381,7 @@ async function startRecording() {
   if (!currentQuestion.value) return
 
   console.log('开始录制，当前题目:', currentQuestion.value.id)
-  console.log('摄像头流状态:', cameraStream.isStreamActive.value)
-  console.log('录制器状态:', recorder.recorderState.value)
+  console.log('使用live-pusher组件进行录制')
 
   // 显示开始作答提示（与原代码一致）
   uni.showToast({
@@ -373,7 +390,10 @@ async function startRecording() {
     duration: 1500,
   })
 
-  // 确保摄像头流存在
+  // 对于live-pusher组件，我们仍然需要MediaRecorder来录制视频
+  // live-pusher主要用于显示摄像头预览，录制功能仍然使用MediaRecorder
+  
+  // 确保摄像头流存在（用于MediaRecorder录制）
   if (!cameraStream.stream.value) {
     console.error('摄像头流不存在，尝试重新初始化')
     const initSuccess = await cameraStream.initializeStream()
@@ -540,7 +560,7 @@ function cleanup() {
   // 停止所有活动
   recorder.reset()
   timer.stop()
-  audioPlayer.destroy()
+  // audioPlayer.destroy() // TTS音频播放暂时禁用
   cameraStream.stopStream()
   uploader.clearUploads()
   domObserver.cleanupObservers()

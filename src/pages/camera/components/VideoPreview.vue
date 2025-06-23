@@ -1,15 +1,34 @@
 <template>
   <view class="video-preview-container">
-    <!-- H5平台使用HTML5 video -->
+    <!-- 使用live-pusher组件实现跨平台相机 -->
+    <live-pusher
+      v-if="showVideo"
+      id="livePusher"
+      ref="livePusher"
+      class="live-pusher-camera"
+      mode="SD"
+      :muted="false"
+      :enable-camera="true"
+      :auto-focus="true"
+      :beauty="0"
+      :whiteness="0"
+      device-position="front"
+      @statechange="handleStateChange"
+      @error="handleError"
+      @netstatus="handleNetStatus"
+    ></live-pusher>
+    
+    <!-- H5平台后备方案 -->
     <video
+      v-else
       id="myvideo"
       class="fullscreen-video"
-      :class="{ 'video-hidden': !showVideo }"
       autoplay
       muted
       playsinline
       webkit-playsinline
       :controls="false"
+      src=""
     ></video>
 
     <!-- 黑色遮罩层 -->
@@ -47,22 +66,34 @@ const emit = defineEmits<{
   switchCamera: []
 }>()
 
-// 判断平台
-const isH5 = ref(false)
-// #ifdef H5
-isH5.value = true
-// #endif
+// live-pusher组件事件处理
+const livePusher = ref(null)
 
 const handleSwitchCamera = () => {
+  console.log('切换摄像头')
+  // 切换摄像头
+  if (livePusher.value) {
+    const context = uni.createLivePusherContext('livePusher')
+    context.switchCamera()
+    console.log('已调用live-pusher切换摄像头')
+  }
   emit('switchCamera')
 }
 
 const handleStateChange = (e: any) => {
-  console.log('live-pusher state change:', e)
+  console.log('live-pusher 状态变化:', e.detail)
+  // 状态码说明：
+  // 1001: 已经连接推流服务器
+  // 1002: 已经连接服务器，开始推流
+  // 1003: 网络接收到首个音视频数据包
 }
 
 const handleError = (e: any) => {
-  console.error('live-pusher error:', e)
+  console.error('live-pusher 错误:', e.detail)
+}
+
+const handleNetStatus = (e: any) => {
+  console.log('live-pusher 网络状态:', e.detail)
 }
 </script>
 
@@ -72,6 +103,16 @@ const handleError = (e: any) => {
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+.live-pusher-camera {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+  z-index: 1;
 }
 
 .fullscreen-video {
