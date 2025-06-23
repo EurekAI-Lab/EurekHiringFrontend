@@ -763,6 +763,8 @@ const saveInterview = async () => {
 
     if (response.statusCode === 200) {
       toast.success('面试数据提交成功')
+      // 提交成功也要关闭loading
+      uni.hideLoading()
     } else {
       // duration
       toast.error({
@@ -1883,7 +1885,19 @@ const handleExit = async () => {
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
       // 提交面试数据
-      await saveInterview()
+      try {
+        await saveInterview()
+      } catch (error) {
+        console.error('saveInterview失败:', error)
+        uni.hideLoading() // 确保关闭loading
+        toast.error('面试数据提交失败，请重试')
+        isRequesting.value = false
+        return
+      }
+      
+      // 提交成功后关闭loading
+      uni.hideLoading()
+      
       // 显示确认对话框
       message
         .confirm({
@@ -1892,7 +1906,6 @@ const handleExit = async () => {
           closeOnClickModal: false,
           beforeConfirm: async ({ resolve }) => {
             try {
-              uni.hideLoading() // 关闭loading
               if (!test.value) {
                 navigateBack()
               } else {
