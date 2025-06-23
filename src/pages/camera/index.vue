@@ -263,11 +263,8 @@ innerAudioContext.onError((res) => {
   // 如果是第一题，给用户更多时间阅读
   const readingTime = currentQuestionIndex.value === 0 ? 3000 : 2000
   
-  // 显示简短提示，告知用户音频播放失败但面试继续
-  toast.error({
-    msg: '音频播放失败，请阅读题目',
-    duration: 1500
-  })
+  // 静默处理音频播放失败，不显示错误提示
+  console.log('音频播放失败，静默跳过，直接开始面试')
   
   setTimeout(() => {
     triggerAnotherMethod()
@@ -331,11 +328,8 @@ const play = () => {
       // 停止音频播放尝试
       innerAudioContext.stop()
       
-      // 提示用户
-      toast.error({
-        msg: '音频加载超时，请阅读题目',
-        duration: 1500
-      })
+      // 静默处理音频加载超时
+      console.log('音频加载超时，静默跳过')
       
       // 继续面试流程
       setTimeout(() => {
@@ -1285,17 +1279,16 @@ const handleStart = () => {
           triggerAnotherMethod()
           isInterviewStarted.value = true
           
-          // 重新获取面试详情，这时会检查TTS问题
+          // 重新获取面试详情
           await fetchInterviewInfo(interviewId.value)
           
-          // 检查音频是否可用，如果TTS有问题，fetchInterviewInfo已经显示了错误提示
-          // 但我们仍然需要继续面试流程
+          // 检查音频是否可用，静默处理
           const currentQuestion = interviewDetails.value.data.questions[currentQuestionIndex.value]
           if (currentQuestion.audio_url && currentQuestion.audio_url !== null) {
             console.log('音频可用，开始播放')
             play()
           } else {
-            console.warn('音频不可用，跳过音频播放，直接开始面试')
+            console.log('音频不可用，跳过音频播放，直接开始面试')
             // 给用户一些时间阅读题目，然后开始面试
             setTimeout(() => {
               triggerAnotherMethod()
@@ -1592,18 +1585,14 @@ const fetchInterviewInfo = async (interviewId: number) => {
       const responseData = response.data as any
       interviewDetails.value = responseData
       
-      // 检查是否有TTS服务问题
+      // 静默检查音频可用性，不显示错误提示
       const hasAudioIssues = interviewDetails.value.data.questions.some(
         (question: any) => !question.audio_url || question.audio_url === null
       )
       
       if (hasAudioIssues) {
-        console.warn('检测到TTS服务问题，部分问题缺少音频')
-        // 如果是在面试开始时检测到TTS问题，显示相应提示
-        if (isInterviewStarted.value) {
-          toast.error('语音转文字接口调用失败')
-          // 不要提前返回，继续执行后续逻辑
-        }
+        console.log('检测到部分题目无音频，将跳过音频播放直接开始面试')
+        // 不显示错误提示，静默处理
       }
       
       if (interviewDetails.value.data.questions.length === 1 && isInterviewStarted.value) {
