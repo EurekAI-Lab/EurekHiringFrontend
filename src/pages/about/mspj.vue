@@ -261,6 +261,7 @@ interface FrameAnalysisSample {
   interview_record_id: number
   frame_timestamp: number
   frame_url: string
+  original_video_url?: string
   action_status: string
   is_normal: number
   analysis_detail: string
@@ -479,6 +480,7 @@ const fetchInterviewReport = async (interviewId: number) => {
             interview_record_id: number
             frame_timestamp: number
             frame_url: string
+            original_video_url?: string
             action_status: string
             is_normal: number
             analysis_detail: string
