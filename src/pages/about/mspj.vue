@@ -106,9 +106,11 @@
         <!-- <view class="ml-2 mt-2 text-xs text-#a1a1aa">暂无</view> -->
         <view class="flex ml-2 mt-2">
           <view class="text-sm font-bold">面试录屏：</view>
+          <view class="text-xs text-gray-500 ml-2">{{ frameAnalysis.samples ? `(${frameAnalysis.samples.length}个)` : '(加载中...)' }}</view>
+          <view class="text-xs text-blue-500 ml-4" @click="fetchInterviewReport(interviewId)" style="text-decoration: underline;">刷新</view>
         </view>
         <view class="flex w-95% justify-start mt-2 ml-2" style="overflow: hidden; overflow-x: auto">
-          <template v-if="frameAnalysis && frameAnalysis.samples && frameAnalysis.samples.length > 0">
+          <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">
             <view class="relative w-14 h-18 ml-2 mt-2" v-for="(sample, index) in frameAnalysis.samples" :key="index">
               <image class="w-14 h-18" :src="sample.frame_url"></image>
               <image class="absolute w-5 h-5 z-1" style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
@@ -120,11 +122,14 @@
             </view>
           </template>
           <template v-else>
-            <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
-            <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
-            <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
-            <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
-            <image class="w-14 h-18 ml-2 mt-2" :src="icon001"></image>
+            <view class="w-full flex flex-col items-center justify-center py-4">
+              <view class="text-gray-500 text-sm mb-2">视频分析处理中，请稍后刷新查看</view>
+              <view class="flex gap-2">
+                <image class="w-14 h-18" :src="icon001"></image>
+                <image class="w-14 h-18" :src="icon001"></image>
+                <image class="w-14 h-18" :src="icon001"></image>
+              </view>
+            </view>
           </template>
         </view>
       </view>
@@ -293,7 +298,7 @@ const isLoading = ref(true)
 const totalDuration = ref(0)
 
 // 帧分析数据
-const frameAnalysis = ref({
+const frameAnalysis = ref<FrameAnalysis>({
   summary: { total_frames: 0, abnormal_frames: 0, abnormal_rate: 0, abnormal_type_stats: {} },
   samples: [],
 })
@@ -502,7 +507,11 @@ const fetchInterviewReport = async (interviewId: number) => {
 
       // 处理帧分析数据
       if (responseData.frame_analysis) {
+        console.log('帧分析数据:', responseData.frame_analysis)
+        console.log('帧分析samples:', responseData.frame_analysis.samples)
         frameAnalysis.value = responseData.frame_analysis
+      } else {
+        console.log('没有帧分析数据')
       }
     } else {
       console.error('获取面试报告失败:', response.data)
