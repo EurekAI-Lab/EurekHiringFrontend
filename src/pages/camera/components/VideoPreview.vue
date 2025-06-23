@@ -28,7 +28,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { PlatformFactory } from '../services/platform/PlatformFactory'
+import { handleError } from '../services/errors/ErrorHandler'
+import type { PlatformAdapter } from '../types/platform'
 
 interface Props {
   showMask?: boolean
@@ -48,10 +51,70 @@ const emit = defineEmits<{
   switchCamera: []
 }>()
 
-const handleSwitchCamera = () => {
-  console.log('切换摄像头')
-  emit('switchCamera')
+// Platform Adapter
+const platformFactory = PlatformFactory.getInstance()
+let platformAdapter: PlatformAdapter | null = null
+
+// 初始化摄像头
+const initializeCamera = async () => {
+  try {
+    console.log('初始化摄像头...')
+    
+    // 创建平台适配器
+    platformAdapter = await platformFactory.createAdapter()
+    
+    // 初始化视频元素
+    const success = await platformAdapter.videoElement.initialize('myvideo')
+    if (!success) {
+      throw new Error('摄像头初始化失败')
+    }
+    
+    // 显示视频
+    platformAdapter.videoElement.show()
+    
+    console.log('摄像头初始化成功')
+  } catch (error) {
+    console.error('摄像头初始化失败:', error)
+    handleError(error as Error, 'CAMERA_INITIALIZATION')
+  }
 }
+
+// 切换摄像头
+const handleSwitchCamera = async () => {
+  try {
+    console.log('切换摄像头')
+    
+    if (!platformAdapter) {
+      throw new Error('平台适配器未初始化')
+    }
+    
+    const success = await platformAdapter.videoElement.switchCamera()
+    if (success) {
+      console.log('摄像头切换成功')
+      emit('switchCamera')
+    } else {
+      throw new Error('摄像头切换失败')
+    }
+  } catch (error) {
+    console.error('摄像头切换失败:', error)
+    handleError(error as Error, 'CAMERA_SWITCH')
+  }
+}
+
+// 组件挂载时初始化摄像头
+onMounted(() => {
+  if (props.showVideo) {
+    initializeCamera()
+  }
+})
+
+// 组件卸载时清理资源
+onBeforeUnmount(() => {
+  if (platformAdapter) {
+    platformAdapter.videoElement.destroy()
+    platformFactory.destroy()
+  }
+})
 </script>
 
 <style scoped>

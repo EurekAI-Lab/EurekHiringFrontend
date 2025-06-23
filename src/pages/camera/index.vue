@@ -74,7 +74,7 @@ import InterviewComplete from './components/InterviewComplete.vue'
 import { useInterviewStore } from './stores/interviewStore'
 import { useInterviewFlow } from './composables/useInterviewFlow'
 import { useCameraStream } from './composables/useCameraStream'
-import { useMediaRecorder } from './composables/useMediaRecorder'
+import { usePlatformRecorder } from './composables/usePlatformRecorder'
 import { useFileUpload } from './composables/useFileUpload'
 import { useInterviewTimer } from './composables/useInterviewTimer'
 // import { useAudioPlayer } from './composables/useAudioPlayer' // TTS音频播放暂时禁用
@@ -130,12 +130,13 @@ const interviewFlow = useInterviewFlow({
 const cameraStream = useCameraStream({
   preferFrontCamera: true,
   onStreamReady: (stream) => {
-    console.log('摄像头流已准备就绪')
-    recorder.initializeRecorder(stream)
+    console.log('摄像头流已准备就绪（兼容性保留）')
+    // 平台录制器会自动处理流的获取，无需手动传入
+    // 在VideoPreview组件中已经初始化了平台适配器
   },
 })
 
-const recorder = useMediaRecorder()
+const recorder = usePlatformRecorder()
 const uploader = useFileUpload()
 const timer = useInterviewTimer({
   onTimeUp: handleTimeUp,
@@ -249,9 +250,13 @@ onMounted(async () => {
     showVideoMask.value = false
     console.log('已隐藏视频遮罩, showVideoMask.value:', showVideoMask.value)
     
-    // 初始化摄像头
+    // 初始化摄像头（保留兼容性）
     const cameraSuccess = await cameraStream.initializeStream()
     console.log('摄像头初始化结果:', cameraSuccess)
+    
+    // 初始化平台录制器
+    const recorderSuccess = await recorder.initializeRecorder()
+    console.log('平台录制器初始化结果:', recorderSuccess)
     
   } catch (error) {
     console.error('初始化失败:', error)
@@ -397,18 +402,11 @@ async function startRecording() {
     duration: 1500,
   })
 
-  // 确保摄像头流存在（用于MediaRecorder录制）
-  if (!cameraStream.stream.value) {
-    console.error('摄像头流不存在，尝试重新初始化')
-    const initSuccess = await cameraStream.initializeStream()
-    if (!initSuccess) {
-      showErrorToast('摄像头初始化失败')
-      return
-    }
-  }
+  // 平台录制器自动处理流获取，无需手动检查
+  console.log('使用平台录制器开始录制')
 
   // 开始录制
-  const success = await recorder.startRecording(cameraStream.stream.value)
+  const success = await recorder.startRecording()
 
   if (success) {
     console.log('录制已启动')
@@ -451,7 +449,7 @@ async function handleNext() {
       if (result && currentQuestion.value) {
         // 直接上传，使用main分支的上传逻辑
         try {
-          console.log(`开始上传题目 ${currentQuestion.value.id} 的视频，大小: ${result.blob.size} bytes`)
+          console.log(`开始上传题目 ${currentQuestion.value.id} 的视频，大小: ${result.size} bytes`)
           
           // 调用主分支的上传函数
           await uploadVideoUsingMainLogic(result.blob, currentQuestion.value.id, result.duration)
