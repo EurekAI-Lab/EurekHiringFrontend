@@ -144,6 +144,7 @@ const message = useMessage()
 
 const toast = useToast()
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+console.log('baseUrl', baseUrl);
 
 // 控制视频黑色遮罩层显示/隐藏
 const showVideoMask = ref(true)
