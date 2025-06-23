@@ -581,6 +581,9 @@ const stopRecordingAndSave = async () => {
               window._currentLoadingClose = null
             }
 
+            // 重置处理标志
+            isProcessing.value = false
+
             // 上传成功后才更新索引和处理下一题
             if (currentIndex < interviewDetails.value.data.questions.length - 1) {
               currentQuestionIndex.value++
@@ -611,6 +614,8 @@ const stopRecordingAndSave = async () => {
               window._currentLoadingClose()
               window._currentLoadingClose = null
             }
+            // 重置处理标志
+            isProcessing.value = false
             // 失败时不更新索引，保持在当前题目
           }
         } else {
@@ -620,6 +625,9 @@ const stopRecordingAndSave = async () => {
             window._currentLoadingClose()
             window._currentLoadingClose = null
           }
+          
+          // 重置处理标志
+          isProcessing.value = false
           
           // 即使没有数据也要继续处理下一题
           if (currentIndex < interviewDetails.value.data.questions.length - 1) {
@@ -653,6 +661,9 @@ const stopRecordingAndSave = async () => {
         window._currentLoadingClose = null
       }
 
+      // 重置处理标志
+      isProcessing.value = false
+
       // 即使不在录制状态，也继续处理下一题
       if (currentIndex < interviewDetails.value.data.questions.length - 1) {
         currentQuestionIndex.value++
@@ -678,6 +689,9 @@ const stopRecordingAndSave = async () => {
       window._currentLoadingClose()
       window._currentLoadingClose = null
     }
+
+    // 重置处理标志
+    isProcessing.value = false
 
     // 如果没有 mediaRecorder，直接处理下一题
     if (currentIndex < interviewDetails.value.data.questions.length - 1) {
@@ -983,35 +997,85 @@ const nextQuestion = async () => {
   
   if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
     console.log('显示确认对话框：进入下一题')
-    message
-      .confirm({
-        msg: '该操作将进入下一题的作答且操作不可回退，您确定已经完成当前题目的作答了吗？',
-        title: '进入下一题',
+    
+    // 防止重复处理
+    if (isProcessing.value) {
+      console.log('正在处理中，忽略重复点击')
+      return
+    }
+    
+    // 使用自定义Promise包装确认对话框，避免双重回调问题
+    try {
+      const confirmed = await new Promise((resolve, reject) => {
+        let resolved = false
+        
+        message
+          .confirm({
+            msg: '该操作将进入下一题的作答且操作不可回退，您确定已经完成当前题目的作答了吗？',
+            title: '进入下一题',
+          })
+          .then(() => {
+            console.log('确认对话框：用户确认')
+            if (!resolved) {
+              resolved = true
+              resolve(true)
+            }
+          })
+          .catch((error) => {
+            console.log('确认对话框：用户取消或出错', error)
+            if (!resolved) {
+              resolved = true
+              resolve(false)
+            }
+          })
+        
+        // 添加超时保护，防止对话框卡住
+        setTimeout(() => {
+          if (!resolved) {
+            console.log('确认对话框超时，默认取消')
+            resolved = true
+            resolve(false)
+          }
+        }, 30000) // 30秒超时
       })
-      .then(() => {
-        console.log('用户确认进入下一题')
-        // 使用wot-design-uni的loading方法，返回一个关闭函数
-        console.log('显示loading：保存视频中...')
-        const { close: closeLoading } = toast.loading('保存视频中...')
-
-        if (currentQuestionIndex.value === interviewDetails.value.data.questions.length - 2) {
-          console.log('进入最后一题，设置完成面试按钮')
-          overQuestion.value = true
-        }
-        console.log('点击下一题，当前视频时长:', videoDuration.value)
-        isTiming.value = false
-        isTimeUp.value = true
-
-        // 保存关闭函数到全局，以便在stopRecordingAndSave中使用
-        window._currentLoadingClose = closeLoading
-        console.log('保存loading关闭函数到全局')
-
-        console.log('调用 handleTimeUp')
-        handleTimeUp()
-      })
-      .catch(() => {
+      
+      if (!confirmed) {
         console.log('用户取消进入下一题')
-      })
+        return
+      }
+      
+      console.log('用户确认进入下一题，开始处理')
+      
+      // 设置处理标志，防止重复执行
+      if (isProcessing.value) {
+        console.log('已经在处理中，忽略重复确认')
+        return
+      }
+      isProcessing.value = true
+      
+      // 使用wot-design-uni的loading方法，返回一个关闭函数
+      console.log('显示loading：保存视频中...')
+      const { close: closeLoading } = toast.loading('保存视频中...')
+
+      if (currentQuestionIndex.value === interviewDetails.value.data.questions.length - 2) {
+        console.log('进入最后一题，设置完成面试按钮')
+        overQuestion.value = true
+      }
+      console.log('点击下一题，当前视频时长:', videoDuration.value)
+      isTiming.value = false
+      isTimeUp.value = true
+
+      // 保存关闭函数到全局，以便在stopRecordingAndSave中使用
+      window._currentLoadingClose = closeLoading
+      console.log('保存loading关闭函数到全局')
+
+      console.log('调用 handleTimeUp')
+      handleTimeUp()
+      
+    } catch (error) {
+      console.error('确认对话框处理出错:', error)
+      isProcessing.value = false
+    }
   } else {
     if (isRequesting.value) {
       return
