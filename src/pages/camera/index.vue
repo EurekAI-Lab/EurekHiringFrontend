@@ -958,19 +958,28 @@ const noticeShow = ref(false)
 const isRequesting = ref(false)
 
 const nextQuestion = async () => {
+  console.log('=== nextQuestion 函数被调用 ===')
+  console.log('isExiting.value:', isExiting.value)
+  
   if (isExiting.value) {
-    console.log(2222)
-
+    console.log('isExiting为true，直接返回')
     return
   }
+  
+  console.log('当前题目索引:', currentQuestionIndex.value)
+  console.log('总题目数量:', interviewDetails.value.data.questions.length)
+  
   if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
+    console.log('显示确认对话框：进入下一题')
     message
       .confirm({
         msg: '该操作将进入下一题的作答且操作不可回退，您确定已经完成当前题目的作答了吗？',
         title: '进入下一题',
       })
       .then(() => {
+        console.log('用户确认进入下一题')
         // 使用wot-design-uni的loading方法，返回一个关闭函数
+        console.log('显示loading：保存视频中...')
         const { close: closeLoading } = toast.loading('保存视频中...')
 
         if (currentQuestionIndex.value === interviewDetails.value.data.questions.length - 2) {
@@ -983,10 +992,14 @@ const nextQuestion = async () => {
 
         // 保存关闭函数到全局，以便在stopRecordingAndSave中使用
         window._currentLoadingClose = closeLoading
+        console.log('保存loading关闭函数到全局')
 
+        console.log('调用 handleTimeUp')
         handleTimeUp()
       })
-      .catch(() => {})
+      .catch(() => {
+        console.log('用户取消进入下一题')
+      })
   } else {
     if (isRequesting.value) {
       return
