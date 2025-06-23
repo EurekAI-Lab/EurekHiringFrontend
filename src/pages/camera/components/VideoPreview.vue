@@ -2,7 +2,6 @@
   <view class="video-preview-container">
     <!-- H5平台使用HTML5 video -->
     <video
-      v-if="isH5"
       id="myvideo"
       class="fullscreen-video"
       :class="{ 'video-hidden': !showVideo }"
@@ -12,23 +11,6 @@
       webkit-playsinline
       :controls="false"
     ></video>
-    
-    <!-- 小程序和App平台使用live-pusher -->
-    <live-pusher
-      v-else-if="!isH5 && showVideo"
-      id="livePusher"
-      ref="livePusher"
-      class="fullscreen-video"
-      mode="FHD"
-      :muted="false"
-      :enable-camera="true"
-      :auto-focus="true"
-      :beauty="0"
-      :whiteness="0"
-      device-position="front"
-      @statechange="handleStateChange"
-      @error="handleError"
-    ></live-pusher>
 
     <!-- 黑色遮罩层 -->
     <view v-if="showMask" class="video-mask"></view>
@@ -101,7 +83,8 @@ const handleError = (e: any) => {
   object-fit: cover;
   background-color: #000;
   transform: scaleX(-1); /* 镜像效果 */
-  z-index: 0;
+  z-index: 1;
+  pointer-events: none; /* 防止阻挡点击事件 */
 }
 
 .video-hidden {

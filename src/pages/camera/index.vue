@@ -236,7 +236,9 @@ onMounted(async () => {
     
     // 隐藏loading
     uni.hideLoading()
+    console.log('准备隐藏视频遮罩, showVideoMask.value:', showVideoMask.value)
     showVideoMask.value = false
+    console.log('已隐藏视频遮罩, showVideoMask.value:', showVideoMask.value)
     
     // 初始化摄像头
     const cameraSuccess = await cameraStream.initializeStream()

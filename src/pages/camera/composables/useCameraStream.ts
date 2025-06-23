@@ -164,9 +164,16 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
       console.log('mediaStream:', mediaStream)
       
       if (videoElement) {
-        console.log('设置srcObject前')
+        console.log('设置srcObject前, videoElement.style:', videoElement.style.cssText)
+        console.log('videoElement.offsetWidth:', videoElement.offsetWidth, 'offsetHeight:', videoElement.offsetHeight)
         videoElement.srcObject = mediaStream
         console.log('设置srcObject后, srcObject:', videoElement.srcObject)
+        
+        // 强制设置视频元素可见
+        videoElement.style.display = 'block'
+        videoElement.style.visibility = 'visible'
+        videoElement.style.opacity = '1'
+        console.log('强制设置后, videoElement.style:', videoElement.style.cssText)
         // 确保视频元素正确设置
         videoElement.setAttribute('playsinline', 'true')
         videoElement.setAttribute('webkit-playsinline', 'true')
