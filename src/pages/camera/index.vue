@@ -1069,25 +1069,17 @@ const nextQuestion = async () => {
               await getUploadInfo()
 
               // 等待一段时间确保上传完成
-              setTimeout(async () => {
-                // 直接提交面试数据
-                try {
-                  await saveInterview()
-                  // 提交成功后的处理已经在saveInterview中完成
-                } catch (error) {
-                  console.error('提交面试数据失败:', error)
-                }
+              setTimeout(() => {
+                // 不再递归调用handleExit，直接处理完成逻辑
+                saveInterview()
+                uni.hideLoading()
                 isRequesting.value = false
               }, 2000)
             } else {
               console.warn('最后一题没有获取到视频数据')
-              // 直接提交面试数据
-              try {
-                await saveInterview()
-                // 提交成功后的处理已经在saveInterview中完成
-              } catch (error) {
-                console.error('提交面试数据失败:', error)
-              }
+              // 不再递归调用handleExit，直接处理完成逻辑
+              saveInterview()
+              uni.hideLoading()
               isRequesting.value = false
             }
           }
