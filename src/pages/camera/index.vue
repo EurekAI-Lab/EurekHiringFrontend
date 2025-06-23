@@ -83,7 +83,14 @@ import { useDOMObserver } from './composables/useDOMObserver'
 // 常量和工具
 import { TIME_CONSTANTS, UI_TEXT } from './utils/constants'
 import { showErrorToast } from './utils/errorHandler'
-import { navigateBack } from '@/utils/platformUtils'
+import { navigateBack, getPlatformType, PlatformType } from '@/utils/platformUtils'
+
+// 声明全局类型（与main分支一致）
+declare global {
+  interface Window {
+    _currentLoadingClose?: () => void
+  }
+}
 
 // Store
 const interviewStore = useInterviewStore()
@@ -376,12 +383,12 @@ async function playCurrentQuestion() {
 //   }, 1000)
 // }
 
-// 开始录制
+// 开始录制（修复后的版本）
 async function startRecording() {
   if (!currentQuestion.value) return
 
   console.log('开始录制，当前题目:', currentQuestion.value.id)
-  console.log('使用live-pusher组件进行录制')
+  console.log('使用video元素进行摄像头预览和录制')
 
   // 显示开始作答提示（与原代码一致）
   uni.showToast({
@@ -390,9 +397,6 @@ async function startRecording() {
     duration: 1500,
   })
 
-  // 对于live-pusher组件，我们仍然需要MediaRecorder来录制视频
-  // live-pusher主要用于显示摄像头预览，录制功能仍然使用MediaRecorder
-  
   // 确保摄像头流存在（用于MediaRecorder录制）
   if (!cameraStream.stream.value) {
     console.error('摄像头流不存在，尝试重新初始化')
@@ -425,49 +429,42 @@ async function handleTimeUp() {
   await handleNext()
 }
 
-// 下一题/提交回答
+// 下一题/提交回答 （采用main分支的处理逻辑）
 async function handleNext() {
   if (isProcessing.value) return
 
   isProcessing.value = true
-  // const loadingClose = interviewFlow.showLoading(UI_TEXT.PROCESSING)
-  // let loadingClosed = false // 添加标志变量防止重复关闭
   
-  // 使用 uni-app 的 loading
-  uni.showLoading({
-    title: UI_TEXT.PROCESSING || '处理中...',
-    mask: true
-  })
+  // 使用 uni-app 的 loading，保存关闭函数以便在上传过程中使用
+  const { close: closeLoading } = toast.loading('保存视频中...')
+  
+  // 将关闭函数保存到全局，与main分支逻辑一致
+  if (typeof window !== 'undefined') {
+    window._currentLoadingClose = closeLoading
+  }
 
   try {
-    // 如果正在录制，先停止并保存
+    // 如果正在录制，先停止并保存（采用main分支的直接上传逻辑）
     if (recorder.isRecording.value) {
       const result = await recorder.stopRecording()
 
       if (result && currentQuestion.value) {
-        // 保存当前录制数据，以便重试
-        const recordingData = {
-          blob: result.blob,
-          questionId: currentQuestion.value.id,
-          duration: result.duration,
-        }
-
-        // 简化上传逻辑，与原代码保持一致：失败时显示错误提示，留在当前题目
+        // 直接上传，使用main分支的上传逻辑
         try {
-          // 上传视频（使用与原代码一致的方法）
-          const videoUrl = await uploader.uploadVideo(
-            recordingData.blob,
-            recordingData.questionId,
-            recordingData.duration,
-          )
-
-          // 保存回答（不需要再调用saveCurrentAnswer，因为uploadVideo已经保存到store）
-          console.log('视频已上传并保存:', videoUrl)
+          console.log(`开始上传题目 ${currentQuestion.value.id} 的视频，大小: ${result.blob.size} bytes`)
+          
+          // 调用主分支的上传函数
+          await uploadVideoUsingMainLogic(result.blob, currentQuestion.value.id, result.duration)
+          
+          console.log('视频上传成功')
         } catch (error) {
           console.error('视频上传失败:', error)
-          // 上传失败，显示错误提示（与原代码一致）
-          uni.hideLoading()
-          showErrorToast(`第${currentQuestion.value.id}题视频上传失败，请重试`)
+          // 关闭loading
+          if (typeof window !== 'undefined' && window._currentLoadingClose) {
+            window._currentLoadingClose()
+            window._currentLoadingClose = null
+          }
+          toast.error(`第${currentQuestion.value.id}题视频上传失败，请重试`)
           // 不进入下一题，让用户可以重新点击"下一题"按钮重试
           return
         }
@@ -478,13 +475,22 @@ async function handleNext() {
     timer.stop()
     showTimer.value = false
 
-    // 进入下一题或完成（跳过确认，因为已经录制完成）
+    // 关闭loading
+    if (typeof window !== 'undefined' && window._currentLoadingClose) {
+      window._currentLoadingClose()
+      window._currentLoadingClose = null
+    }
+
+    // 进入下一题或完成
     const hasNext = await interviewFlow.goToNextQuestion(true)
 
-    // goToNextQuestion 会自动调用 onQuestionReady，触发播放下一题
   } finally {
     isProcessing.value = false
-    uni.hideLoading()
+    // 确保loading被关闭
+    if (typeof window !== 'undefined' && window._currentLoadingClose) {
+      window._currentLoadingClose()
+      window._currentLoadingClose = null
+    }
   }
 }
 
@@ -542,6 +548,160 @@ async function handleTerminate() {
 }
 
 // 处理下一题（用户手动点击） - 上面已经定义了handleNext，这里不需要重复定义
+
+// main分支的上传逻辑
+const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+const fileUrls = ref([]) // 存储上传的视频信息
+
+// 获取当前平台的 MIME 类型（与main分支一致）
+const getMimeType = () => {
+  const platform = getPlatformType()
+  return platform === PlatformType.IOS ? 'video/mp4' : 'video/webm'
+}
+
+// 获取当前平台的文件扩展名（与main分支一致）
+const getFileExtension = () => {
+  const platform = getPlatformType()
+  return platform === PlatformType.IOS ? 'mp4' : 'webm'
+}
+
+// URL编码函数（与main分支一致）
+const camSafeUrlEncode = (str: string) => {
+  return encodeURIComponent(str)
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A')
+}
+
+// 获取上传凭证（与main分支一致）
+const getUploadInfo = async () => {
+  try {
+    console.log('获取上传凭证...')
+    // 根据平台获取正确的文件扩展名
+    const fileExt = getFileExtension()
+    const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=${fileExt}` })
+    // 添加类型断言
+    const responseData = response.data as any
+    console.log('上传凭证响应:', JSON.stringify(responseData))
+    
+    if (!responseData.data || !responseData.data.cosHost) {
+      throw new Error('上传凭证无效')
+    }
+    
+    console.log('上传凭证获取成功，开始上传文件...')
+    return responseData.data
+  } catch (error) {
+    console.error('上传流程失败:', error)
+    console.error('错误详情:', JSON.stringify(error))
+    toast.error('视频上传失败，请重试')
+    throw error // 向上传播错误
+  }
+}
+
+// 上传文件到COS（与main分支一致）
+const uploadFile = async (opt: any, blob: Blob, questionId: number, videoDuration: number) => {
+  const formData = {
+    key: opt.cosKey,
+    policy: opt.policy,
+    success_action_status: 200,
+    'q-sign-algorithm': opt.qSignAlgorithm,
+    'q-ak': opt.qAk,
+    'q-key-time': opt.qKeyTime,
+    'q-signature': opt.qSignature,
+  }
+
+  if (opt.securityToken) formData['x-cos-security-token'] = opt.securityToken
+
+  let fileToUpload: any = blob
+
+  if (typeof File !== 'undefined' && blob instanceof Blob) {
+    try {
+      const mimeType = getMimeType()
+      const fileExt = getFileExtension()
+      fileToUpload = new File([blob], `video.${fileExt}`, { type: mimeType })
+      console.log(`成功创建 File 对象，类型: ${mimeType}，大小: ${fileToUpload.size}`)
+    } catch (e) {
+      console.error('创建 File 对象失败，使用 Blob:', e)
+      console.log('使用 Blob 对象，大小:', blob.size)
+    }
+  } else {
+    console.warn('不支持 File 构造函数或 blob 不是 Blob 类型')
+    if (blob) {
+      console.log('blob 类型:', typeof blob, '大小:', blob.size || '未知')
+    } else {
+      throw new Error('无效的文件数据')
+    }
+  }
+
+  const currentQuestionIdx = questionId - 1 // 转换为索引
+  console.log(`开始上传题目 ${currentQuestionIdx} 的视频，时长: ${videoDuration}秒`)
+
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: 'https://' + opt.cosHost,
+      file: fileToUpload,
+      name: 'file',
+      formData,
+      success: (res) => {
+        console.log(`题目 ${currentQuestionIdx} 上传响应:`, res)
+        console.log('上传响应状态码:', res.statusCode)
+        console.log('上传响应头:', res.header)
+        
+        if (![200, 204].includes(res.statusCode)) {
+          console.error(`题目 ${currentQuestionIdx} 上传失败，状态码:`, res.statusCode, 'response:', res.data)
+          reject(new Error(`上传失败，状态码: ${res.statusCode}`))
+          return
+        }
+
+        const uploadedFileUrl =
+          'https://' + opt.cosHost + '/' + camSafeUrlEncode(opt.cosKey).replace(/%2F/g, '/')
+
+        const fileData = {
+          question_id: questionId,
+          video_url: uploadedFileUrl,
+          video_duration: videoDuration,
+        }
+
+        const existingIndex = fileUrls.value.findIndex(
+          (item) => item.question_id === questionId,
+        )
+
+        if (existingIndex >= 0) {
+          console.log(`题目 ${currentQuestionIdx} 已有上传记录，更新数据:`, fileData)
+          fileUrls.value[existingIndex] = fileData
+        } else {
+          console.log(`题目 ${currentQuestionIdx} 上传成功，添加数据:`, fileData)
+          fileUrls.value.push(fileData)
+        }
+
+        console.log('当前所有上传数据:', JSON.stringify(fileUrls.value))
+        
+        // 同时保存到store
+        interviewStore.saveVideoUrl(questionId, uploadedFileUrl, videoDuration)
+        
+        resolve(fileData)
+      },
+      fail: (err) => {
+        console.error(`题目 ${currentQuestionIdx} 上传失败:`, err)
+        console.error('上传失败详情:', JSON.stringify(err))
+        console.error('上传URL:', 'https://' + opt.cosHost)
+        console.error('文件大小:', fileToUpload.size || '未知')
+        reject(new Error(`上传失败: ${JSON.stringify(err)}`))
+      },
+      complete: () => {
+        console.log('上传请求完成')
+      },
+    })
+  })
+}
+
+// 主要上传函数（与main分支逻辑一致）
+const uploadVideoUsingMainLogic = async (blob: Blob, questionId: number, videoDuration: number) => {
+  const opt = await getUploadInfo()
+  return await uploadFile(opt, blob, questionId, videoDuration)
+}
 
 // 切换摄像头
 async function handleSwitchCamera() {

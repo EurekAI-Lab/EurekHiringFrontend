@@ -1,26 +1,8 @@
 <template>
   <view class="video-preview-container">
-    <!-- 使用live-pusher组件实现跨平台相机 -->
-    <live-pusher
-      v-if="showVideo"
-      id="livePusher"
-      ref="livePusher"
-      class="live-pusher-camera"
-      mode="SD"
-      :muted="false"
-      :enable-camera="true"
-      :auto-focus="true"
-      :beauty="0"
-      :whiteness="0"
-      device-position="front"
-      @statechange="handleStateChange"
-      @error="handleError"
-      @netstatus="handleNetStatus"
-    ></live-pusher>
-    
-    <!-- H5平台后备方案 -->
+    <!-- 跨平台本地摄像头预览 -->
     <video
-      v-else
+      v-if="showVideo"
       id="myvideo"
       class="fullscreen-video"
       autoplay
@@ -66,34 +48,9 @@ const emit = defineEmits<{
   switchCamera: []
 }>()
 
-// live-pusher组件事件处理
-const livePusher = ref(null)
-
 const handleSwitchCamera = () => {
   console.log('切换摄像头')
-  // 切换摄像头
-  if (livePusher.value) {
-    const context = uni.createLivePusherContext('livePusher')
-    context.switchCamera()
-    console.log('已调用live-pusher切换摄像头')
-  }
   emit('switchCamera')
-}
-
-const handleStateChange = (e: any) => {
-  console.log('live-pusher 状态变化:', e.detail)
-  // 状态码说明：
-  // 1001: 已经连接推流服务器
-  // 1002: 已经连接服务器，开始推流
-  // 1003: 网络接收到首个音视频数据包
-}
-
-const handleError = (e: any) => {
-  console.error('live-pusher 错误:', e.detail)
-}
-
-const handleNetStatus = (e: any) => {
-  console.log('live-pusher 网络状态:', e.detail)
 }
 </script>
 

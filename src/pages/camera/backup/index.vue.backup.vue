@@ -135,8 +135,8 @@
 
 <script setup lang="ts">
 import { ref, onBeforeUnmount } from 'vue'
-import icon01 from '../../static/app/icons/Frame-001.png'
-import icon02 from '../../static/app/icons/Frame-002.png'
+import icon01 from '../../../static/app/icons/Frame-001.png'
+import icon02 from '../../../static/app/icons/Frame-002.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { navigateBack, interviewOver, getPlatformType, PlatformType } from '@/utils/platformUtils'
 

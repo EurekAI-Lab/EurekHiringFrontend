@@ -136,8 +136,8 @@
 <script setup lang="ts">
 import { ref, reactive, onBeforeUnmount, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import icon01 from '../../static/app/icons/Frame-001.png'
-import icon02 from '../../static/app/icons/Frame-002.png'
+import icon01 from '../../../static/app/icons/Frame-001.png'
+import icon02 from '../../../static/app/icons/Frame-002.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { navigateBack, interviewOver, getPlatformType, PlatformType } from '@/utils/platformUtils'
 
@@ -248,7 +248,7 @@ innerAudioContext.onError((res) => {
   if (res) {
     console.log('音频播放错误:', res.errMsg || '未知错误')
     console.log('错误代码:', res.errCode || '无错误代码')
-    
+
     // 根据错误类型提供不同的用户提示
     if (res.errCode === 10001) {
       console.error('系统错误：音频系统初始化失败')
@@ -264,19 +264,19 @@ innerAudioContext.onError((res) => {
   } else {
     console.log('音频播放错误: 未知错误')
   }
-  
+
   // 音频播放出错时，提示用户但继续面试流程
   console.warn('音频播放失败，将继续面试流程')
-  
+
   // 如果是第一题，给用户更多时间阅读
   const readingTime = currentQuestionIndex.value === 0 ? 3000 : 2000
-  
+
   // 显示简短提示，告知用户音频播放失败但面试继续
   toast.error({
     msg: '音频播放失败，请阅读题目',
     duration: 1500
   })
-  
+
   setTimeout(() => {
     triggerAnotherMethod()
   }, readingTime)
@@ -294,13 +294,13 @@ innerAudioContext.onEnded(() => {
 
 const play = () => {
   console.log('currentQuestionIndex.value', currentQuestionIndex.value)
-  
+
   // 清除之前的超时计时器
   if (audioPlayTimeout) {
     clearTimeout(audioPlayTimeout)
     audioPlayTimeout = null
   }
-  
+
   // 检查当前问题是否存在以及是否有音频URL
   const currentQuestion = interviewDetails.value.data.questions[currentQuestionIndex.value]
   if (!currentQuestion) {
@@ -311,7 +311,7 @@ const play = () => {
     }, 2000)
     return
   }
-  
+
   if (!currentQuestion.audio_url || currentQuestion.audio_url === null) {
     console.warn('当前问题没有音频URL，跳过播放，直接开始面试')
     // 给用户一些时间阅读题目，然后开始面试
@@ -320,7 +320,7 @@ const play = () => {
     }, 3000) // 3秒阅读时间
     return
   }
-  
+
   try {
     // 验证音频URL格式
     const audioUrl = currentQuestion.audio_url
@@ -328,29 +328,29 @@ const play = () => {
       console.error('无效的音频URL格式:', audioUrl)
       throw new Error('无效的音频URL格式')
     }
-    
+
     // 设置音频源并播放
     innerAudioContext.src = audioUrl
     console.log('尝试播放音频:', audioUrl)
-    
+
     // 设置音频播放超时机制（10秒）
     audioPlayTimeout = setTimeout(() => {
       console.warn('音频播放超时（10秒），跳过音频继续面试')
       // 停止音频播放尝试
       innerAudioContext.stop()
-      
+
       // 提示用户
       toast.error({
         msg: '音频加载超时，请阅读题目',
         duration: 1500
       })
-      
+
       // 继续面试流程
       setTimeout(() => {
         triggerAnotherMethod()
       }, 2000)
     }, 10000)
-    
+
     // 开始播放
     innerAudioContext.play()
   } catch (error) {
@@ -471,21 +471,21 @@ const startRecording = async () => {
   } else {
     console.log(`继续录制题目 ${currentQuestionIndex.value}，当前已有 ${recordedData.value.length} 个数据块`)
   }
-  
+
   // 使用timeslice参数，每秒生成一个数据块
   try {
     mediaRecorder.start(1000)
     console.log(`MediaRecorder 已启动录制，状态: ${mediaRecorder.state}`)
-    
+
     // 添加状态变化监听
     mediaRecorder.onstart = () => {
       console.log('MediaRecorder onstart 事件触发')
     }
-    
+
     mediaRecorder.onstop = () => {
       console.log('MediaRecorder onstop 事件触发，收集到的数据块数量:', recordedData.value.length)
     }
-    
+
     mediaRecorder.onerror = (event) => {
       console.error('MediaRecorder 错误:', event)
     }
@@ -530,19 +530,19 @@ const stopRecordingAndSave = async () => {
         if (currentIndex < interviewDetails.value.data.questions.length - 1) {
           currentQuestionIndex.value++
           console.log(`成功进入下一题: ${currentQuestionIndex.value}`)
-          
+
           // 清除之前的音频播放超时
           if (audioPlayTimeout) {
             clearTimeout(audioPlayTimeout)
             audioPlayTimeout = null
           }
-          
+
           // 重置录制状态为下一题准备
           recordedData.value = []
           blobData.value = null
           videoDuration.value = 0
           console.log('已重置录制状态，准备录制下一题')
-          
+
           play()
         } else {
           console.log('已完成所有题目，退出面试')
@@ -550,25 +550,25 @@ const stopRecordingAndSave = async () => {
         }
       } catch (error) {
         console.error(`题目 ${currentIndex} 上传视频失败:`, error)
-        
+
         // 关闭loading
         if (window._currentLoadingClose) {
           window._currentLoadingClose()
           window._currentLoadingClose = null
         }
-        
+
         // 询问用户是否重试
         try {
           await message.confirm({
             msg: `第${currentIndex + 1}题视频上传失败，是否重试？`,
             title: '上传失败'
           })
-          
+
           // 用户选择重试
           console.log('用户选择重试上传')
           const { close: retryLoading } = toast.loading('重新上传中...')
           window._currentLoadingClose = retryLoading
-          
+
           try {
             await getUploadInfo()
             // 重试成功，关闭loading
@@ -576,7 +576,7 @@ const stopRecordingAndSave = async () => {
               window._currentLoadingClose()
               window._currentLoadingClose = null
             }
-            
+
             // 继续下一题
             if (currentIndex < interviewDetails.value.data.questions.length - 1) {
               currentQuestionIndex.value++
@@ -621,29 +621,29 @@ const stopRecordingAndSave = async () => {
         window._currentLoadingClose()
         window._currentLoadingClose = null
       }
-      
+
       // 显示提示，但不阻塞流程
       toast.error({
         msg: `第${currentIndex + 1}题录制失败，将继续下一题`,
         duration: 2000
       })
-      
+
       // 即使没有数据也要继续处理下一题
       if (currentIndex < interviewDetails.value.data.questions.length - 1) {
         currentQuestionIndex.value++
         console.log(`进入下一题: ${currentQuestionIndex.value}`)
-        
+
         // 清除之前的音频播放超时
         if (audioPlayTimeout) {
           clearTimeout(audioPlayTimeout)
           audioPlayTimeout = null
         }
-        
+
         // 重置录制状态
         recordedData.value = []
         blobData.value = null
         videoDuration.value = 0
-        
+
         // 延迟一下再播放下一题，给用户时间看提示
         setTimeout(() => {
           play()
@@ -725,13 +725,13 @@ const stopRecordingAndSave = async () => {
     if (currentIndex < interviewDetails.value.data.questions.length - 1) {
       currentQuestionIndex.value++
       console.log(`进入下一题: ${currentQuestionIndex.value}`)
-      
+
       // 清除之前的音频播放超时
       if (audioPlayTimeout) {
         clearTimeout(audioPlayTimeout)
         audioPlayTimeout = null
       }
-      
+
       play()
     } else {
       console.log('已完成所有题目，退出面试')
@@ -841,11 +841,11 @@ const getUploadInfo = async () => {
     // 添加类型断言
     const responseData = response.data as any
     console.log('上传凭证响应:', JSON.stringify(responseData))
-    
+
     if (!responseData.data || !responseData.data.cosHost) {
       throw new Error('上传凭证无效')
     }
-    
+
     console.log('上传凭证获取成功，开始上传文件...')
     const uploadResult = await uploadFile(responseData.data)
     console.log('文件上传完成:', uploadResult)
@@ -908,7 +908,7 @@ const uploadFile = async (opt: any) => {
         console.log(`题目 ${currentQuestionIdx} 上传响应:`, res)
         console.log('上传响应状态码:', res.statusCode)
         console.log('上传响应头:', res.header)
-        
+
         if (![200, 204].includes(res.statusCode)) {
           console.error(`题目 ${currentQuestionIdx} 上传失败，状态码:`, res.statusCode, 'response:', res.data)
           reject(new Error(`上传失败，状态码: ${res.statusCode}`))
@@ -1361,10 +1361,10 @@ const handleStart = () => {
           // 移除视频遮罩
           triggerAnotherMethod()
           isInterviewStarted.value = true
-          
+
           // 重新获取面试详情，这时会检查TTS问题
           await fetchInterviewInfo(interviewId.value)
-          
+
           // 检查音频是否可用，如果TTS有问题，fetchInterviewInfo已经显示了错误提示
           // 但我们仍然需要继续面试流程
           const currentQuestion = interviewDetails.value.data.questions[currentQuestionIndex.value]
@@ -1494,13 +1494,13 @@ onBeforeUnmount(() => {
 
   // 清除计时器
   clearInterval(timer.value)
-  
+
   // 清除音频播放超时计时器
   if (audioPlayTimeout) {
     clearTimeout(audioPlayTimeout)
     audioPlayTimeout = null
   }
-  
+
   // 停止音频播放
   try {
     innerAudioContext.stop()
@@ -1668,24 +1668,24 @@ const fetchInterviewInfo = async (interviewId: number) => {
       // 添加类型断言
       const responseData = response.data as any
       interviewDetails.value = responseData
-      
+
       // 检查是否有TTS服务问题
       const hasAudioIssues = interviewDetails.value.data.questions.some(
         (question: any) => !question.audio_url || question.audio_url === null
       )
-      
+
       if (hasAudioIssues) {
         console.warn('检测到TTS服务问题，部分问题缺少音频')
         // 静默处理TTS问题，不显示错误提示给用户
         // 用户可以通过阅读题目继续面试
       }
-      
+
       if (interviewDetails.value.data.questions.length === 1 && isInterviewStarted.value) {
         overQuestion.value = true
       }
     } else {
       console.error('获取面试信息失败:', response.data)
-      
+
       // 检查错误类型，提供更准确的错误提示
       const errorDetail = response.data?.detail || ''
       if (errorDetail.includes('Questions not found')) {
@@ -1960,7 +1960,7 @@ const overTip = () => {
 const stopMediaRecorderMonitor = () => {
   // 先禁用监控标志
   mediaRecorderMonitorEnabled = false
-  
+
   // 再清除定时器
   if (mediaRecorderMonitorInterval) {
     clearInterval(mediaRecorderMonitorInterval)

@@ -9,7 +9,6 @@ interface NavigateToOptions {
        "/pages/about/mspj-loading" |
        "/pages/about/mspj" |
        "/pages/camera/index" |
-       "/pages/camera/index_old" |
        "/pages/interviews/process-copy" |
        "/pages/interviews/process-simulation" |
        "/pages/interviews/process" |
@@ -17,7 +16,8 @@ interface NavigateToOptions {
        "/pages/interviews/record" |
        "/pages/question/add-question" |
        "/pages/question/edit-question" |
-       "/pages/test/index";
+       "/pages/test/index" |
+       "/pages/camera/backup/index_old";
 }
 interface RedirectToOptions extends NavigateToOptions {}
 
