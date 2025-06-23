@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
-import VConsole from 'vconsole'
+// import VConsole from 'vconsole'
 
-const vConsole = new VConsole()
+// 临时禁用vconsole直到依赖安装完成
+// const vConsole = new VConsole()
 // const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 onLaunch(() => {
   console.log('App Launch')
