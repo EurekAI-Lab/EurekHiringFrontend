@@ -788,11 +788,15 @@ const downloadRecordedVideo = () => {
 const getUploadInfo = async () => {
   try {
     console.log('=== 开始获取上传凭证 ===')
+    console.log('请求URL:', baseUrl + `/files/post-policy?ext=mp4`)
     const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=mp4` })
     console.log('上传凭证响应:', response)
+    console.log('响应状态码:', response?.statusCode)
+    console.log('响应数据:', response?.data)
     // 添加类型断言
     const responseData = response.data as any
     console.log('上传凭证数据:', responseData)
+    console.log('上传凭证data字段:', responseData?.data)
     console.log('=== 上传凭证获取成功，开始上传文件 ===')
     const uploadResult = await uploadFile(responseData.data)
     console.log('=== 文件上传完成 ===', uploadResult)
@@ -957,9 +961,7 @@ const isRequesting = ref(false)
 // 处理下一题按钮点击
 const handleNextQuestion = () => {
   // 判断当前题目的音频是否播放完成，完成可以点击下一题，没有播放完成不可点击下一题
-  if () {
-
-  }
+  // TODO: 实现音频播放状态检查逻辑
   console.log('=== 下一题按钮被点击 ===')
   console.log('isInterviewStarted:', isInterviewStarted.value)
   console.log('overQuestion:', overQuestion.value)
