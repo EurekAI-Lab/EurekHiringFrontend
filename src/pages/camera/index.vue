@@ -821,9 +821,22 @@ const getUploadInfo = async () => {
     console.log('使用文件扩展名:', ext)
     const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=${ext}` })
     console.log('上传凭证响应:', response)
+    
+    // 检查响应是否有效
+    if (!response || !response.data) {
+      throw new Error('获取上传凭证失败：响应数据无效')
+    }
+    
     // 添加类型断言
     const responseData = response.data as any
     console.log('上传凭证数据:', responseData)
+    
+    // 检查响应数据结构
+    if (!responseData.data || !responseData.data.cosKey) {
+      console.error('上传凭证数据结构错误:', responseData)
+      throw new Error('获取上传凭证失败：数据结构错误')
+    }
+    
     console.log('=== 上传凭证获取成功，开始上传文件 ===')
     const uploadResult = await uploadFile(responseData.data)
     console.log('=== 文件上传完成 ===', uploadResult)
