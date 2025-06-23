@@ -157,8 +157,13 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
 
       // 将视频流显示到页面上
       const videoElement = document.getElementById('myvideo') as HTMLVideoElement
+      console.log('videoElement:', videoElement)
+      console.log('mediaStream:', mediaStream)
+      
       if (videoElement) {
+        console.log('设置srcObject前')
         videoElement.srcObject = mediaStream
+        console.log('设置srcObject后, srcObject:', videoElement.srcObject)
         // 确保视频元素正确设置
         videoElement.setAttribute('playsinline', 'true')
         videoElement.setAttribute('webkit-playsinline', 'true')

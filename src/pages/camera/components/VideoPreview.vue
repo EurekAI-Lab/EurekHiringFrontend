@@ -4,11 +4,11 @@
       id="myvideo"
       class="fullscreen-video"
       :class="{ 'video-hidden': !showVideo }"
-      src=""
       autoplay
       muted
       playsinline
       webkit-playsinline
+      :controls="false"
     ></video>
 
     <!-- 黑色遮罩层 -->

@@ -48,9 +48,13 @@ export function useFileUpload(options: FileUploadOptions = {}) {
   const getUploadPolicy = async (): Promise<any> => {
     try {
       console.log('获取上传凭证...')
+      console.log('store.baseUrl:', store.baseUrl)
       const fileExt = getFileExtension()
+      console.log('fileExt:', fileExt)
+      const url = store.baseUrl + `/files/post-policy?ext=${fileExt}`
+      console.log('请求URL:', url)
       const response = await uni.request({
-        url: store.baseUrl + `/files/post-policy?ext=${fileExt}`,
+        url: url,
         method: 'GET',
         header: {
           Authorization: `Bearer ${uni.getStorageSync('token')}`,
