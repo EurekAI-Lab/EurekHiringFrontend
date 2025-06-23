@@ -570,17 +570,16 @@ const stopRecordingAndSave = async () => {
           blobData.value = finalBlob // 存储合并后的 Blob 到专门的引用
           console.log(`题目 ${currentIndex} 合并 ${recordedData.value.length} 个数据块，总大小: ${finalBlob.size}，MIME类型: ${mimeType}`)
 
-                      try {
+          try {
             // 上传当前题目的视频
             console.log(`开始上传题目 ${currentIndex} 的视频，大小: ${finalBlob.size} bytes`)
-            await getUploadInfo()
-
+            let uploadResult = await getUploadInfo()
+            console.log('录制的视频上传成功1', uploadResult);
             // 关闭loading提示
-            if (window._currentLoadingClose) {
-              window._currentLoadingClose()
-              window._currentLoadingClose = null
-            }
-
+            setTimeout(function () {
+              uni.hideLoading();
+            }, 100);
+            
             // 上传成功后才更新索引和处理下一题
             if (currentIndex < interviewDetails.value.data.questions.length - 1) {
               currentQuestionIndex.value++
@@ -607,19 +606,17 @@ const stopRecordingAndSave = async () => {
             console.error(`题目 ${currentIndex} 上传视频失败:`, error)
             toast.error(`第${currentIndex + 1}题视频上传失败，请重试`)
             // 关闭loading
-            if (window._currentLoadingClose) {
-              window._currentLoadingClose()
-              window._currentLoadingClose = null
-            }
+            setTimeout(function () {
+              uni.hideLoading();
+            }, 100);
             // 失败时不更新索引，保持在当前题目
           }
         } else {
           console.warn(`题目 ${currentIndex} 没有录制到数据`)
           // 关闭loading
-          if (window._currentLoadingClose) {
-            window._currentLoadingClose()
-            window._currentLoadingClose = null
-          }
+          setTimeout(function () {
+              uni.hideLoading();
+            }, 100);
           
           // 即使没有数据也要继续处理下一题
           if (currentIndex < interviewDetails.value.data.questions.length - 1) {
@@ -648,10 +645,9 @@ const stopRecordingAndSave = async () => {
       console.warn(`MediaRecorder 不在录制状态，当前状态: ${mediaRecorder.state}`)
 
       // 关闭loading
-      if (window._currentLoadingClose) {
-        window._currentLoadingClose()
-        window._currentLoadingClose = null
-      }
+      setTimeout(function () {
+        uni.hideLoading();
+      }, 100);
 
       // 即使不在录制状态，也继续处理下一题
       if (currentIndex < interviewDetails.value.data.questions.length - 1) {
@@ -674,10 +670,9 @@ const stopRecordingAndSave = async () => {
     console.error('MediaRecorder 未初始化')
 
     // 关闭loading
-    if (window._currentLoadingClose) {
-      window._currentLoadingClose()
-      window._currentLoadingClose = null
-    }
+    setTimeout(function () {
+              uni.hideLoading();
+            }, 100);
 
     // 如果没有 mediaRecorder，直接处理下一题
     if (currentIndex < interviewDetails.value.data.questions.length - 1) {
@@ -960,6 +955,10 @@ const isRequesting = ref(false)
 
 // 处理下一题按钮点击
 const handleNextQuestion = () => {
+  // 判断当前题目的音频是否播放完成，完成可以点击下一题，没有播放完成不可点击下一题
+  if () {
+
+  }
   console.log('=== 下一题按钮被点击 ===')
   console.log('isInterviewStarted:', isInterviewStarted.value)
   console.log('overQuestion:', overQuestion.value)
@@ -992,7 +991,10 @@ const nextQuestion = async () => {
         console.log('用户确认进入下一题')
         // 使用wot-design-uni的loading方法，返回一个关闭函数
         console.log('显示loading：保存视频中...')
-        const { close: closeLoading } = toast.loading('保存视频中...')
+        uni.showLoading({
+          title: '保存视频中...',
+          mask: true,
+        })
 
         if (currentQuestionIndex.value === interviewDetails.value.data.questions.length - 2) {
           console.log('进入最后一题，设置完成面试按钮')
@@ -1003,7 +1005,7 @@ const nextQuestion = async () => {
         isTimeUp.value = true
 
         // 保存关闭函数到全局，以便在stopRecordingAndSave中使用
-        window._currentLoadingClose = closeLoading
+        // window._currentLoadingClose = closeLoading
         console.log('保存loading关闭函数到全局')
 
         console.log('调用 handleTimeUp')
