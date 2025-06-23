@@ -109,7 +109,7 @@
       <view
         v-if="isInterviewStarted && !overQuestion"
         class="w-[60%] bg-green-500 text-white rounded-lg py-2 text-center ml-2"
-        @click="nextQuestion()"
+        @click="handleNextQuestion"
       >
         <view>下一题</view>
       </view>
@@ -208,6 +208,7 @@ const videoRef = ref<HTMLVideoElement | null>(null)
 const stream = ref<MediaStream | null>(null) // 视频流
 const useFrontCamera = ref(true) // 是否使用前置摄像头
 const isInterviewStarted = ref(false)
+const isProcessing = ref(false)
 let mediaRecorder = null
 
 const overQuestion = ref(false)
@@ -956,6 +957,17 @@ const handleTimeUp = () => {
 }
 const noticeShow = ref(false)
 const isRequesting = ref(false)
+
+// 处理下一题按钮点击
+const handleNextQuestion = () => {
+  console.log('=== 下一题按钮被点击 ===')
+  console.log('isInterviewStarted:', isInterviewStarted.value)
+  console.log('overQuestion:', overQuestion.value)
+  console.log('isProcessing:', isProcessing.value)
+  console.log('isExiting:', isExiting.value)
+  
+  nextQuestion()
+}
 
 const nextQuestion = async () => {
   console.log('=== nextQuestion 函数被调用 ===')
