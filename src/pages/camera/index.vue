@@ -555,10 +555,7 @@ const stopRecordingAndSave = async () => {
     toast.warning(`第${currentIndex + 1}题没有录制到视频，已跳过`)
     
     // 关闭loading
-    if (window._currentLoadingClose) {
-      window._currentLoadingClose()
-      window._currentLoadingClose = null
-    }
+    toast.close()
     
     // 重置处理标志
     isProcessing.value = false
@@ -605,10 +602,7 @@ const stopRecordingAndSave = async () => {
             await getUploadInfo()
 
             // 关闭loading提示
-            if (window._currentLoadingClose) {
-              window._currentLoadingClose()
-              window._currentLoadingClose = null
-            }
+            toast.close()
 
             // 重置处理标志
             isProcessing.value = false
@@ -639,10 +633,7 @@ const stopRecordingAndSave = async () => {
             console.error(`题目 ${currentIndex} 上传视频失败:`, error)
             toast.error(`第${currentIndex + 1}题视频上传失败，请重试`)
             // 关闭loading
-            if (window._currentLoadingClose) {
-              window._currentLoadingClose()
-              window._currentLoadingClose = null
-            }
+            toast.close()
             // 重置处理标志
             isProcessing.value = false
             // 失败时不更新索引，保持在当前题目
@@ -650,10 +641,7 @@ const stopRecordingAndSave = async () => {
         } else {
           console.warn(`题目 ${currentIndex} 没有录制到数据`)
           // 关闭loading
-          if (window._currentLoadingClose) {
-            window._currentLoadingClose()
-            window._currentLoadingClose = null
-          }
+          toast.close()
           
           // 重置处理标志
           isProcessing.value = false
@@ -685,10 +673,7 @@ const stopRecordingAndSave = async () => {
       console.warn(`MediaRecorder 不在录制状态，当前状态: ${mediaRecorder.state}`)
 
       // 关闭loading
-      if (window._currentLoadingClose) {
-        window._currentLoadingClose()
-        window._currentLoadingClose = null
-      }
+      toast.close()
 
       // 重置处理标志
       isProcessing.value = false
@@ -714,10 +699,7 @@ const stopRecordingAndSave = async () => {
     console.error('MediaRecorder 未初始化')
 
     // 关闭loading
-    if (window._currentLoadingClose) {
-      window._currentLoadingClose()
-      window._currentLoadingClose = null
-    }
+    toast.close()
 
     // 重置处理标志
     isProcessing.value = false
@@ -1105,9 +1087,9 @@ const nextQuestion = async () => {
       }
       isProcessing.value = true
       
-      // 使用wot-design-uni的loading方法，返回一个关闭函数
+      // 显示loading提示
       console.log('显示loading：保存视频中...')
-      const { close: closeLoading } = toast.loading('保存视频中...')
+      toast.loading('保存视频中...')
 
       if (currentQuestionIndex.value === interviewDetails.value.data.questions.length - 2) {
         console.log('进入最后一题，设置完成面试按钮')
@@ -1117,9 +1099,7 @@ const nextQuestion = async () => {
       isTiming.value = false
       isTimeUp.value = true
 
-      // 保存关闭函数到全局，以便在stopRecordingAndSave中使用
-      window._currentLoadingClose = closeLoading
-      console.log('保存loading关闭函数到全局')
+      console.log('已显示loading提示')
 
       console.log('调用 handleTimeUp')
       handleTimeUp()
@@ -1135,7 +1115,7 @@ const nextQuestion = async () => {
     isRequesting.value = true
     // 最后一题，点击完成面试
     console.log('完成面试，当前视频时长:', videoDuration.value)
-    const { close: closeLoading } = toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
+    toast.loading('正在提交面试数据')
 
     // 停止计时器
     const stopTimer = startTimer()
@@ -1158,12 +1138,14 @@ const nextQuestion = async () => {
               console.log('上传最后一题的视频，视频时长:', videoDuration.value)
               await getUploadInfo()
 
-              // 等待一段时间确保上传完成
+              // 关闭loading并等待一段时间确保上传完成
               setTimeout(() => {
+                toast.close()
                 handleExit()
               }, 2000)
             } else {
               console.warn('最后一题没有获取到视频数据')
+              toast.close()
               handleExit()
             }
           }
@@ -1882,7 +1864,7 @@ const handleExit = async () => {
       .catch(() => {})
   } else {
     isExiting.value = true
-    const { close: closeLoading } = toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
+    toast.loading('正在提交面试数据')
     if (isInterviewStarted.value) {
       try {
         // 更新面试状态
@@ -1892,13 +1874,13 @@ const handleExit = async () => {
           header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         })
         if (statusResponse.statusCode !== 200) {
-          closeLoading() // 关闭loading
+          toast.close() // 关闭loading
           toast.error('更新面试状态失败')
           return
         }
       } catch (error) {
         console.error('更新面试状态失败:', error)
-        closeLoading() // 关闭loading
+        toast.close() // 关闭loading
         toast.error('更新面试状态失败')
         return
       }
@@ -1971,7 +1953,7 @@ const handleExit = async () => {
           closeOnClickModal: false,
           beforeConfirm: async ({ resolve }) => {
             try {
-              closeLoading() // 关闭loading
+              toast.close() // 关闭loading
               if (!test.value) {
                 navigateBack()
               } else {
@@ -2010,7 +1992,7 @@ const handleExit = async () => {
         })
     } catch (error) {
       console.error('获取重定向URL失败:', error)
-      closeLoading() // 关闭loading
+      toast.close() // 关闭loading
       toast.error('获取重定向URL失败')
 
       // 即使获取URL失败，也尝试提交面试数据
