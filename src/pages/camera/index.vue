@@ -734,6 +734,18 @@ const saveInterview = async () => {
   console.log('排序后的提交数据:', JSON.stringify(fileFrom.fileUrls))
 
   try {
+    // 构建符合后端要求的数据格式
+    const submitData = {
+      video_questions: fileFrom.fileUrls,
+      perf_metrics: {
+        total_time: videoDuration.value || 0,
+        questions_answered: fileFrom.fileUrls.length,
+        completion_time: new Date().toISOString()
+      }
+    }
+    
+    console.log('准备提交的数据:', JSON.stringify(submitData))
+    
     const response = await uni.request({
       url:
         baseUrl +
@@ -743,7 +755,7 @@ const saveInterview = async () => {
         interviewDetails.value.data.position.id,
       method: 'POST',
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-      data: fileFrom.fileUrls,
+      data: submitData,
     })
 
     console.log('面试数据提交结果:', response)
