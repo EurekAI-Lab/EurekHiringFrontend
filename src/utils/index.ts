@@ -145,12 +145,8 @@ export const getEnvBaseUrl = () => {
     }
   }
 
-  // H5环境下，如果baseUrl为空，使用默认的测试服务器地址
-  // #ifdef H5
-  if (!baseUrl && import.meta.env.PROD) {
-    baseUrl = 'http://119.45.15.47:8001/test/api'
-  }
-  // #endif
+  // H5环境下，如果baseUrl为空，则保持为空
+  // 让nginx或其他反向代理处理API路由
 
   return baseUrl
 }

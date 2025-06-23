@@ -787,8 +787,8 @@ const downloadRecordedVideo = () => {
 const getUploadInfo = async () => {
   try {
     console.log('=== 开始获取上传凭证 ===')
-    console.log('请求URL:', `/files/post-policy?ext=mp4`)
-    const response = await uni.request({ url: `/files/post-policy?ext=mp4` })
+    console.log('请求URL:', baseUrl + `/files/post-policy?ext=mp4`)
+    const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=mp4` })
     console.log('上传凭证响应:', response)
     console.log('响应状态码:', response?.statusCode)
     console.log('响应数据:', response?.data)
