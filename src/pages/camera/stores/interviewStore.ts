@@ -29,6 +29,7 @@ export const useInterviewStore = defineStore('interview', () => {
 
   // baseUrl从环境变量获取
   const baseUrl = import.meta.env.VITE_SERVER_BASEURL || ''
+  console.log('[InterviewStore] baseUrl:', baseUrl)
 
   // 计算属性 - 直接访问数据（与原代码一致）
   const position = computed(() => interviewDetails.value?.data?.position)

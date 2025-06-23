@@ -1,6 +1,8 @@
 <template>
   <view class="video-preview-container">
+    <!-- H5平台使用HTML5 video -->
     <video
+      v-if="isH5"
       id="myvideo"
       class="fullscreen-video"
       :class="{ 'video-hidden': !showVideo }"
@@ -10,6 +12,23 @@
       webkit-playsinline
       :controls="false"
     ></video>
+    
+    <!-- 小程序和App平台使用live-pusher -->
+    <live-pusher
+      v-else-if="!isH5 && showVideo"
+      id="livePusher"
+      ref="livePusher"
+      class="fullscreen-video"
+      mode="FHD"
+      :muted="false"
+      :enable-camera="true"
+      :auto-focus="true"
+      :beauty="0"
+      :whiteness="0"
+      device-position="front"
+      @statechange="handleStateChange"
+      @error="handleError"
+    ></live-pusher>
 
     <!-- 黑色遮罩层 -->
     <view v-if="showMask" class="video-mask"></view>
@@ -26,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 interface Props {
   showMask?: boolean
@@ -46,8 +65,22 @@ const emit = defineEmits<{
   switchCamera: []
 }>()
 
+// 判断平台
+const isH5 = ref(false)
+// #ifdef H5
+isH5.value = true
+// #endif
+
 const handleSwitchCamera = () => {
   emit('switchCamera')
+}
+
+const handleStateChange = (e: any) => {
+  console.log('live-pusher state change:', e)
+}
+
+const handleError = (e: any) => {
+  console.error('live-pusher error:', e)
 }
 </script>
 
@@ -61,13 +94,14 @@ const handleSwitchCamera = () => {
 
 .fullscreen-video {
   position: fixed;
-  top: -2px;
+  top: 0;
   left: 0;
-  width: 101vw;
+  width: 100vw;
   height: 100vh;
   object-fit: cover;
   background-color: #000;
   transform: scaleX(-1); /* 镜像效果 */
+  z-index: 0;
 }
 
 .video-hidden {

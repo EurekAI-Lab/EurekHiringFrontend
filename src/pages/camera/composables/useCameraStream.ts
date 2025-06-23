@@ -156,6 +156,9 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
       isStreamActive.value = true
 
       // 将视频流显示到页面上
+      // 等待DOM准备好
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      
       const videoElement = document.getElementById('myvideo') as HTMLVideoElement
       console.log('videoElement:', videoElement)
       console.log('mediaStream:', mediaStream)
@@ -175,12 +178,30 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
         // DOM观察器由专门的useDOMObserver composable处理，避免重复
 
         // 等待视频加载
-        await new Promise((resolve) => {
-          videoElement.onloadedmetadata = resolve
-        })
+        try {
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('视频加载超时'))
+            }, 5000)
+            
+            videoElement.onloadedmetadata = () => {
+              clearTimeout(timeout)
+              resolve(true)
+            }
+            
+            videoElement.onerror = (e) => {
+              clearTimeout(timeout)
+              reject(e)
+            }
+          })
 
-        // 播放视频
-        videoElement.play()
+          // 播放视频
+          await videoElement.play()
+          console.log('视频已开始播放')
+        } catch (error) {
+          console.error('视频播放失败:', error)
+          // 不抛出错误，继续流程
+        }
       }
 
       console.log('摄像头流初始化成功')
