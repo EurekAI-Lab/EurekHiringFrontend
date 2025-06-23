@@ -956,9 +956,7 @@ const isRequesting = ref(false)
 // 处理下一题按钮点击
 const handleNextQuestion = () => {
   // 判断当前题目的音频是否播放完成，完成可以点击下一题，没有播放完成不可点击下一题
-  if () {
-
-  }
+  // TODO: 实现音频播放状态检查逻辑
   console.log('=== 下一题按钮被点击 ===')
   console.log('isInterviewStarted:', isInterviewStarted.value)
   console.log('overQuestion:', overQuestion.value)
