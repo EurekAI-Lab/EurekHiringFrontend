@@ -769,12 +769,18 @@ const saveInterview = async () => {
         msg: '面试数据提交失败: ' + JSON.stringify(response.data?.detail),
         duration: 3000,
       })
+      // 提交失败时也要关闭loading并重置状态
+      uni.hideLoading()
+      isRequesting.value = false
     }
 
     return response
   } catch (error) {
     console.error('面试数据提交出错:', error)
     toast.error('面试数据提交出错: ' + JSON.stringify(error))
+    // 确保关闭loading并重置状态
+    uni.hideLoading()
+    isRequesting.value = false
     throw error
   }
 }
@@ -1062,11 +1068,17 @@ const nextQuestion = async () => {
 
               // 等待一段时间确保上传完成
               setTimeout(() => {
-                handleExit()
+                // 不再递归调用handleExit，直接处理完成逻辑
+                saveInterview()
+                uni.hideLoading()
+                isRequesting.value = false
               }, 2000)
             } else {
               console.warn('最后一题没有获取到视频数据')
-              handleExit()
+              // 不再递归调用handleExit，直接处理完成逻辑
+              saveInterview()
+              uni.hideLoading()
+              isRequesting.value = false
             }
           }
         } else {
