@@ -760,9 +760,12 @@ const saveInterview = async () => {
       })
     }
 
+    uni.hideLoading();
+
     return response
   } catch (error) {
     console.error('面试数据提交出错:', error)
+    uni.hideLoading();
     toast.error('面试数据提交出错: ' + JSON.stringify(error))
     throw error
   }
@@ -1024,8 +1027,11 @@ const nextQuestion = async () => {
     isRequesting.value = true
     // 最后一题，点击完成面试
     console.log('完成面试，当前视频时长:', videoDuration.value)
-    const { close: closeLoading } = toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
-
+    // const { close: closeLoading } = toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
+    uni.showLoading({
+      title: '正在提交面试数据',
+      mask: true,
+    })
     // 停止计时器
     const stopTimer = startTimer()
     stopTimer()
@@ -1036,19 +1042,22 @@ const nextQuestion = async () => {
 
       try {
         // 如果正在录制，先停止录制
+        console.log('最后一题，停止录制1111')
         if (mediaRecorder.state === 'recording') {
           // recordedData.value = [] // 注释掉这行，避免清空正在录制的数据
+          console.log('最后一题，停止录制2222')
           mediaRecorder.onstop = async () => {
             if (recordedData.value.length > 0) {
               const finalBlob = new Blob(recordedData.value, { type: getMimeType() })
               blobData.value = finalBlob // 使用 blobData 存储
-
+              console.log('最后一题，停止录制3333')
               // 确保最后一题的视频上传完成
               console.log('上传最后一题的视频，视频时长:', videoDuration.value)
               await getUploadInfo()
 
               // 等待一段时间确保上传完成
               setTimeout(() => {
+                uni.hideLoading();
                 handleExit()
               }, 2000)
             } else {
@@ -1056,6 +1065,8 @@ const nextQuestion = async () => {
               handleExit()
             }
           }
+
+          mediaRecorder.stop();
         } else {
           // 如果不是录制状态，可能是暂停或已停止
           console.log('MediaRecorder 不在录制状态，当前状态:', mediaRecorder.state)
@@ -1771,7 +1782,11 @@ const handleExit = async () => {
       .catch(() => {})
   } else {
     isExiting.value = true
-    const { close: closeLoading } = toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
+    // const { close: closeLoading } = toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
+    uni.showLoading({
+      title: '正在提交面试数据',
+      mask:true,
+    })
     if (isInterviewStarted.value) {
       try {
         // 更新面试状态
@@ -1781,7 +1796,8 @@ const handleExit = async () => {
           header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         })
         if (statusResponse.statusCode !== 200) {
-          closeLoading() // 关闭loading
+          // closeLoading() // 关闭loading
+          uni.hideLoading();
           toast.error('更新面试状态失败')
           return
         }
