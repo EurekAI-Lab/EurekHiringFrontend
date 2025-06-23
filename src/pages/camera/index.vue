@@ -267,7 +267,9 @@ innerAudioContext.onError((res) => {
   console.log('音频播放失败，静默跳过，直接开始面试')
   
   setTimeout(() => {
-    triggerAnotherMethod()
+    console.log('开始录制（音频播放失败）')
+    startInterview()
+    toast.success('请开始作答')
   }, readingTime)
 })
 innerAudioContext.onEnded(() => {
@@ -296,16 +298,20 @@ const play = () => {
     console.warn('当前问题不存在，索引:', currentQuestionIndex.value)
     // 即使问题不存在，也要继续面试流程
     setTimeout(() => {
-      triggerAnotherMethod()
+      console.log('开始录制（问题不存在）')
+      startInterview()
+      toast.success('请开始作答')
     }, 2000)
     return
   }
   
   if (!currentQuestion.audio_url || currentQuestion.audio_url === null) {
-    console.warn('当前问题没有音频URL，跳过播放，直接开始面试')
+    console.log('当前问题没有音频URL，跳过播放，直接开始面试')
     // 给用户一些时间阅读题目，然后开始面试
     setTimeout(() => {
-      triggerAnotherMethod()
+      console.log('开始录制（无音频）')
+      startInterview()
+      toast.success('请开始作答')
     }, 3000) // 3秒阅读时间
     return
   }
@@ -333,7 +339,9 @@ const play = () => {
       
       // 继续面试流程
       setTimeout(() => {
-        triggerAnotherMethod()
+        console.log('开始录制（音频加载超时）')
+        startInterview()
+        toast.success('请开始作答')
       }, 2000)
     }, 10000) as unknown as number
     
@@ -343,7 +351,9 @@ const play = () => {
     console.error('音频播放设置失败:', error)
     // 播放失败时继续面试流程
     setTimeout(() => {
-      triggerAnotherMethod()
+      console.log('开始录制（音频播放设置失败）')
+      startInterview()
+      toast.success('请开始作答')
     }, 2000)
   }
 }
@@ -1276,7 +1286,7 @@ const handleStart = () => {
         if (response.statusCode === 200) {
           console.log('面试状态更新成功，开始播放语音')
           // 移除视频遮罩
-          triggerAnotherMethod()
+          showVideoMask.value = false
           isInterviewStarted.value = true
           
           // 重新获取面试详情
@@ -1291,7 +1301,9 @@ const handleStart = () => {
             console.log('音频不可用，跳过音频播放，直接开始面试')
             // 给用户一些时间阅读题目，然后开始面试
             setTimeout(() => {
-              triggerAnotherMethod()
+              console.log('开始第一题录制')
+              startInterview()
+              toast.success('请开始作答')
             }, 3000) // 3秒阅读时间
           }
 
