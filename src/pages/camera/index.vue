@@ -735,6 +735,18 @@ const saveInterview = async () => {
   console.log('排序后的提交数据:', JSON.stringify(fileFrom.fileUrls))
 
   try {
+    // 构建符合后端要求的数据格式
+    const submitData = {
+      video_questions: fileFrom.fileUrls,
+      perf_metrics: {
+        total_time: videoDuration.value || 0,
+        questions_answered: fileFrom.fileUrls.length,
+        completion_time: new Date().toISOString()
+      }
+    }
+    
+    console.log('准备提交的数据:', JSON.stringify(submitData))
+    
     const response = await uni.request({
       url:
         baseUrl +
@@ -744,7 +756,7 @@ const saveInterview = async () => {
         interviewDetails.value.data.position.id,
       method: 'POST',
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-      data: fileFrom.fileUrls,
+      data: submitData,
     })
 
     console.log('面试数据提交结果:', response)
@@ -758,6 +770,7 @@ const saveInterview = async () => {
         msg: '面试数据提交失败: ' + JSON.stringify(response.data?.detail),
         duration: 3000,
       })
+      isRequesting.value = false
     }
 
     uni.hideLoading();
@@ -765,8 +778,10 @@ const saveInterview = async () => {
     return response
   } catch (error) {
     console.error('面试数据提交出错:', error)
+    // 确保关闭loading并重置状态
     uni.hideLoading();
     toast.error('面试数据提交出错: ' + JSON.stringify(error))
+    isRequesting.value = false
     throw error
   }
 }
@@ -907,7 +922,6 @@ const uploadFile = async (opt: any) => {
       },
       complete: () => {
         console.log('=== uni.uploadFile 完成回调 ===')
-        toast.close()
       },
     })
   })
@@ -1027,11 +1041,11 @@ const nextQuestion = async () => {
     isRequesting.value = true
     // 最后一题，点击完成面试
     console.log('完成面试，当前视频时长:', videoDuration.value)
-    // const { close: closeLoading } = toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
     uni.showLoading({
       title: '正在提交面试数据',
-      mask: true,
+      mask: true
     })
+
     // 停止计时器
     const stopTimer = startTimer()
     stopTimer()
@@ -1057,12 +1071,17 @@ const nextQuestion = async () => {
 
               // 等待一段时间确保上传完成
               setTimeout(() => {
-                uni.hideLoading();
-                handleExit()
+                // 不再递归调用handleExit，直接处理完成逻辑
+                saveInterview()
+                uni.hideLoading()
+                isRequesting.value = false
               }, 2000)
             } else {
               console.warn('最后一题没有获取到视频数据')
-              handleExit()
+              // 不再递归调用handleExit，直接处理完成逻辑
+              saveInterview()
+              uni.hideLoading()
+              isRequesting.value = false
             }
           }
 
@@ -1773,7 +1792,6 @@ const handleExit = async () => {
             toast.error('更新面试状态失败')
             isRequesting.value = false
           }
-          toast.close()
         },
       })
       .then(() => {
@@ -1782,10 +1800,9 @@ const handleExit = async () => {
       .catch(() => {})
   } else {
     isExiting.value = true
-    // const { close: closeLoading } = toast.loading({ loadingType: 'ring', msg: '正在提交面试数据' })
     uni.showLoading({
       title: '正在提交面试数据',
-      mask:true,
+      mask: true
     })
     if (isInterviewStarted.value) {
       try {
@@ -1796,14 +1813,13 @@ const handleExit = async () => {
           header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         })
         if (statusResponse.statusCode !== 200) {
-          // closeLoading() // 关闭loading
-          uni.hideLoading();
+          uni.hideLoading() // 关闭loading
           toast.error('更新面试状态失败')
           return
         }
       } catch (error) {
         console.error('更新面试状态失败:', error)
-        closeLoading() // 关闭loading
+        uni.hideLoading() // 关闭loading
         toast.error('更新面试状态失败')
         return
       }
@@ -1876,7 +1892,7 @@ const handleExit = async () => {
           closeOnClickModal: false,
           beforeConfirm: async ({ resolve }) => {
             try {
-              closeLoading() // 关闭loading
+              uni.hideLoading() // 关闭loading
               if (!test.value) {
                 navigateBack()
               } else {
@@ -1915,7 +1931,7 @@ const handleExit = async () => {
         })
     } catch (error) {
       console.error('获取重定向URL失败:', error)
-      closeLoading() // 关闭loading
+      uni.hideLoading() // 关闭loading
       toast.error('获取重定向URL失败')
 
       // 即使获取URL失败，也尝试提交面试数据
