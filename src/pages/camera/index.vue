@@ -762,6 +762,8 @@ const saveInterview = async () => {
 
     if (response.statusCode === 200) {
       toast.success('面试数据提交成功')
+      // 提交成功也要关闭loading
+      uni.hideLoading()
     } else {
       // duration
       toast.error({
