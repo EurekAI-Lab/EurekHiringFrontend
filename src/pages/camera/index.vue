@@ -13,14 +13,14 @@
     />
 
     <!-- 面试头部信息 -->
-    <InterviewHeader v-if="!isInterviewStarted" :position="interviewStore.position" />
+    <InterviewHeader v-if="!isInterviewStarted" :position="position" />
 
     <!-- 题目显示 -->
     <QuestionDisplay
       v-if="isInterviewStarted"
-      :question="interviewStore.currentQuestion"
-      :question-index="interviewStore.currentQuestionIndex"
-      :total-questions="interviewStore.totalQuestions"
+      :question="currentQuestion"
+      :question-index="currentQuestionIndex"
+      :total-questions="totalQuestions"
     />
 
     <!-- 倒计时 -->
@@ -30,7 +30,7 @@
     <InterviewControls
       :is-started="isInterviewStarted"
       :is-recording="recorder.isRecording.value"
-      :is-last-question="interviewStore.isLastQuestion || interviewFlow.overQuestion.value"
+      :is-last-question="isLastQuestion || interviewFlow.overQuestion.value"
       :is-loading="isProcessing"
       @start="handleStart"
       @exit="handleExit"
@@ -41,15 +41,7 @@
     <!-- 完成提示 -->
     <InterviewComplete v-if="showComplete" :show-stats="true" :stats="interviewStats" />
 
-    <!-- 加载遮罩层（关键组件，与原代码一致） -->
-    <view class="flex justify-center items-center">
-      <wd-overlay :show="interviewStore.isLoading">
-        <view class="wrapper flex flex-col text-white">
-          <wd-loading />
-          <view>正在加载面试信息...</view>
-        </view>
-      </wd-overlay>
-    </view>
+    <!-- 不再使用自定义的loading遮罩层 -->
 
     <!-- 录制准备倒计时提示（注释掉，与原代码保持一致） -->
     <!-- <wd-overlay :visible="showCountdownOverlay">
@@ -64,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import { useMessage, useToast } from 'wot-design-uni'
@@ -94,7 +86,15 @@ import { navigateBack } from '@/utils/platformUtils'
 
 // Store
 const interviewStore = useInterviewStore()
-const { interviewStatus, currentQuestion, isLastQuestion } = storeToRefs(interviewStore)
+const {
+  interviewStatus,
+  currentQuestion,
+  isLastQuestion,
+  isLoading,
+  position,
+  currentQuestionIndex,
+  totalQuestions,
+} = storeToRefs(interviewStore)
 
 // Toast instance
 const toast = useToast()
@@ -116,7 +116,7 @@ const interviewFlow = useInterviewFlow({
       console.log('面试已完成')
       showComplete.value = true
     },
-  }
+  },
 })
 
 const cameraStream = useCameraStream({
@@ -199,24 +199,58 @@ onLoad(async (options) => {
 
 // 组件挂载
 onMounted(async () => {
-  // 先设置interviewId到store
-  if (interviewId.value) {
-    interviewStore.setInterviewId(interviewId.value)
-    // 加载面试信息
-    const interviewLoadSuccess = await initializeInterview()
-    
-    // 只有在面试信息加载成功后才初始化摄像头（与原代码顺序一致）
-    if (interviewLoadSuccess) {
-      // 初始化摄像头
-      const cameraSuccess = await cameraStream.initializeStream()
-      if (cameraSuccess) {
-        showVideoMask.value = false
-      }
-    }
+  console.log('=== Component onMounted start ===')
+
+  if (!interviewId.value) {
+    console.error('没有面试ID')
+    showErrorToast('面试ID无效')
+    setTimeout(() => {
+      uni.navigateBack()
+    }, 2000)
+    return
   }
 
-  // 启动DOM观察器来隐藏视频控件
+  // 设置interview ID
+  interviewStore.setInterviewId(interviewId.value)
+
+  // 使用 uni-app 原生的 loading
+  uni.showLoading({
+    title: '正在加载面试信息...',
+    mask: true
+  })
+
+  try {
+    // 先加载面试信息
+    const interviewSuccess = await initializeInterview()
+    
+    if (!interviewSuccess) {
+      console.error('面试加载失败')
+      uni.hideLoading()
+      setTimeout(() => {
+        uni.navigateBack()
+      }, 2000)
+      return
+    }
+    
+    console.log('面试信息加载成功')
+    
+    // 隐藏loading
+    uni.hideLoading()
+    showVideoMask.value = false
+    
+    // 初始化摄像头
+    const cameraSuccess = await cameraStream.initializeStream()
+    console.log('摄像头初始化结果:', cameraSuccess)
+    
+  } catch (error) {
+    console.error('初始化失败:', error)
+    uni.hideLoading()
+    showErrorToast('初始化失败')
+  }
+
+  // 启动DOM观察器
   domObserver.startVideoObserver()
+  console.log('=== Component onMounted end ===')
 })
 
 // 组件卸载前清理
@@ -227,25 +261,21 @@ onBeforeUnmount(() => {
 // 初始化面试
 async function initializeInterview() {
   console.log('开始初始化面试, interviewId:', interviewId.value)
-  
+
   if (!interviewId.value) {
     console.error('面试ID不存在')
     showErrorToast('面试ID无效')
-    setTimeout(() => {
-      uni.navigateBack()
-    }, 2000)
-    return
+    return false
   }
-  
+
   const success = await interviewFlow.initializeInterview(interviewId.value)
 
   if (!success) {
     console.error('面试初始化失败')
-    setTimeout(() => {
-      uni.navigateBack()
-    }, 2000)
+    return false
   } else {
     console.log('面试初始化成功')
+    return true
   }
 }
 
@@ -274,13 +304,14 @@ async function playCurrentQuestion() {
   // 检查音频URL是否存在
   if (!currentQuestion.value.audio_url || currentQuestion.value.audio_url === null) {
     console.warn('音频URL不存在，跳过音频播放，直接开始录制')
-    
+
     // 显示TTS错误反馈（与原代码一致）
-    toast.error({
-      msg: '音频播放失败，请阅读题目',
-      duration: 1500
+    uni.showToast({
+      title: '音频播放失败，请阅读题目',
+      icon: 'none',
+      duration: 1500,
     })
-    
+
     // 给用户3秒阅读时间，然后直接开始录制
     setTimeout(() => {
       startRecording()
@@ -293,13 +324,14 @@ async function playCurrentQuestion() {
     await audioPlayer.play(currentQuestion.value.audio_url)
   } catch (error) {
     console.error('播放音频失败:', error)
-    
+
     // 显示TTS错误反馈（与原代码一致）
-    toast.error({
-      msg: '音频播放失败，请阅读题目',
-      duration: 1500
+    uni.showToast({
+      title: '音频播放失败，请阅读题目',
+      icon: 'none',
+      duration: 1500,
     })
-    
+
     // 播放失败也要继续录制
     setTimeout(() => {
       startRecording()
@@ -331,7 +363,7 @@ async function startRecording() {
   console.log('开始录制，当前题目:', currentQuestion.value.id)
   console.log('摄像头流状态:', cameraStream.isStreamActive.value)
   console.log('录制器状态:', recorder.recorderState.value)
-  
+
   // 显示开始作答提示（与原代码一致）
   uni.showToast({
     title: '请开始作答',
@@ -376,8 +408,14 @@ async function handleNext() {
   if (isProcessing.value) return
 
   isProcessing.value = true
-  let loadingClose = interviewFlow.showLoading(UI_TEXT.PROCESSING)
-  let loadingClosed = false // 添加标志变量防止重复关闭
+  // const loadingClose = interviewFlow.showLoading(UI_TEXT.PROCESSING)
+  // let loadingClosed = false // 添加标志变量防止重复关闭
+  
+  // 使用 uni-app 的 loading
+  uni.showLoading({
+    title: UI_TEXT.PROCESSING || '处理中...',
+    mask: true
+  })
 
   try {
     // 如果正在录制，先停止并保存
@@ -385,10 +423,6 @@ async function handleNext() {
       const result = await recorder.stopRecording()
 
       if (result && currentQuestion.value) {
-        let uploadSuccess = false
-        let retryCount = 0
-        const maxRetries = 3
-        
         // 保存当前录制数据，以便重试
         const recordingData = {
           blob: result.blob,
@@ -410,10 +444,7 @@ async function handleNext() {
         } catch (error) {
           console.error('视频上传失败:', error)
           // 上传失败，显示错误提示（与原代码一致）
-          if (!loadingClosed) {
-            loadingClose()
-            loadingClosed = true
-          }
+          uni.hideLoading()
           showErrorToast(`第${currentQuestion.value.id}题视频上传失败，请重试`)
           // 不进入下一题，让用户可以重新点击"下一题"按钮重试
           return
@@ -431,10 +462,7 @@ async function handleNext() {
     // goToNextQuestion 会自动调用 onQuestionReady，触发播放下一题
   } finally {
     isProcessing.value = false
-    // 只有当loading还没有关闭时才关闭
-    if (!loadingClosed) {
-      loadingClose()
-    }
+    uni.hideLoading()
   }
 }
 
@@ -446,7 +474,7 @@ async function handleExit() {
   if (!isInterviewStarted.value) {
     message
       .confirm({
-        msg: `您确定退出${interviewStore.position?.title || ''}岗位的AI面试`,
+        msg: `您确定退出${position?.title || ''}岗位的AI面试`,
         title: '提示',
       })
       .then(() => {
@@ -472,7 +500,7 @@ async function handleTerminate() {
   const message = useMessage()
 
   // 根据是否完成显示不同的提示
-  if (!interviewStore.isLastQuestion && !interviewFlow.overQuestion.value) {
+  if (!isLastQuestion && !interviewFlow.overQuestion.value) {
     message
       .confirm({
         msg: '您的面试还未结束，终止面试将影响您的AI视频面试结果，确定要进行终止吗？',
@@ -551,19 +579,4 @@ function cleanup() {
   line-height: 1.5;
 }
 
-/* 加载遮罩层样式 */
-.wrapper {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.8);
-  border-radius: 12px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  min-width: 200px;
-}
 </style>

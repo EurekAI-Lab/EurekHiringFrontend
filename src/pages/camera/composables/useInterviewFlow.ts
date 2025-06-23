@@ -13,12 +13,8 @@ import { handleError, showErrorToast } from '../utils/errorHandler'
 import { navigateBack, interviewOver } from '@/utils/platformUtils'
 import type { Question } from '../types/interview'
 
-// 全局loading控制
-declare global {
-  interface Window {
-    _currentLoadingClose?: () => void
-  }
-}
+// Loading控制变量
+let currentLoadingClose: (() => void) | null = null
 
 export interface InterviewFlowCallbacks {
   onQuestionReady?: (question: Question) => Promise<void>
@@ -92,15 +88,15 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
       }
     }
 
-    // 保存关闭函数到全局，以便在错误时能够关闭
-    window._currentLoadingClose = closeLoading
+    // 保存关闭函数引用
+    currentLoadingClose = closeLoading
 
     // 设置超时自动关闭
     setTimeout(() => {
-      if (window._currentLoadingClose === closeLoading) {
+      if (currentLoadingClose === closeLoading) {
         console.warn('Loading超时，自动关闭')
         closeLoading()
-        window._currentLoadingClose = undefined
+        currentLoadingClose = null
       }
     }, TIME_CONSTANTS.LOADING_TIMEOUT)
 
@@ -109,9 +105,9 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
 
   // 关闭loading
   const hideLoading = () => {
-    if (window._currentLoadingClose) {
-      window._currentLoadingClose()
-      window._currentLoadingClose = undefined
+    if (currentLoadingClose) {
+      currentLoadingClose()
+      currentLoadingClose = null
     }
   }
 
@@ -122,10 +118,12 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
       return false
     }
 
-    const loadingClose = showLoading('正在加载面试信息...')
+    console.log('[initializeInterview] 开始, store.isLoading before:', store.isLoading)
+    store.setLoading(true)
+    console.log('[initializeInterview] store.setLoading(true) called, store.isLoading after:', store.isLoading)
+    
 
     try {
-      store.setLoading(true)
       store.clearError()
 
       // 获取面试详情
@@ -167,9 +165,10 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
       showErrorToast(interviewError)
       return false
     } finally {
+      console.log('Finally block - before setLoading(false), current isLoading:', store.isLoading)
       store.setLoading(false)
-      loadingClose()
-      console.log('Interview initialization completed, loading closed')
+      console.log('Finally block - after setLoading(false), current isLoading:', store.isLoading)
+      console.log('Interview initialization completed')
     }
   }
 
@@ -177,7 +176,6 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
   const startInterview = async (): Promise<boolean> => {
     if (isRequesting.value) return false
 
-    const loadingClose = showLoading('正在启动面试...')
     isRequesting.value = true
 
     try {
@@ -218,7 +216,6 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
       return false
     } finally {
       isRequesting.value = false
-      loadingClose()
     }
   }
 
@@ -274,7 +271,6 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
 
   // 处理进入下一题的逻辑
   const processNextQuestion = async (): Promise<boolean> => {
-    const loadingClose = showLoading(UI_TEXT.NEXT_QUESTION)
     isRequesting.value = true
 
     try {
@@ -314,7 +310,6 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
       return false
     } finally {
       isRequesting.value = false
-      loadingClose()
     }
   }
 
@@ -435,7 +430,6 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
   const completeInterview = async (): Promise<void> => {
     if (isRequesting.value) return
 
-    const loadingClose = showLoading('正在提交面试数据')
     isRequesting.value = true
     isExiting.value = true
 
@@ -544,8 +538,7 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
           confirmText: '确定',
           success: (res) => {
             if (res.confirm) {
-              loadingClose()
-
+        
               // 检查是否有test参数
               const test = uni.getStorageSync('test') === 'true'
 
@@ -576,7 +569,6 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
     } finally {
       isRequesting.value = false
       isExiting.value = false
-      loadingClose()
     }
   }
 
@@ -584,7 +576,6 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
   const terminateInterview = async (): Promise<void> => {
     if (isRequesting.value) return
 
-    const loadingClose = showLoading('正在终止面试...')
     isRequesting.value = true
     isExiting.value = true
 
@@ -602,10 +593,7 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
       StorageService.removeInterviewDraft(store.interviewId)
 
       // 显示提示并返回
-      uni.showToast({
-        title: '面试已终止',
-        icon: 'none',
-      })
+      showErrorToast({ message: '面试已终止', duration: 1500 })
 
       // 返回上一页或首页
       setTimeout(() => {
@@ -624,7 +612,6 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
     } finally {
       isRequesting.value = false
       isExiting.value = false
-      loadingClose()
     }
   }
 
@@ -632,7 +619,6 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
   const exitInterview = async (): Promise<void> => {
     if (isExiting.value) return
 
-    const loadingClose = showLoading(UI_TEXT.EXITING)
     isExiting.value = true
 
     try {
@@ -663,7 +649,6 @@ export function useInterviewFlow(options: InterviewFlowOptions = {}) {
       uni.navigateBack()
     } finally {
       isExiting.value = false
-      loadingClose()
     }
   }
 

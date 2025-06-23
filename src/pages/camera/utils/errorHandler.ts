@@ -62,10 +62,22 @@ export function handleError(error: any, context: string): InterviewError {
   return new InterviewError(error.message || '未知错误', ErrorCodes.UNKNOWN, error)
 }
 
-export function showErrorToast(error: InterviewError | string, duration: number = 3000) {
-  const message = typeof error === 'string' ? error : error.message
+export function showErrorToast(error: InterviewError | string | { message: string }, duration: number = 3000) {
+  let message: string
   
-  // 使用uni.showToast暂时替代，因为useToast只能在setup中使用
+  if (typeof error === 'string') {
+    message = error
+  } else if (error instanceof InterviewError || (error && typeof error.message === 'string')) {
+    message = error.message
+  } else {
+    message = '未知错误'
+  }
+  
+  // 确保消息不超过uni.showToast的长度限制（约7个汉字）
+  if (message.length > 14) {
+    message = message.substring(0, 14) + '...'
+  }
+  
   uni.showToast({
     title: message,
     icon: 'none',

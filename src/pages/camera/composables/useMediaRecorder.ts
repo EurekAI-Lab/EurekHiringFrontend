@@ -278,8 +278,8 @@ export function useMediaRecorder() {
       if (isRecording.value && state !== 'recording') {
         console.error('[MediaRecorder Monitor] 录制器状态异常，尝试重启')
         
-        // 保存当前stream
-        const currentStream = stream.value
+        // 获取当前stream（从MediaRecorder获取）
+        const currentStream = mediaRecorder.value?.stream
         
         if (currentStream && currentStream.active) {
           try {
