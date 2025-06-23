@@ -143,7 +143,7 @@ import { navigateBack, interviewOver, getPlatformType, PlatformType } from '@/ut
 const message = useMessage()
 
 const toast = useToast()
-const baseUrl = import.meta.env.VITE_SERVER_BASEURL || 'http://119.45.15.47:8001/test/api'
+const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 
 // 控制视频黑色遮罩层显示/隐藏
 const showVideoMask = ref(true)
