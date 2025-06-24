@@ -36,7 +36,7 @@
       
       <!-- 提示文字 -->
       <text class="loading-text">报告生成中，请稍等...</text>
-      <text class="sub-text">大模型正在分析您的面试表现</text>
+      <text class="sub-text">大概需要2-5分钟时间，请耐心等待</text>
     </view>
     
     <!-- 底部返回按钮 -->
@@ -328,8 +328,7 @@ onBeforeUnmount(() => {
 
 /* 导航栏样式 */
 .navbar {
-  background-color: #ffffff;
-  border-bottom: 1px solid #e5e5e5;
+  background-color: transparent;
   position: fixed;
   top: 0;
   left: 0;
