@@ -908,9 +908,12 @@ const getUploadInfo = async (retryCount: number = 0) => {
   const currentQuestionIdx = currentQuestionIndex.value
   
   try {
+    // 根据平台获取正确的文件扩展名
+    const fileExtension = getFileExtension()
     console.log(`=== 开始获取上传凭证 (尝试 ${retryCount + 1}/${maxRetries}) ===`)
-    console.log('请求URL:', baseUrl + `/files/post-policy?ext=mp4`)
-    const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=mp4` })
+    console.log(`当前平台文件扩展名: ${fileExtension}`)
+    console.log('请求URL:', baseUrl + `/files/post-policy?ext=${fileExtension}`)
+    const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=${fileExtension}` })
     console.log('上传凭证响应:', response)
     console.log('响应状态码:', response?.statusCode)
     console.log('响应数据:', response?.data)
