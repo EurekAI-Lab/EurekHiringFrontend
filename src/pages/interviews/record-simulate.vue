@@ -3,75 +3,74 @@
 </route>
 
 <template>
-  <view class="w-full bg-#f5f7fb min-h-[210vw] h-auto relative overflow-y-auto">
-    <!-- <view class="bg-white items-center z-1 w-full h-10 flex flex-row fixed">
-      <view class="i-carbon-chevron-left w-7 h-7 pl-5" @click="handleClickLeft"></view>
-      <view class="absolute left-1/3">个人Ai模拟面试</view>
-    </view> -->
-
+  <view class="w-full bg-#f5f7fb min-h-screen flex flex-col">
+    <!-- 固定导航栏 -->
     <view
-      class="absolute top-0 z-1 w-full flex flex-row fixed"
+      class="fixed top-0 left-0 right-0 z-10 bg-white"
       :style="{
-        backgroundColor: `rgba(255, 255, 255, 1)`,
-        color: '#f4f4f4',
-        height: '44px',
-        paddingTop: '44px',
+        height: topBarHeight + 'px'
       }"
     >
-      <view
-        class="i-carbon-chevron-left w-8 h-8 absolute left-5 top-[48px] text-black"
-        @click="handleClickLeft"
-      ></view>
-      <view class="absolute left-1.8/5 top-[52px] text-black">个人AI模拟面试</view>
+      <view class="relative flex items-center" :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }">
+        <view
+          class="i-carbon-chevron-left w-8 h-8 absolute left-5 text-black"
+          @click="handleClickLeft"
+        ></view>
+        <view class="absolute left-1/2 transform -translate-x-1/2 text-black font-medium">个人AI模拟面试</view>
+      </view>
     </view>
-    <!-- 背景图 点击跳转操作了流程 -->
-    <view @click="goProcess()">
-      <image :src="aibg07" class="w-full h-40 mt-[88px]"></image>
-    </view>
-
-    <view
-      v-for="item in interviewList"
-      :key="item.interviews_id"
-      class="relative w-full flex items-center justify-center py-1"
-      @click="openInfo(item.interviews_id)"
-    >
-      <!--卡片 -->
-
-      <view class="w-[92%] rounded-xl bg-white min-h-20 overflow-hidden flex flex-col">
-        <view class="flex flex-row relative">
-          <image :src="aimn" class="w-full h-7.5" />
-          <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
-        </view>
-        <view class="flex flex-col text-sm items-center pt-2 pb-2">
-          <view class="flex flex-row w-[95%]">
-            <view class="text-gray" style="word-break: keep-all">求职意向：</view>
-            <view>{{ item.position_title }}</view>
-          </view>
-          <view class="flex flex-row w-[95%] pt-1">
-            <view class="text-gray">面试完成时间：{{ formatTime(item.completion_time) }}</view>
-            <view></view>
-          </view>
-          <view class="flex flex-row w-[95%] pt-1">
-            <view class="text-gray">面试完成时长：{{ formatTimeToMinSec(item.time_spent) }}</view>
-            <view></view>
-          </view>
-        </view>
-        <view class="absolute top-10 w-[90%] h-50">
-          <image v-if="item.is_qualified == 'FAIL'" :src="bhg" class="w-18 h-18 absolute right-1" />
-          <image v-else :src="hg" class="w-18 h-18 absolute right-1" />
-        </view>
+    
+    <!-- 内容区域，包含滚动内容 -->
+    <view class="flex-1 overflow-y-auto" :style="{ paddingTop: topBarHeight + 'px', paddingBottom: '80px' }">
+      <!-- 背景图 点击跳转操作了流程 -->
+      <view @click="goProcess()" class="w-full">
+        <image :src="aibg07" class="w-full" style="aspect-ratio: 375/160;" mode="widthFix"></image>
       </view>
 
-      <!-- <wd-status-tip image="search" tip="当前搜索无结果" /> -->
-    </view>
-    <view
-      v-if="interviewList.length === 0 && !loading"
-      class="w-full flex justify-center items-center mt-10"
-    >
-      <wd-status-tip
-        image="search"
-        tip="我们将根据您的求职意向自动生成面试题目，帮助您在企业的正式AI视频面试中顺利通过，点击【开始模拟】来体验一下吧！"
-      />
+      <view
+        v-for="item in interviewList"
+        :key="item.interviews_id"
+        class="relative w-full flex items-center justify-center py-1"
+        @click="openInfo(item.interviews_id)"
+      >
+        <!--卡片 -->
+
+        <view class="w-[92%] rounded-xl bg-white min-h-20 overflow-hidden flex flex-col">
+          <view class="flex flex-row relative">
+            <image :src="aimn" class="w-full h-7.5" />
+            <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
+          </view>
+          <view class="flex flex-col text-sm items-center pt-2 pb-2">
+            <view class="flex flex-row w-[95%]">
+              <view class="text-gray" style="word-break: keep-all">求职意向：</view>
+              <view>{{ item.position_title }}</view>
+            </view>
+            <view class="flex flex-row w-[95%] pt-1">
+              <view class="text-gray">面试完成时间：{{ formatTime(item.completion_time) }}</view>
+              <view></view>
+            </view>
+            <view class="flex flex-row w-[95%] pt-1">
+              <view class="text-gray">面试完成时长：{{ formatTimeToMinSec(item.time_spent) }}</view>
+              <view></view>
+            </view>
+          </view>
+          <view class="absolute top-10 right-2">
+            <image v-if="item.is_qualified == 'FAIL'" :src="bhg" class="w-18 h-18" />
+            <image v-else :src="hg" class="w-18 h-18" />
+          </view>
+        </view>
+
+        <!-- <wd-status-tip image="search" tip="当前搜索无结果" /> -->
+      </view>
+      <view
+        v-if="interviewList.length === 0 && !loading"
+        class="w-full flex justify-center items-center mt-10"
+      >
+        <wd-status-tip
+          image="search"
+          tip="我们将根据您的求职意向自动生成面试题目，帮助您在企业的正式AI视频面试中顺利通过，点击【开始模拟】来体验一下吧！"
+        />
+      </view>
     </view>
     <view class="bottom-0 w-full h-10 flex justify-center items-center pt-4 pb-6 fixed bg-white">
       <view
@@ -107,9 +106,9 @@
             >
               <image :src="zfj" class="w-5 h-5" />
             </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5">
-              <view class="w-75%">{{ item.title }}</view>
-              <view class="text-gray-400 w-80%">{{ item.description }}</view>
+            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-20">
+              <view class="font-medium">{{ item.industry || '行业不限' }}</view>
+              <view class="text-gray-600">{{ item.position_name || item.title }}</view>
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
               <view class="text-#1778ff" style="text-align: center">{{ item.salary }}</view>
@@ -145,6 +144,7 @@ import dh from '../../static/app/icons/icon_dh.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { navigateBack } from '@/utils/platformUtils'
 import { handleToken } from "@/utils/useAuth"
+import { useNavBar } from '@/utils/useNavBar'
 import { ref, watch, onMounted } from 'vue'
 const toast = useToast()
 
@@ -153,6 +153,9 @@ const loading = ref(true)
 const searchValue = ref()
 const showSheet = ref(false)
 const showErrorTip = ref(false)
+
+// 使用导航栏工具获取高度信息
+const { safeAreaInsets, navBarHeight, topBarHeight } = useNavBar()
 const close = async () => {
   showSheet.value = false
 }

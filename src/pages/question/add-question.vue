@@ -37,11 +37,11 @@
           class="absolute bottom-3 right-10 text-xs bg-#50a5ff w-23 h-8 rounded flex justify-center items-center"
         >
           <image :src="iconFj" class="w-3 h-3"></image>
-          <view class="text-white pl-2 text-[14px]" @click="getQuestion">智能识别</view>
+          <view class="text-white pl-2 text-sm" @click="getQuestion">智能识别</view>
         </view>
       </view>
     </view>
-    <view class="flex justify-center items-center left-[30%] scroll" id="scroll">
+    <view class="flex justify-center items-center left-1/3 scroll" id="scroll">
       <view class="wrapper flex flex-col text-black" v-if="loding">
         <wd-loading />
         <view>Ai正在返回面试推荐题目</view>

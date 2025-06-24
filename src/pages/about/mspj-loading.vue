@@ -10,23 +10,49 @@
 }
 </route>
 <template>
-  <view class="w-full bg-black bg-opacity-57 h-100vh flex items-center justify-center">
-    <!-- 背景图 -->
-    <view class="flex w-full h-full items-center justify-center">
-      <view class="relative w-70% h-13%">
-        <image :src="aiBg09" class="z-0 h-full w-full" />
-        <view class="absolute top-0 left-0 w-full h-full flex items-center ml-4">
-          <view class="text-white text-sm mt-2 opacity-80">报告生成中，请稍等...</view>
-        </view>
+  <view class="page-container">
+    <!-- 自定义导航栏 -->
+    <view class="navbar fixed top-0 left-0 right-0 z-10 bg-white" :style="{ height: topBarHeight + 'px' }">
+      <view class="navbar-content" :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }">
+        <image 
+          class="back-icon" 
+          :src="backIcon"
+          @click="handleExit"
+          mode="aspectFit"
+        />
+        <text class="navbar-title">AI面试</text>
+        <view class="navbar-right"></view>
+      </view>
+    </view>
+    
+    <!-- 主内容区域 -->
+    <view class="content-area" :style="{ paddingTop: topBarHeight + 'px' }">
+      <!-- 报告生成图标 -->
+       <div class="content-area-zw"></div>
+      <image 
+        class="report-icon" 
+        :src="reportIcon"
+        mode="aspectFit"
+      />
+      
+      <!-- 提示文字 -->
+      <text class="loading-text">报告生成中，请稍等...</text>
+      <text class="sub-text">大概需要2-5分钟时间，请耐心等待</text>
+    </view>
+    
+    <!-- 底部返回按钮 -->
+    <view class="bottom-area">
+      <view class="return-button" @click="handleExit">
+        返回
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import aiBg09 from '@/static/images/ai-bg-09.png'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { navigateBack } from '@/utils/platformUtils'
+import { useNavBar } from '@/utils/useNavBar'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 const interviewId = ref<number | null>(null)
@@ -35,6 +61,55 @@ const subText = ref('请耐心等待，这可能需要几分钟时间')
 const progress = ref(0)
 const timer = ref<number | null>(null)
 const pollInterval = ref<number | null>(null)
+
+// 获取系统信息
+const systemInfo = uni.getSystemInfoSync()
+const windowInfo = uni.getWindowInfo()
+const statusBarHeight = systemInfo.statusBarHeight || 0
+const pixelRatio = systemInfo.pixelRatio || 1
+
+// // 获取安全区域信息
+// const safeAreaInsets = systemInfo.safeAreaInsets || {
+//   top: statusBarHeight,
+//   bottom: 0,
+//   left: 0,
+//   right: 0
+// }
+
+// // 计算导航栏高度，适配刘海屏
+// const navBarHeight = (() => {
+//   // iOS设备
+//   if (systemInfo.platform === 'ios') {
+//     // 使用安全区域高度来确保正确的导航栏位置
+//     return 44
+//   }
+//   // Android设备
+//   return 48
+// })()
+
+// 计算总的顶部高度（使用安全区域顶部高度 + 导航栏）
+// const topBarHeight = safeAreaInsets.top + navBarHeight
+// 使用导航栏工具获取高度信息
+const { safeAreaInsets, navBarHeight, topBarHeight } = useNavBar()
+
+// 根据像素密度选择合适的图片
+const backIcon = computed(() => {
+  if (pixelRatio >= 3) {
+    return '/static/images/mspj_loading/back_3x.png'
+  } else if (pixelRatio >= 2) {
+    return '/static/images/mspj_loading/back_2x.png'
+  }
+  return '/static/images/mspj_loading/back.png'
+})
+
+const reportIcon = computed(() => {
+  if (pixelRatio >= 3) {
+    return '/static/images/mspj_loading/mspj_3x_background.png'
+  } else if (pixelRatio >= 2) {
+    return '/static/images/mspj_loading/mspj_2x_background.png'
+  }
+  return '/static/images/mspj_loading/mspj_background.png'
+})
 
 // 模拟进度增加
 const startProgressSimulation = () => {
@@ -162,7 +237,14 @@ const handleExit = () => {
     success: (res) => {
       if (res.confirm) {
         clearAllIntervals()
-        navigateBack()
+        // 如果是模拟面试（type=2），返回到模拟面试列表页
+        if (type.value === '2') {
+          uni.reLaunch({
+            url: '/pages/interviews/record-simulate'
+          })
+        } else {
+          navigateBack()
+        }
       }
     },
   })
@@ -240,7 +322,94 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.h-100vh {
+.page-container {
+  width: 100%;
   height: 100vh;
+  background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 导航栏样式 */
+.navbar {
+  background-color: transparent;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+}
+
+.navbar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.back-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.navbar-title {
+  font-size: 17px;
+  font-weight: 500;
+  color: #333333;
+}
+
+.navbar-right {
+  width: 24px;
+}
+
+/* 内容区域 */
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 40px;
+  padding-top: 140px !important; /* 调整为中间偏上 */
+}
+
+.report-icon {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 40px;
+}
+
+.loading-text {
+  font-size: 20px;
+  color: #000000;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.sub-text {
+  font-size: 14px;
+  color: #999999;
+  text-align: center;
+}
+
+/* 底部区域 */
+.bottom-area {
+  padding: 20px 40px 40px;
+}
+
+.return-button {
+  width: 100%;
+  height: 48px;
+  background-color: #1890ff;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.return-button:active {
+  opacity: 0.8;
 }
 </style>
