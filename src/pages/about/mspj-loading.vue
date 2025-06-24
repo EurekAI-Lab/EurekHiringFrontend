@@ -364,26 +364,26 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   padding: 0 40px;
+  padding-top: 120px; /* 调整为中间偏上 */
 }
 
 .report-icon {
-  width: 200px;
-  height: 200px;
-  margin-bottom: 24px;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 40px;
 }
 
 .loading-text {
-  font-size: 18px;
-  color: #333333;
-  font-weight: 500;
-  margin-bottom: 8px;
+  font-size: 20px;
+  color: #000000;
+  font-weight: 600;
+  margin-bottom: 16px;
 }
 
 .sub-text {
   font-size: 14px;
-  color: #666666;
+  color: #999999;
   text-align: center;
 }
 
