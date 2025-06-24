@@ -70,7 +70,7 @@ import Aizdsc from '@/components/public/aizdsc.vue'
 import aibg08 from '../../static/images/ai-bg-08.png'
 import iconFj from '../../static/app/icons/icon_fj.png'
 import { ref } from 'vue'
-import { generateOneQuestionAPI } from '@/service/api'
+// import { generateOneQuestionAPI } from '@/service/api' // 不再使用非流式接口
 import { usePublicStore } from '@/store'
 import { useToast } from 'wot-design-uni'
 
@@ -295,26 +295,13 @@ const doGenerateQuestion = async () => {
     
     console.error('流式生成失败:', error)
     
-    // 检查是否是网络错误
+    // 显示错误提示
     if (error.message && error.message.includes('network')) {
       toast.error('网络连接异常，请检查网络后重试')
-      show.value = false
     } else {
-      // 如果流式失败，回退到普通接口
-      try {
-        const res = await generateOneQuestionAPI(query)
-        if (res.code === 200) {
-          value1.value = res.data.interviewAspect
-          value2.value = res.data.time
-          value3.value = res.data.question
-          toast.success('题目生成成功')
-        }
-      } catch (fallbackError) {
-        console.error('回退接口也失败:', fallbackError)
-        toast.error('生成失败，请重试')
-        show.value = false
-      }
+      toast.error('生成失败，请重试')
     }
+    show.value = false
   } finally {
     clearTimeout(timeoutId)  // 清理超时定时器
     loding.value = false
