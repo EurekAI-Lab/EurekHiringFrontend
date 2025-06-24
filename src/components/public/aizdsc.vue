@@ -42,8 +42,13 @@
 
       <view class="relative">
         <view class="flex justify-center items-center">
-          <view class="w-90% rounded-xl h-40 overflow-hidden">
-            <wd-textarea v-model="localValue3" :maxlength="500" />
+          <view class="w-90% rounded-xl h-40 bg-#f9fbfc overflow-hidden">
+            <wd-textarea 
+              v-model="localValue3" 
+              :maxlength="500"
+              :auto-height="false"
+              class="textarea-custom"
+            />
           </view>
           <!-- 自定义字数限制显示 在左下角 -->
           <view class="absolute bottom-4 left-10 text-xs text-gray-4">
@@ -119,5 +124,25 @@ const localValue3 = computed({
   50% {
     opacity: 1;
   }
+}
+
+/* 修复文本框样式，防止文本溢出 */
+::v-deep .textarea-custom {
+  .wd-textarea__inner {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
+    word-wrap: break-word !important;
+    word-break: break-all !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+}
+
+/* 确保文本框容器的样式正确 */
+::v-deep .wd-textarea {
+  width: 100% !important;
+  height: 100% !important;
 }
 </style>

@@ -34,10 +34,14 @@
         <view class="absolute bottom-4 left-10 text-xs text-gray-4">{{ value.length }}/500</view>
         <!-- 智能识别按钮 -->
         <view
-          class="absolute bottom-3 right-10 text-xs bg-#50a5ff w-23 h-8 rounded flex justify-center items-center"
+          class="absolute bottom-3 right-10 text-xs w-23 h-8 rounded flex justify-center items-center"
+          :class="loding ? 'bg-gray-400' : 'bg-#50a5ff'"
+          @click="!loding && getQuestion()"
         >
-          <image :src="iconFj" class="w-3 h-3"></image>
-          <view class="text-white pl-2 text-sm" @click="getQuestion">智能识别</view>
+          <image :src="iconFj" class="w-3 h-3" :class="loding ? 'opacity-50' : ''"></image>
+          <view class="text-white pl-2 text-sm">
+            {{ loding ? '生成中...' : '智能识别' }}
+          </view>
         </view>
       </view>
     </view>
@@ -79,6 +83,10 @@ onUnmounted(() => {
     currentController.abort()
     currentController = null
   }
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
 })
 const query = {
   positionName: '',
@@ -112,34 +120,69 @@ const value3 = ref('')
 
 // 添加 AbortController 用于取消请求
 let currentController: AbortController | null = null
+let currentRequestId = 0  // 添加请求ID
+let debounceTimer: number | null = null  // 防抖定时器
 
-const getQuestion = async () => {
+// 创建防抖的题目生成函数
+const generateQuestionDebounced = () => {
+  // 清除之前的定时器
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+  }
+  
   // 如果有正在进行的请求，先取消它
   if (currentController) {
     currentController.abort()
     currentController = null
   }
   
-  // 清空之前的内容
-  value1.value = ''
-  value2.value = ''
-  value3.value = ''
+  // 显示加载状态
+  loding.value = true
+  value3.value = '正在连接AI服务...'
   
+  // 设置新的定时器
+  debounceTimer = setTimeout(() => {
+    doGenerateQuestion()
+  }, 300)  // 300ms 防抖
+}
+
+const getQuestion = async () => {
   // 验证输入
   if (!value.value || value.value.trim() === '') {
     toast.error('请输入问题描述')
     return
   }
   
-  loding.value = true
-  show.value = true  // 立即显示结果区域，但内容为空
+  show.value = true  // 立即显示结果区域
   query.guidePrompt = value.value
+  
+  // 使用防抖函数
+  generateQuestionDebounced()
+}
+
+// 实际的生成函数
+const doGenerateQuestion = async () => {
+  // 生成新的请求ID
+  const requestId = ++currentRequestId
+  
+  // 清空之前的内容
+  value1.value = ''
+  value2.value = ''
+  value3.value = ''
   
   // 使用流式接口
   const baseUrl = import.meta.env.VITE_SERVER_BASEURL
   
   // 创建新的 AbortController
   currentController = new AbortController()
+  
+  // 设置超时定时器
+  const timeoutId = setTimeout(() => {
+    if (currentController && requestId === currentRequestId) {
+      currentController.abort()
+      toast.error('请求超时，请重试')
+    }
+  }, 30000)  // 30秒超时
   
   try {
     const response = await fetch(baseUrl + '/interview-questions/generateOneQuestionStream', {
@@ -170,6 +213,12 @@ const getQuestion = async () => {
       const { done, value: chunk } = await reader.read()
       if (done) break
       
+      // 检查是否是当前请求
+      if (requestId !== currentRequestId) {
+        console.log('忽略旧请求的响应', requestId, currentRequestId)
+        break
+      }
+      
       buffer += decoder.decode(chunk, { stream: true })
       const lines = buffer.split('\n')
       buffer = lines.pop() || ''
@@ -182,17 +231,197 @@ const getQuestion = async () => {
           try {
             const data = JSON.parse(line.substring(6))
             
-            if (data.partial) {
-              // 累积部分内容（打字机效果）
-              // 后端已经清理过了，直接使用
-              partialContent.question += data.partial  // 改回累积模式
-              value3.value = partialContent.question
+            // 处理状态消息
+            if (data.status) {
+              if (requestId === currentRequestId) {
+                if (data.status === 'generating' && data.message) {
+                  value3.value = data.message
+                } else if (data.status === 'thinking') {
+                  // 收到心跳，表示还在处理中
+                  if (!value3.value || value3.value === '正在连接AI服务...') {
+                    value3.value = '正在思考中...'
+                  }
+                } else if (data.status === 'content_start') {
+                  // 开始生成实际内容
+                  value3.value = ''
+                  partialContent.question = ''
+                }
+              }
+            } else if (data.partial) {
+              // 处理流式内容
+              const partial = data.partial
+              
+              if (data.streaming) {
+                // 新的流式传输格式 - 直接显示原始内容
+                partialContent.question += partial
+                
+                // 简单显示累积的内容（用于用户看到实时生成效果）
+                if (requestId === currentRequestId) {
+                  // 如果还没有显示任何内容，直接显示
+                  if (!value3.value) {
+                    value3.value = partialContent.question
+                  } else {
+                    // 尝试从累积内容中提取JSON字段
+                    try {
+                      const accumulated = partialContent.question
+                      
+                      // 查找问答题内容（优先显示这个）
+                      // 使用更宽松的正则表达式，避免过早截断
+                      const questionStart = accumulated.indexOf('"问答题"')
+                      if (questionStart !== -1) {
+                        const afterQuestion = accumulated.substring(questionStart)
+                        const colonIndex = afterQuestion.indexOf(':')
+                        if (colonIndex !== -1) {
+                          const valueStart = afterQuestion.indexOf('"', colonIndex + 1)
+                          if (valueStart !== -1) {
+                            // 找到值的开始位置，现在需要找到结束位置
+                            let valueEnd = -1
+                            let inEscape = false
+                            
+                            // 从值开始位置向后查找，处理转义字符
+                            for (let i = valueStart + 1; i < afterQuestion.length; i++) {
+                              if (inEscape) {
+                                inEscape = false
+                                continue
+                              }
+                              if (afterQuestion[i] === '\\') {
+                                inEscape = true
+                                continue
+                              }
+                              if (afterQuestion[i] === '"') {
+                                valueEnd = i
+                                break
+                              }
+                            }
+                            
+                            if (valueEnd !== -1) {
+                              // 找到完整的值
+                              let questionText = afterQuestion.substring(valueStart + 1, valueEnd)
+                                .replace(/\\n/g, '\n')
+                                .replace(/\\"/g, '"')
+                                .replace(/\\\\/g, '\\')
+                              value3.value = questionText
+                            } else {
+                              // 值还没有结束，显示当前内容
+                              let questionText = afterQuestion.substring(valueStart + 1)
+                                .replace(/\\n/g, '\n')
+                                .replace(/\\"/g, '"')
+                                .replace(/\\\\/g, '\\')
+                              // 如果末尾是未完成的转义序列，去掉它
+                              if (questionText.endsWith('\\')) {
+                                questionText = questionText.slice(0, -1)
+                              }
+                              value3.value = questionText
+                            }
+                          }
+                        }
+                      } else {
+                        // 如果还没找到问答题，显示原始内容
+                        value3.value = accumulated
+                      }
+                      
+                      // 尝试提取其他字段
+                      const aspectMatch = accumulated.match(/"考核点"\s*:\s*"([^"]*?)(?:"|$)/)
+                      if (aspectMatch && aspectMatch[1]) {
+                        value1.value = aspectMatch[1]
+                      }
+                      
+                      const timeMatch = accumulated.match(/"答题时长"\s*:\s*"([^"]*?)(?:"|$)/)
+                      if (timeMatch && timeMatch[1]) {
+                        value2.value = timeMatch[1]
+                      }
+                    } catch (e) {
+                      // 如果解析失败，继续显示原始内容
+                      value3.value = partialContent.question
+                    }
+                  }
+                }
+              } else {
+                // 旧的格式（兼容性）
+                partialContent.question += partial
+                if (requestId === currentRequestId) {
+                  value3.value = partialContent.question
+                }
+              }
             } else if (data.complete && data.data) {
               // 完整结果
-              value1.value = data.data.interviewAspect || data.data.考核点 || ''
-              value2.value = data.data.time || data.data.答题时长 || '5分钟'
-              value3.value = data.data.question || data.data.问答题 || partialContent.question
-              loding.value = false
+              if (requestId === currentRequestId) {
+                value1.value = data.data.interviewAspect || data.data.考核点 || ''
+                value2.value = data.data.time || data.data.答题时长 || '5分钟'
+                value3.value = data.data.question || data.data.问答题 || partialContent.question
+                loding.value = false
+              }
+            } else if (data.error) {
+              // 处理错误
+              console.error('生成错误:', data.error)
+              if (requestId === currentRequestId) {
+                if (data.raw_content) {
+                  // 如果有原始内容，尝试从中提取有用信息
+                  try {
+                    const raw = data.raw_content
+                    
+                    // 尝试提取问答题（使用相同的逻辑）
+                    const questionStart = raw.indexOf('"问答题"')
+                    if (questionStart !== -1) {
+                      const afterQuestion = raw.substring(questionStart)
+                      const colonIndex = afterQuestion.indexOf(':')
+                      if (colonIndex !== -1) {
+                        const valueStart = afterQuestion.indexOf('"', colonIndex + 1)
+                        if (valueStart !== -1) {
+                          let valueEnd = -1
+                          let inEscape = false
+                          
+                          for (let i = valueStart + 1; i < afterQuestion.length; i++) {
+                            if (inEscape) {
+                              inEscape = false
+                              continue
+                            }
+                            if (afterQuestion[i] === '\\') {
+                              inEscape = true
+                              continue
+                            }
+                            if (afterQuestion[i] === '"') {
+                              valueEnd = i
+                              break
+                            }
+                          }
+                          
+                          if (valueEnd !== -1) {
+                            value3.value = afterQuestion.substring(valueStart + 1, valueEnd)
+                              .replace(/\\n/g, '\n')
+                              .replace(/\\"/g, '"')
+                              .replace(/\\\\/g, '\\')
+                          } else {
+                            value3.value = afterQuestion.substring(valueStart + 1)
+                              .replace(/\\n/g, '\n')
+                              .replace(/\\"/g, '"')
+                              .replace(/\\\\/g, '\\')
+                          }
+                        }
+                      }
+                    } else if (partialContent.question) {
+                      value3.value = partialContent.question
+                    } else {
+                      value3.value = '生成失败，请重试'
+                    }
+                    
+                    // 尝试提取其他字段
+                    const aspectMatch = raw.match(/"考核点"\s*:\s*"([^"]*?)(?:"|$)/)
+                    if (aspectMatch && aspectMatch[1]) {
+                      value1.value = aspectMatch[1]
+                    }
+                    
+                    const timeMatch = raw.match(/"答题时长"\s*:\s*"([^"]*?)(?:"|$)/)
+                    if (timeMatch && timeMatch[1]) {
+                      value2.value = timeMatch[1]
+                    }
+                  } catch (e) {
+                    value3.value = partialContent.question || '生成失败，请重试'
+                  }
+                } else {
+                  value3.value = partialContent.question || '生成失败，请重试'
+                }
+              }
             }
           } catch (error) {
             console.error('解析SSE数据错误:', error, line)
@@ -209,21 +438,31 @@ const getQuestion = async () => {
     }
     
     console.error('流式生成失败:', error)
-    // 如果流式失败，回退到普通接口
-    try {
-      const res = await generateOneQuestionAPI(query)
-      if (res.code === 200) {
-        value1.value = res.data.interviewAspect
-        value2.value = res.data.time
-        value3.value = res.data.question
-      }
-    } catch (fallbackError) {
-      console.error('回退接口也失败:', fallbackError)
-      toast.error('生成失败，请重试')
+    
+    // 检查是否是网络错误
+    if (error.message && error.message.includes('network')) {
+      toast.error('网络连接异常，请检查网络后重试')
       show.value = false
+    } else {
+      // 如果流式失败，回退到普通接口
+      try {
+        const res = await generateOneQuestionAPI(query)
+        if (res.code === 200) {
+          value1.value = res.data.interviewAspect
+          value2.value = res.data.time
+          value3.value = res.data.question
+          toast.success('题目生成成功')
+        }
+      } catch (fallbackError) {
+        console.error('回退接口也失败:', fallbackError)
+        toast.error('生成失败，请重试')
+        show.value = false
+      }
     }
   } finally {
+    clearTimeout(timeoutId)  // 清理超时定时器
     loding.value = false
+    currentController = null  // 清理控制器
   }
 }
 
