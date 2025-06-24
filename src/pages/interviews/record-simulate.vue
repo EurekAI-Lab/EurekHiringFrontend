@@ -8,10 +8,10 @@
     <view
       class="fixed top-0 left-0 right-0 z-10 bg-white"
       :style="{
-        height: safeAreaInsets.top + 44 + 'px',
+        height: topBarHeight + 'px'
       }"
     >
-      <view class="relative flex items-center" :style="{ marginTop: safeAreaInsets.top + 'px', height: '44px' }">
+      <view class="relative flex items-center" :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }">
         <view
           class="i-carbon-chevron-left w-8 h-8 absolute left-5 text-black"
           @click="handleClickLeft"
@@ -21,7 +21,7 @@
     </view>
     
     <!-- 内容区域，包含滚动内容 -->
-    <view class="flex-1 overflow-y-auto" :style="{ paddingTop: safeAreaInsets.top + 44 + 'px', paddingBottom: '80px' }">
+    <view class="flex-1 overflow-y-auto" :style="{ paddingTop: topBarHeight + 'px', paddingBottom: '80px' }">
       <!-- 背景图 点击跳转操作了流程 -->
       <view @click="goProcess()" class="w-full">
         <image :src="aibg07" class="w-full" style="aspect-ratio: 375/160;" mode="widthFix"></image>
@@ -156,8 +156,27 @@ const showErrorTip = ref(false)
 // 获取系统信息
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = systemInfo.statusBarHeight || 0
-// 获取安全区域信息，适配刘海屏
-const safeAreaInsets = systemInfo.safeAreaInsets || { top: statusBarHeight }
+
+// 获取安全区域信息 - 参考 mspj-loading.vue 的实现
+const safeAreaInsets = systemInfo.safeAreaInsets || {
+  top: statusBarHeight,
+  bottom: 0,
+  left: 0,
+  right: 0
+}
+
+// 计算导航栏高度，适配不同平台
+const navBarHeight = (() => {
+  // iOS设备
+  if (systemInfo.platform === 'ios') {
+    return 44
+  }
+  // Android设备
+  return 48
+})()
+
+// 计算总的顶部高度（使用安全区域顶部高度 + 导航栏）
+const topBarHeight = safeAreaInsets.top + navBarHeight
 const close = async () => {
   showSheet.value = false
 }
