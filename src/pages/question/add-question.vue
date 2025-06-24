@@ -248,98 +248,20 @@ const doGenerateQuestion = async () => {
                 }
               }
             } else if (data.partial) {
-              // 处理流式内容
-              const partial = data.partial
-              
-              if (data.streaming) {
-                // 新的流式传输格式 - 直接显示原始内容
-                partialContent.question += partial
-                
-                // 简单显示累积的内容（用于用户看到实时生成效果）
-                if (requestId === currentRequestId) {
-                  // 如果还没有显示任何内容，直接显示
-                  if (!value3.value) {
-                    value3.value = partialContent.question
-                  } else {
-                    // 尝试从累积内容中提取JSON字段
-                    try {
-                      const accumulated = partialContent.question
-                      
-                      // 查找问答题内容（优先显示这个）
-                      // 使用更宽松的正则表达式，避免过早截断
-                      const questionStart = accumulated.indexOf('"问答题"')
-                      if (questionStart !== -1) {
-                        const afterQuestion = accumulated.substring(questionStart)
-                        const colonIndex = afterQuestion.indexOf(':')
-                        if (colonIndex !== -1) {
-                          const valueStart = afterQuestion.indexOf('"', colonIndex + 1)
-                          if (valueStart !== -1) {
-                            // 找到值的开始位置，现在需要找到结束位置
-                            let valueEnd = -1
-                            let inEscape = false
-                            
-                            // 从值开始位置向后查找，处理转义字符
-                            for (let i = valueStart + 1; i < afterQuestion.length; i++) {
-                              if (inEscape) {
-                                inEscape = false
-                                continue
-                              }
-                              if (afterQuestion[i] === '\\') {
-                                inEscape = true
-                                continue
-                              }
-                              if (afterQuestion[i] === '"') {
-                                valueEnd = i
-                                break
-                              }
-                            }
-                            
-                            if (valueEnd !== -1) {
-                              // 找到完整的值
-                              let questionText = afterQuestion.substring(valueStart + 1, valueEnd)
-                                .replace(/\\n/g, '\n')
-                                .replace(/\\"/g, '"')
-                                .replace(/\\\\/g, '\\')
-                              value3.value = questionText
-                            } else {
-                              // 值还没有结束，显示当前内容
-                              let questionText = afterQuestion.substring(valueStart + 1)
-                                .replace(/\\n/g, '\n')
-                                .replace(/\\"/g, '"')
-                                .replace(/\\\\/g, '\\')
-                              // 如果末尾是未完成的转义序列，去掉它
-                              if (questionText.endsWith('\\')) {
-                                questionText = questionText.slice(0, -1)
-                              }
-                              value3.value = questionText
-                            }
-                          }
-                        }
-                      } else {
-                        // 如果还没找到问答题，显示原始内容
-                        value3.value = accumulated
-                      }
-                      
-                      // 尝试提取其他字段
-                      const aspectMatch = accumulated.match(/"考核点"\s*:\s*"([^"]*?)(?:"|$)/)
-                      if (aspectMatch && aspectMatch[1]) {
-                        value1.value = aspectMatch[1]
-                      }
-                      
-                      const timeMatch = accumulated.match(/"答题时长"\s*:\s*"([^"]*?)(?:"|$)/)
-                      if (timeMatch && timeMatch[1]) {
-                        value2.value = timeMatch[1]
-                      }
-                    } catch (e) {
-                      // 如果解析失败，继续显示原始内容
-                      value3.value = partialContent.question
-                    }
+              // 处理流式内容 - 简化逻辑，只负责显示
+              if (requestId === currentRequestId) {
+                // 如果有特定字段的流式数据
+                if (data.field) {
+                  if (data.field === 'question') {
+                    value3.value = data.content || ''
+                  } else if (data.field === 'interviewAspect') {
+                    value1.value = data.content || ''
+                  } else if (data.field === 'time') {
+                    value2.value = data.content || ''
                   }
-                }
-              } else {
-                // 旧的格式（兼容性）
-                partialContent.question += partial
-                if (requestId === currentRequestId) {
+                } else {
+                  // 兼容旧格式 - 直接累积显示
+                  partialContent.question += data.partial
                   value3.value = partialContent.question
                 }
               }
