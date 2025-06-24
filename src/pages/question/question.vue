@@ -3,7 +3,7 @@
 { style: { navigationStyle: 'custom', navigationBarTitleText: '首页' } }
 </route>
 <template>
-  <view class="w-full bg-#f5f7fb min-h-[220vw] h-auto relative">
+  <view class="w-full bg-#f5f7fb min-h-screen h-auto relative">
     <!-- 顶部返回 -->
     <view class="fixed z-2 w-full h-22 nav-bg">
       <view class="w-full h-11"></view>
@@ -119,7 +119,7 @@
             </view>
             <template #right>
               <view class="w-20 flex justify-center items-center" @click="handleAction(item)">
-                <image class="w-[90%] h-[35vw]" :src="aibg05" />
+                <image class="w-11/12 h-35" :src="aibg05" />
               </view>
             </template>
           </wd-swipe-action>
