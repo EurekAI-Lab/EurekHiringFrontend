@@ -12,8 +12,8 @@
 <template>
   <view class="page-container">
     <!-- 自定义导航栏 -->
-    <view class="navbar" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="navbar-content">
+    <view class="navbar" :style="{ paddingTop: safeAreaInsets.top + 'px', height: topBarHeight + 'px' }">
+      <view class="navbar-content" :style="{ height: navBarHeight + 'px' }">
         <image 
           class="back-icon" 
           :src="backIcon"
@@ -26,7 +26,7 @@
     </view>
     
     <!-- 主内容区域 -->
-    <view class="content-area">
+    <view class="content-area" :style="{ paddingTop: topBarHeight + 'px' }">
       <!-- 报告生成图标 -->
       <image 
         class="report-icon" 
@@ -62,8 +62,31 @@ const pollInterval = ref<number | null>(null)
 
 // 获取系统信息
 const systemInfo = uni.getSystemInfoSync()
+const windowInfo = uni.getWindowInfo()
 const statusBarHeight = systemInfo.statusBarHeight || 0
 const pixelRatio = systemInfo.pixelRatio || 1
+
+// 获取安全区域信息
+const safeAreaInsets = systemInfo.safeAreaInsets || {
+  top: statusBarHeight,
+  bottom: 0,
+  left: 0,
+  right: 0
+}
+
+// 计算导航栏高度，适配刘海屏
+const navBarHeight = (() => {
+  // iOS设备
+  if (systemInfo.platform === 'ios') {
+    // 使用安全区域高度来确保正确的导航栏位置
+    return 44
+  }
+  // Android设备
+  return 48
+})()
+
+// 计算总的顶部高度（使用安全区域顶部高度 + 导航栏）
+const topBarHeight = safeAreaInsets.top + navBarHeight
 
 // 根据像素密度选择合适的图片
 const backIcon = computed(() => {
@@ -307,10 +330,14 @@ onBeforeUnmount(() => {
 .navbar {
   background-color: #ffffff;
   border-bottom: 1px solid #e5e5e5;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
 }
 
 .navbar-content {
-  height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;

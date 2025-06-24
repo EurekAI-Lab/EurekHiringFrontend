@@ -50,9 +50,15 @@
       </view> -->
     <view class="flex w-full justify-center items-center fixed bottom-32" v-if="isTimingShow">
       <view
-        class="bg-#302920 flex flex-row w-[98%] text-#fd7e11 text-base h-10 justify-center items-center rounded-3xl"
+        class="bg-#302920 flex flex-row w-[98%] text-#fd7e11 text-base h-10 justify-center items-center rounded-3xl gap-4"
       >
-        倒计时：{{ formatTimeToMinSec(timeLeft) }}
+        <view v-if="isRecordingReady" class="flex items-center gap-2">
+          <view class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></view>
+          <text>录制中</text>
+        </view>
+        <text v-else class="text-yellow-500">准备中...</text>
+        <text class="text-white">|</text>
+        <text>倒计时：{{ formatTimeToMinSec(timeLeft) }}</text>
       </view>
     </view>
 
@@ -224,6 +230,11 @@ const interviewId = ref()
 const videoDuration = ref(0) // 添加视频时长变量
 const fileFrom = reactive({ interview_id: ref(), fileUrls: [] })
 
+// 新增：录制状态管理
+const isRecordingReady = ref(false) // 标记录制是否已准备就绪
+const recordingStatus = reactive<{ [key: number]: 'idle' | 'recording' | 'completed' | 'failed' }>({})
+const uploadRetryCount = reactive<{ [key: number]: number }>({}) // 上传重试次数
+
 // 创建音频
 const innerAudioContext = uni.createInnerAudioContext()
 // innerAudioContext.autoplay = true;
@@ -270,7 +281,6 @@ innerAudioContext.onError((res) => {
   setTimeout(() => {
     console.log('开始录制（音频播放失败）')
     startInterview()
-    toast.success('请开始作答')
   }, readingTime)
 })
 innerAudioContext.onEnded(() => {
@@ -301,7 +311,6 @@ const play = () => {
     setTimeout(() => {
       console.log('开始录制（问题不存在）')
       startInterview()
-      toast.success('请开始作答')
     }, 2000)
     return
   }
@@ -312,7 +321,6 @@ const play = () => {
     setTimeout(() => {
       console.log('开始录制（无音频）')
       startInterview()
-      toast.success('请开始作答')
     }, 3000) // 3秒阅读时间
     return
   }
@@ -342,7 +350,6 @@ const play = () => {
       setTimeout(() => {
         console.log('开始录制（音频加载超时）')
         startInterview()
-        toast.success('请开始作答')
       }, 2000)
     }, 10000) as unknown as number
     
@@ -354,7 +361,6 @@ const play = () => {
     setTimeout(() => {
       console.log('开始录制（音频播放设置失败）')
       startInterview()
-      toast.success('请开始作答')
     }, 2000)
   }
 }
@@ -365,6 +371,10 @@ const startInterview = () => {
   // 重置视频时长
   videoDuration.value = 0
   console.log('重置视频时长为0')
+  
+  // 标记当前题目开始录制
+  recordingStatus[currentQuestionIndex.value] = 'recording'
+  isRecordingReady.value = false
 
   startRecording()
   // 启动MediaRecorder状态监控
@@ -525,6 +535,11 @@ const startRecording = async () => {
       // 添加状态变化监听
       mediaRecorder.onstart = () => {
         console.log('MediaRecorder onstart 事件触发')
+        isRecordingReady.value = true
+        // 延迟显示"请开始作答"提示，确保录制已稳定
+        setTimeout(() => {
+          toast.success('请开始作答')
+        }, 500)
       }
       
       mediaRecorder.onstop = () => {
@@ -575,6 +590,8 @@ const stopRecordingAndSave = async () => {
             console.log(`开始上传题目 ${currentIndex} 的视频，大小: ${finalBlob.size} bytes`)
             let uploadResult = await getUploadInfo()
             console.log('录制的视频上传成功1', uploadResult);
+            // 标记当前题目完成
+            recordingStatus[currentIndex] = 'completed'
             // 关闭loading提示
             setTimeout(function () {
               uni.hideLoading();
@@ -604,15 +621,57 @@ const stopRecordingAndSave = async () => {
             }
           } catch (error) {
             console.error(`题目 ${currentIndex} 上传视频失败:`, error)
-            toast.error(`第${currentIndex + 1}题视频上传失败，请重试`)
+            
+            // 上传失败但不阻止继续，记录为失败即可
+            recordingStatus[currentIndex] = 'failed'
+            
             // 关闭loading
             setTimeout(function () {
               uni.hideLoading();
             }, 100);
-            // 失败时不更新索引，保持在当前题目
+            
+            // 即使上传失败也继续下一题
+            if (currentIndex < interviewDetails.value.data.questions.length - 1) {
+              currentQuestionIndex.value++
+              console.log(`上传失败但继续下一题: ${currentQuestionIndex.value}`)
+              
+              // 清除之前的音频播放超时
+              if (audioPlayTimeout) {
+                clearTimeout(audioPlayTimeout)
+                audioPlayTimeout = null
+              }
+              
+              play()
+            } else {
+              console.log('已完成所有题目，退出面试')
+              handleExit()
+            }
           }
         } else {
           console.warn(`题目 ${currentIndex} 没有录制到数据`)
+          
+          // 标记为录制失败
+          recordingStatus[currentIndex] = 'failed'
+          
+          // 创建失败记录
+          const failedData = {
+            question_id: currentIndex + 1,
+            video_url: '',
+            video_duration: videoDuration.value || 0,
+            recording_failed: true,
+            failure_reason: '未录制到视频数据'
+          }
+          
+          const existingIndex = fileFrom.fileUrls.findIndex(
+            (item) => item.question_id === currentIndex + 1,
+          )
+          
+          if (existingIndex >= 0) {
+            fileFrom.fileUrls[existingIndex] = failedData
+          } else {
+            fileFrom.fileUrls.push(failedData)
+          }
+          
           // 关闭loading
           setTimeout(function () {
               uni.hideLoading();
@@ -704,7 +763,7 @@ const saveInterview = async () => {
 
   // 如果上传的视频数量少于题目数量，可能有题目的视频未上传成功
   if (fileFrom.fileUrls.length < totalQuestions) {
-    console.warn(`有${totalQuestions - fileFrom.fileUrls.length}道题的视频未上传成功`)
+    console.error(`有${totalQuestions - fileFrom.fileUrls.length}道题的数据缺失`)
 
     // 检查哪些题目索引缺失
     const uploadedIndices = fileFrom.fileUrls.map((item) => item.question_id)
@@ -712,21 +771,38 @@ const saveInterview = async () => {
 
     for (let i = 0; i < totalQuestions; i++) {
       if (!uploadedIndices.includes(i + 1)) {
-        missingIndices.push(i)
+        missingIndices.push(i + 1)
       }
     }
 
-    console.warn(`缺失的题目索引: ${missingIndices.join(', ')}`)
-
-    // 为所有缺失的题目添加空记录
-    for (const missingIndex of missingIndices) {
-      console.warn(`为缺失的题目索引 ${missingIndex} 添加空记录`)
-      fileFrom.fileUrls.push({
-        question_id: missingIndex + 1,
+    console.error(`缺失的题目ID: ${missingIndices.join(', ')}`)
+    
+    // 为缺失的题目添加失败记录
+    for (const missingIdx of missingIndices) {
+      const failedData = {
+        question_id: missingIdx,
         video_url: '',
         video_duration: 0,
-      })
+        recording_failed: true,
+        failure_reason: '视频未录制或上传失败'
+      }
+      fileFrom.fileUrls.push(failedData)
     }
+    
+    console.log('已为缺失的题目添加失败记录')
+  }
+  
+  // 检查是否有无效的视频URL
+  const invalidVideos = fileFrom.fileUrls.filter(item => 
+    !item.recording_failed && (!item.video_url || item.video_url === '')
+  )
+  
+  if (invalidVideos.length > 0) {
+    console.warn(`有${invalidVideos.length}道题的视频URL无效，标记为失败`)
+    invalidVideos.forEach(item => {
+      item.recording_failed = true
+      item.failure_reason = '视频URL无效'
+    })
   }
 
   // 确保按题目索引排序
@@ -734,12 +810,33 @@ const saveInterview = async () => {
   console.log('排序后的提交数据:', JSON.stringify(fileFrom.fileUrls))
 
   try {
-    // 构建符合后端要求的数据格式
+    // 过滤出成功的视频（只提交有video_url的数据）
+    const successfulVideos = fileFrom.fileUrls.filter(item => 
+      !item.recording_failed && item.video_url && item.video_url !== ''
+    )
+    
+    const failedVideos = fileFrom.fileUrls.filter(item => 
+      item.recording_failed || !item.video_url || item.video_url === ''
+    )
+    
+    console.log(`成功的视频数: ${successfulVideos.length}, 失败的视频数: ${failedVideos.length}`)
+    
+    if (failedVideos.length > 0) {
+      const failedQuestions = failedVideos.map(v => v.question_id).join('、')
+      toast.error(`第 ${failedQuestions} 题录制失败，将在报告中标记`)
+    }
+    
+    // 构建符合后端要求的数据格式（只提交成功的视频）
     const submitData = {
-      video_questions: fileFrom.fileUrls,
+      video_questions: successfulVideos,
       perf_metrics: {
         total_time: videoDuration.value || 0,
-        questions_answered: fileFrom.fileUrls.length,
+        questions_answered: successfulVideos.length,
+        total_questions: totalQuestions,
+        failed_questions: failedVideos.map(v => ({
+          question_id: v.question_id,
+          reason: v.failure_reason || '未知原因'
+        })),
         completion_time: new Date().toISOString()
       }
     }
@@ -803,10 +900,13 @@ const downloadRecordedVideo = () => {
   }
 }
 
-// 修改 getUploadInfo 函数中的文件扩展名
-const getUploadInfo = async () => {
+// 修改 getUploadInfo 函数中的文件扩展名，添加重试机制
+const getUploadInfo = async (retryCount: number = 0) => {
+  const maxRetries = 3
+  const currentQuestionIdx = currentQuestionIndex.value
+  
   try {
-    console.log('=== 开始获取上传凭证 ===')
+    console.log(`=== 开始获取上传凭证 (尝试 ${retryCount + 1}/${maxRetries}) ===`)
     console.log('请求URL:', baseUrl + `/files/post-policy?ext=mp4`)
     const response = await uni.request({ url: baseUrl + `/files/post-policy?ext=mp4` })
     console.log('上传凭证响应:', response)
@@ -819,11 +919,51 @@ const getUploadInfo = async () => {
     console.log('=== 上传凭证获取成功，开始上传文件 ===')
     const uploadResult = await uploadFile(responseData.data)
     console.log('=== 文件上传完成 ===', uploadResult)
+    
+    // 上传成功，重置该题目的重试次数
+    uploadRetryCount[currentQuestionIdx] = 0
     return uploadResult
   } catch (error) {
-    console.error('上传流程失败:', error)
-    toast.error('视频上传失败，请重试')
-    throw error // 向上传播错误
+    console.error(`上传流程失败 (尝试 ${retryCount + 1}/${maxRetries}):`, error)
+    
+    // 如果还有重试机会
+    if (retryCount < maxRetries - 1) {
+      console.log(`等待 ${(retryCount + 1) * 2} 秒后重试...`)
+      await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000))
+      
+      // 递归重试
+      return getUploadInfo(retryCount + 1)
+    } else {
+      // 所有重试都失败了
+      console.error(`题目 ${currentQuestionIdx} 上传失败，已达到最大重试次数`)
+      uploadRetryCount[currentQuestionIdx] = maxRetries
+      
+      // 标记该题录制失败
+      recordingStatus[currentQuestionIdx] = 'failed'
+      
+      // 创建一个失败记录
+      const failedData = {
+        question_id: currentQuestionIdx + 1,
+        video_url: '',
+        video_duration: videoDuration.value,
+        recording_failed: true,
+        failure_reason: '视频上传失败'
+      }
+      
+      // 添加到上传列表中，标记为失败
+      const existingIndex = fileFrom.fileUrls.findIndex(
+        (item) => item.question_id === currentQuestionIdx + 1,
+      )
+      
+      if (existingIndex >= 0) {
+        fileFrom.fileUrls[existingIndex] = failedData
+      } else {
+        fileFrom.fileUrls.push(failedData)
+      }
+      
+      toast.error(`第${currentQuestionIdx + 1}题视频上传失败，将标记为录制失败`)
+      throw error // 向上传播错误，但已经记录了失败状态
+    }
   }
 }
 
@@ -876,7 +1016,7 @@ const uploadFile = async (opt: any) => {
 
   return new Promise((resolve, reject) => {
     console.log('=== 调用 uni.uploadFile ===')
-    uni.uploadFile({
+    const uploadTask = uni.uploadFile({
       url: 'https://' + opt.cosHost,
       file: fileToUpload,
       name: 'file',
@@ -914,6 +1054,7 @@ const uploadFile = async (opt: any) => {
         }
 
         console.log('当前所有上传数据:', JSON.stringify(fileFrom.fileUrls))
+        console.log(`已成功上传的题目列表: [${fileFrom.fileUrls.map(f => f.question_id).sort((a,b) => a-b).join(', ')}]`)
         resolve(fileData)
       },
       fail: (err) => {
@@ -924,6 +1065,20 @@ const uploadFile = async (opt: any) => {
       complete: () => {
         console.log('=== uni.uploadFile 完成回调 ===')
       },
+    })
+    
+    // 监听上传进度
+    uploadTask.onProgressUpdate((res) => {
+      console.log(`题目 ${currentQuestionIdx} 上传进度: ${res.progress}%`)
+      console.log(`已上传: ${res.totalBytesSent} / 总大小: ${res.totalBytesExpectedToSend}`)
+      
+      // 更新loading提示，显示上传进度
+      if (res.progress < 100) {
+        uni.showLoading({
+          title: `上传中 ${res.progress}%`,
+          mask: true
+        })
+      }
     })
   })
 }
@@ -992,9 +1147,24 @@ const handleNextQuestion = () => {
 const nextQuestion = async () => {
   console.log('=== nextQuestion 函数被调用 ===')
   console.log('isExiting.value:', isExiting.value)
+  console.log('isRecordingReady.value:', isRecordingReady.value)
   
   if (isExiting.value) {
     console.log('isExiting为true，直接返回')
+    return
+  }
+  
+  // 检查录制是否已准备就绪
+  if (!isRecordingReady.value) {
+    console.log('录制未准备就绪，提示用户稍后再试')
+    toast.error('正在准备录制，请稍后再试')
+    return
+  }
+  
+  // 检查当前题目是否已经有录制数据
+  if (recordedData.value.length === 0) {
+    console.log('当前题目还没有录制数据，提示用户')
+    toast.error('请先开始作答后再进入下一题')
     return
   }
   
@@ -1011,9 +1181,9 @@ const nextQuestion = async () => {
       .then(() => {
         console.log('用户确认进入下一题')
         // 使用wot-design-uni的loading方法，返回一个关闭函数
-        console.log('显示loading：保存视频中...')
+        console.log('显示loading：正在处理视频...')
         uni.showLoading({
-          title: '保存视频中...',
+          title: '正在处理视频...',
           mask: true,
         })
 
@@ -1024,6 +1194,7 @@ const nextQuestion = async () => {
         console.log('点击下一题，当前视频时长:', videoDuration.value)
         isTiming.value = false
         isTimeUp.value = true
+        isRecordingReady.value = false // 重置录制准备状态
 
         // 保存关闭函数到全局，以便在stopRecordingAndSave中使用
         // window._currentLoadingClose = closeLoading
@@ -1048,126 +1219,18 @@ const nextQuestion = async () => {
     })
 
     // 停止计时器
-    const stopTimer = startTimer()
-    stopTimer()
-
-    // 强制停止录制，无论状态如何
-    if (mediaRecorder) {
-      console.log('强制停止录制，当前状态:', mediaRecorder.state)
-
-      try {
-        // 如果正在录制，先停止录制
-        if (mediaRecorder.state === 'recording') {
-          // recordedData.value = [] // 注释掉这行，避免清空正在录制的数据
-          mediaRecorder.onstop = async () => {
-            if (recordedData.value.length > 0) {
-              const finalBlob = new Blob(recordedData.value, { type: getMimeType() })
-              blobData.value = finalBlob // 使用 blobData 存储
-
-              // 确保最后一题的视频上传完成
-              console.log('上传最后一题的视频，视频时长:', videoDuration.value)
-              await getUploadInfo()
-
-              // 等待一段时间确保上传完成
-              setTimeout(() => {
-                // 不再递归调用handleExit，直接处理完成逻辑
-                saveInterview()
-                uni.hideLoading()
-                isRequesting.value = false
-              }, 2000)
-            } else {
-              console.warn('最后一题没有获取到视频数据')
-              // 不再递归调用handleExit，直接处理完成逻辑
-              saveInterview()
-              uni.hideLoading()
-              isRequesting.value = false
-            }
-          }
-        } else {
-          // 如果不是录制状态，可能是暂停或已停止
-          console.log('MediaRecorder 不在录制状态，当前状态:', mediaRecorder.state)
-
-          // 检查是否已经有最后一题的录制数据
-          const hasLastQuestionData = fileFrom.fileUrls.some(
-            (item) => item.question_id === currentQuestionIndex.value + 1,
-          )
-
-          if (hasLastQuestionData) {
-            console.log('最后一题已有录制数据，直接完成面试')
-            handleExit()
-          } else {
-            console.log('最后一题没有录制数据，尝试重新录制')
-            // 尝试重新启动录制并立即停止，以获取最后一题的数据
-            if (stream.value) {
-              try {
-                // 重新创建 MediaRecorder
-                mediaRecorder = new MediaRecorder(stream.value, { mimeType: getMimeType() })
-                recordedData.value = []
-
-                // 设置数据可用事件处理程序
-                mediaRecorder.ondataavailable = (event) => {
-                  if (event.data && event.data.size > 0) {
-                    recordedData.value.push(event.data)
-                    console.log('获取到最后一题的视频数据，大小:', event.data.size)
-                  }
-                }
-
-                // 设置停止事件处理程序
-                mediaRecorder.onstop = async () => {
-                  console.log('最后一题重新录制停止，数据块数:', recordedData.value.length)
-
-                  if (recordedData.value.length > 0) {
-                    // 将所有 Blob 数据合并为一个 Blob
-                    const finalBlob = new Blob(recordedData.value, { type: getMimeType() })
-                    blobData.value = finalBlob
-
-                    // 上传最后一题的视频
-                    console.log('上传最后一题的重新录制视频，视频时长:', videoDuration.value)
-                    await getUploadInfo()
-
-                    // 等待上传完成
-                    setTimeout(() => {
-                      handleExit()
-                    }, 2000)
-                  } else {
-                    console.warn('最后一题没有获取到视频数据')
-                    handleExit()
-                  }
-                }
-
-                // 启动录制
-                mediaRecorder.start(1000)
-                console.log('开始最后一题的短暂录制')
-
-                // 录制一小段时间后停止
-                setTimeout(() => {
-                  if (mediaRecorder.state === 'recording') {
-                    console.log('停止最后一题的短暂录制')
-                    mediaRecorder.stop()
-                  } else {
-                    console.warn('MediaRecorder 不在录制状态，无法停止')
-                    handleExit()
-                  }
-                }, 1000)
-              } catch (error) {
-                console.error('重新创建 MediaRecorder 失败:', error)
-                handleExit()
-              }
-            } else {
-              console.warn('没有可用的媒体流，无法重新录制最后一题')
-              handleExit()
-            }
-          }
-        }
-      } catch (error) {
-        console.error('停止录制时出错:', error)
-        handleExit()
-      }
-    } else {
-      // 如果没有 mediaRecorder，直接调用 handleExit
-      console.log('没有 MediaRecorder 实例，直接完成面试')
-      handleExit()
+    if (timer.value) {
+      clearInterval(timer.value)
     }
+    
+    // 重置录制准备状态
+    isRecordingReady.value = false
+    isTiming.value = false
+    isTimeUp.value = true
+
+    // 调用统一的停止录制逻辑
+    console.log('调用 handleTimeUp 处理最后一题')
+    handleTimeUp()
   }
 }
 
@@ -1336,11 +1399,9 @@ const triggerAnotherMethod = () => {
     // 使用 setTimeout 确保 MediaRecorder 有足够时间停止
     setTimeout(() => {
       startInterview()
-      toast.success('请开始作答')
     }, 500)
   } else {
     startInterview()
-    toast.success('请开始作答')
   }
 }
 const handleStart = () => {

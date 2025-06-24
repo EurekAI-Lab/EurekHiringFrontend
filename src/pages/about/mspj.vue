@@ -101,7 +101,7 @@
         </wd-row>
         <view class="flex ml-2">
           <view class="text-sm font-bold">评估结果：</view>
-          <view class="text-sm font-bold text-#6ee7b7">{{ pgjg }}</view>
+          <view class="text-sm font-bold" :class="pgjg === '不通过' ? 'text-red-500' : 'text-#6ee7b7'">{{ pgjg }}</view>
         </view>
         <!-- <view class="ml-2 mt-2 text-xs text-#a1a1aa">暂无</view> -->
         <view class="flex ml-2 mt-2">
@@ -112,9 +112,17 @@
         <view class="flex w-95% justify-start mt-2 ml-2" style="overflow: hidden; overflow-x: auto">
           <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">
             <view class="relative w-14 h-18 ml-2 mt-2" v-for="(sample, index) in frameAnalysis.samples" :key="index">
-              <image class="w-14 h-18" :src="sample.frame_url"></image>
-              <image class="absolute w-5 h-5 z-1" style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
-                :src="iconframe" @click="showVideoModal(sample.original_video_url)"></image>
+              <image class="w-14 h-18" :src="sample.frame_url || icon001" mode="aspectFill"></image>
+              <image 
+                v-if="sample.original_video_url" 
+                class="absolute w-5 h-5 z-1" 
+                style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
+                :src="iconframe" 
+                @click="showVideoModal(sample.original_video_url)"
+              ></image>
+              <view v-else class="absolute text-xs text-gray-400" style="top: 50%; left: 50%; transform: translate(-50%, -50%)">
+                无视频
+              </view>
 
               <view class="h-5 video_title" style="font-size: 12px">
                 第{{ numberToChinese(index + 1) }}题
@@ -138,6 +146,7 @@
           <image class="w-4 h-4 ml-2 mt-2" :src="iconjt"></image>
           <view class="ml-5 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
             答题解析
+            <text class="text-xs text-gray-500 ml-2" v-if="!isLoading">({{ interviewReport.length }}题)</text>
           </view>
         </view>
         <view class="text-sm ml-2 font-bold">问答题</view>
@@ -147,7 +156,12 @@
         <view v-else-if="interviewReport.length === 0" class="flex justify-center items-center p-10">
           <view class="text-center text-gray-500">暂无面试数据</view>
         </view>
-        <view v-else v-for="(item, index) in interviewReport" :key="index">
+        <view v-else>
+          <!-- 如果题目数量少于5道，显示提示 -->
+          <view v-if="interviewReport.length < 5" class="mx-4 mt-2 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
+            <text>提示：本次面试仅完成 {{ interviewReport.length }} 道题，部分题目数据可能正在处理中。</text>
+          </view>
+          <view v-for="(item, index) in interviewReport" :key="index">
           <view class="flex ml-2 pt-5" style="justify-content: space-between">
             <view class="flex">
               <view class="">第{{ numberToChinese(index + 1) }}题</view>
@@ -156,9 +170,17 @@
               </view>
             </view>
             <view class="flex justify-right mr-2">
-              <image class="w-5 h-5 ml-2" :src="iconframe" @click="showVideoModal(item.video_url)"></image>
-              <view class="text-xs ml-2 mt-0.5 text-#a1a1aa">
+              <image 
+                v-if="item.video_url" 
+                class="w-5 h-5 ml-2" 
+                :src="iconframe" 
+                @click="showVideoModal(item.video_url)"
+              ></image>
+              <view v-if="item.video_url" class="text-xs ml-2 mt-0.5 text-#a1a1aa">
                 第{{ numberToChinese(index + 1) }}题录屏
+              </view>
+              <view v-else class="text-xs ml-2 mt-0.5 text-gray-400">
+                暂无录屏
               </view>
             </view>
           </view>
@@ -169,7 +191,12 @@
           </view>
           <view class="mt-2 w-92% ml-4% rounded" style="background-color: #f4f5f7">
             <view class="pt-3 pl-3 text-xs">面试人回答：</view>
-            <view class="pt-3 pr-3 pl-3 text-xs text-#a1a1aa">{{ filiterNum(item.answer) }}</view>
+            <view class="pt-3 pr-3 pl-3 text-xs text-#a1a1aa">
+              <text v-if="item.answer && item.answer.includes('[录制失败]')" class="text-red-500">
+                {{ item.answer }}
+              </text>
+              <text v-else>{{ filiterNum(item.answer) }}</text>
+            </view>
           </view>
           <view class="mt-2 w-92% ml-4% rounded" style="background-color: #f2f7ff">
             <view class="flex pt-3 pr-3 pl-3">
@@ -178,9 +205,15 @@
             </view>
             <view class="flex pt-1 pr-3 pl-3">
               <view class="" style="font-size: 12px; word-break: keep-all">打分：</view>
-              <wd-progress :percentage="item.score * 10" hide-text style="width: 220px"></wd-progress>
-              <view class="font-bold ml-3">{{ item.score * 10 }}</view>
+              <view v-if="item.answer && item.answer.includes('[录制失败]')">
+                <view class="text-red-500 font-bold">录制失败</view>
+              </view>
+              <view v-else>
+                <wd-progress :percentage="item.score * 10" hide-text style="width: 220px"></wd-progress>
+                <view class="font-bold ml-3">{{ item.score * 10 }}</view>
+              </view>
             </view>
+          </view>
           </view>
         </view>
       </view>
@@ -190,7 +223,18 @@
             <xzzw class="my-10" />
             <xzzw class="my-10" /> -->
       <wd-popup v-model="isModalVisible">
-        <video class="mirror" :src="showVideo" controls preload="metadata" style="width: 380px; height: 214px"></video>
+        <video 
+          v-if="showVideo" 
+          class="mirror" 
+          :src="showVideo" 
+          controls 
+          preload="metadata" 
+          style="width: 380px; height: 214px"
+          @error="handleVideoError"
+        ></video>
+        <view v-else class="flex items-center justify-center" style="width: 380px; height: 214px">
+          <text class="text-gray-500">视频加载失败</text>
+        </view>
       </wd-popup>
     </view>
   </view>
@@ -288,9 +332,17 @@ interface FrameAnalysis {
 const isModalVisible = ref(false)
 const showVideo = ref()
 const showVideoModal = (videoUrl: string) => {
+  console.log('showVideoModal called with URL:', videoUrl)
+  if (!videoUrl) {
+    uni.showToast({
+      title: '视频地址不可用',
+      icon: 'none',
+      duration: 2000
+    })
+    return
+  }
   showVideo.value = videoUrl
   isModalVisible.value = true
-  console.log(isModalVisible.value)
 }
 // 面试报告数据
 const interviewReport = ref<InterviewReportItem[]>([])
@@ -523,6 +575,16 @@ const fetchInterviewReport = async (interviewId: number) => {
         console.log('帧分析数据:', responseData.frame_analysis)
         console.log('帧分析samples:', responseData.frame_analysis.samples)
         frameAnalysis.value = responseData.frame_analysis
+        
+        // 检查视频URL是否存在
+        if (responseData.frame_analysis.samples && responseData.frame_analysis.samples.length > 0) {
+          responseData.frame_analysis.samples.forEach((sample, index) => {
+            console.log(`Sample ${index} video URL:`, sample.original_video_url)
+            if (!sample.original_video_url) {
+              console.warn(`Sample ${index} is missing original_video_url`)
+            }
+          })
+        }
       } else {
         console.log('没有帧分析数据')
       }
@@ -615,6 +677,17 @@ const getScoreIcon = () => {
   } else {
     return iconbhg // 不合适
   }
+}
+
+// 处理视频加载错误
+const handleVideoError = (error: any) => {
+  console.error('视频加载错误:', error)
+  uni.showToast({
+    title: '视频加载失败',
+    icon: 'none',
+    duration: 2000
+  })
+  isModalVisible.value = false
 }
 </script>
 
