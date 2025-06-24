@@ -50,15 +50,17 @@
       </view> -->
     <view class="flex w-full justify-center items-center fixed bottom-32" v-if="isTimingShow">
       <view
-        class="bg-#302920 flex flex-row w-[98%] text-#fd7e11 text-base h-10 justify-center items-center rounded-3xl gap-4"
+        class="bg-#302920 flex flex-row w-[98%] text-#fd7e11 text-base h-10 justify-center items-center rounded-3xl"
       >
-        <view v-if="isRecordingReady" class="flex items-center gap-2">
-          <view class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></view>
-          <text>录制中</text>
+        <view v-if="isRecordingReady" class="flex items-center gap-4">
+          <view class="flex items-center gap-2">
+            <view class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></view>
+            <text>录制中</text>
+          </view>
+          <text class="text-white">|</text>
+          <text>倒计时：{{ formatTimeToMinSec(timeLeft) }}</text>
         </view>
         <text v-else class="text-yellow-500">准备中...</text>
-        <text class="text-white">|</text>
-        <text>倒计时：{{ formatTimeToMinSec(timeLeft) }}</text>
       </view>
     </view>
 
