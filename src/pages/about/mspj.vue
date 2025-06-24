@@ -62,8 +62,8 @@
             综合评价
           </view>
         </view>
-        <view class="m-3 text-xs mt-5 text-#a1a1aa">
-          {{ overallSummary }}
+        <view class="m-3 text-xs mt-5 text-#a1a1aa whitespace-pre-wrap">
+          {{ renderMarkdownText(overallSummary) }}
         </view>
       </view>
       <!-- 能力提升建议 -->
@@ -76,8 +76,8 @@
             能力提升建议
           </view>
         </view>
-        <view class="m-3 text-xs mt-5 text-#a1a1aa">
-          {{ improvementSuggestions }}
+        <view class="m-3 text-xs mt-5 text-#a1a1aa whitespace-pre-wrap">
+          {{ renderMarkdownText(improvementSuggestions) }}
         </view>
       </view>
       <!-- 风险评价 -->
@@ -99,21 +99,23 @@
             <image class="w-10 h-10" src=""></image>
           </wd-col>
         </wd-row>
-        <view class="flex ml-2">
-          <view class="text-sm font-bold">评估结果：</view>
-          <view class="text-sm font-bold" :class="pgjg === '不通过' ? 'text-red-500' : 'text-#6ee7b7'">{{ pgjg }}</view>
-        </view>
-        
-        <!-- 显示异常检测结果 -->
-        <view class="ml-2 mt-2">
-          <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">
-            <view v-if="hasAnomalies()" class="text-xs text-orange-500">
-              检测到 {{ getAnomalyCount() }} 个异常片段
-            </view>
-            <view v-else class="text-xs text-green-500">
-              未检测到异常行为
-            </view>
-          </template>
+        <view class="flex justify-between items-center mx-2">
+          <view class="flex">
+            <view class="text-sm font-bold">评估结果：</view>
+            <view class="text-sm font-bold" :class="pgjg === '不通过' ? 'text-red-500' : 'text-#6ee7b7'">{{ pgjg }}</view>
+          </view>
+          
+          <!-- 显示异常检测结果 -->
+          <view>
+            <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">
+              <view v-if="hasAnomalies()" class="text-xs text-orange-500">
+                检测到 {{ getAnomalyCount() }} 个异常片段
+              </view>
+              <view v-else class="text-xs text-green-500">
+                未检测到异常行为
+              </view>
+            </template>
+          </view>
         </view>
         
         <view class="flex ml-2 mt-2">
@@ -132,48 +134,22 @@
         </view>
         
         <view class="flex w-95% justify-start mt-2 ml-2" style="overflow: hidden; overflow-x: auto">
-          <!-- 如果有视频分析数据，显示分析片段 -->
-          <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">
-            <view class="relative w-14 h-18 ml-2 mt-2" v-for="(sample, index) in frameAnalysis.samples" :key="index">
-              <!-- 显示缩略图 -->
+          <!-- 始终显示所有题目的视频 -->
+          <template v-if="interviewReport.length > 0">
+            <view class="relative w-14 h-18 ml-2 mt-2" v-for="(item, index) in interviewReport" :key="index">
+              <!-- 如果有对应的风险分析数据，显示分析缩略图，否则显示默认图 -->
               <image 
                 class="w-14 h-18" 
-                :src="sample.frame_url || icon001" 
+                :src="getVideoThumbnail(item.question_id, index)" 
                 mode="aspectFill"
               ></image>
               
-              <!-- 显示异常标记 -->
-              <view v-if="sample.has_anomaly" class="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded">
+              <!-- 显示异常标记（如果有风险分析数据且有异常） -->
+              <view v-if="hasQuestionAnomaly(item.question_id)" class="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded">
                 异常
               </view>
               
-              <image 
-                v-if="sample.video_url || sample.original_video_url" 
-                class="absolute w-5 h-5 z-1" 
-                style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
-                :src="iconframe" 
-                @click="showVideoModal(sample.video_url || sample.original_video_url)"
-              ></image>
-              <view v-else class="absolute text-xs text-gray-400" style="top: 50%; left: 50%; transform: translate(-50%, -50%)">
-                无视频
-              </view>
-
-              <view class="h-5 video_title" style="font-size: 12px">
-                第{{ numberToChinese(sample.question_id || index + 1) }}题
-              </view>
-            </view>
-          </template>
-          
-          <!-- 如果没有视频分析数据但有面试录像，显示完整视频 -->
-          <template v-else-if="interviewReport.length > 0">
-            <view class="relative w-14 h-18 ml-2 mt-2" v-for="(item, index) in interviewReport" :key="index">
-              <!-- 显示默认缩略图 -->
-              <image 
-                class="w-14 h-18" 
-                :src="icon001" 
-                mode="aspectFill"
-              ></image>
-              
+              <!-- 播放按钮 -->
               <image 
                 v-if="item.video_url" 
                 class="absolute w-5 h-5 z-1" 
@@ -194,7 +170,7 @@
           <!-- 加载中状态 -->
           <template v-else>
             <view class="w-full flex flex-col items-center justify-center py-4">
-              <view class="text-gray-500 text-sm mb-2">视频分析处理中，请稍后刷新查看</view>
+              <view class="text-gray-500 text-sm mb-2">视频加载中，请稍候...</view>
               <view class="flex gap-2">
                 <image class="w-14 h-18" :src="icon001"></image>
                 <image class="w-14 h-18" :src="icon001"></image>
@@ -325,6 +301,7 @@ import Xzzw from '@/pages/about/components/xzzw.vue'
 import { onPullDownRefresh, onBackPress } from '@dcloudio/uni-app'
 import { navigateBack } from '@/utils/platformUtils'
 import { handleToken } from "@/utils/useAuth"
+import { renderMarkdownText } from '@/utils/markdownUtils'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 console.log('env', import.meta.env.MODE)
@@ -786,6 +763,28 @@ const getAnomalyCount = () => {
     return 0
   }
   return frameAnalysis.value.samples.filter(sample => sample.has_anomaly === true).length
+}
+
+// 获取视频缩略图
+const getVideoThumbnail = (questionId: number, index: number) => {
+  // 查找对应题目的风险分析数据
+  if (frameAnalysis.value.samples && frameAnalysis.value.samples.length > 0) {
+    const sample = frameAnalysis.value.samples.find(s => s.question_id === questionId)
+    if (sample && sample.frame_url) {
+      return sample.frame_url
+    }
+  }
+  // 返回默认缩略图
+  return icon001
+}
+
+// 检查特定题目是否有异常
+const hasQuestionAnomaly = (questionId: number) => {
+  if (!frameAnalysis.value.samples || frameAnalysis.value.samples.length === 0) {
+    return false
+  }
+  const sample = frameAnalysis.value.samples.find(s => s.question_id === questionId)
+  return sample && sample.has_anomaly === true
 }
 </script>
 

@@ -73,6 +73,7 @@ import { ref } from 'vue'
 // import { generateOneQuestionAPI } from '@/service/api' // 不再使用非流式接口
 import { usePublicStore } from '@/store'
 import { useToast } from 'wot-design-uni'
+import { renderMarkdownText, cleanMarkdownCodeBlocks } from '@/utils/markdownUtils'
 
 const toast = useToast()
 const publicStore = usePublicStore()
@@ -250,7 +251,9 @@ const doGenerateQuestion = async () => {
                 } else if (data.field === 'time') {
                   value2.value = data.value
                 } else if (data.field === 'question') {
-                  value3.value = data.value
+                  // 先清理代码块标记，然后进行 Markdown 渲染
+                  const cleaned = cleanMarkdownCodeBlocks(data.value)
+                  value3.value = renderMarkdownText(cleaned)
                 }
                 break
                 
@@ -259,7 +262,10 @@ const doGenerateQuestion = async () => {
                 if (data.data) {
                   value1.value = data.data.interviewAspect || value1.value || ''
                   value2.value = data.data.time || value2.value || '5分钟'
-                  value3.value = data.data.question || value3.value || ''
+                  // 先清理代码块标记，然后进行 Markdown 渲染
+                  const questionText = data.data.question || value3.value || ''
+                  const cleaned = cleanMarkdownCodeBlocks(questionText)
+                  value3.value = renderMarkdownText(cleaned)
                 }
                 loding.value = false
                 break

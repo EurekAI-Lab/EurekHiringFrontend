@@ -46,7 +46,7 @@
 
     <view
       class="w-full flex items-center justify-center pb-5"
-      @click="jumpInterviewResult(item.interviews_id)"
+      @click="jumpInterviewResult(item)"
       v-for="item in interviewResults"
       :key="item"
     >
@@ -68,13 +68,21 @@
             </view>
           </view>
 
+          <!-- 审核中状态：只有真实面试且审核状态为PENDING时显示 -->
           <image
-            v-if="item.is_qualified === 'PASS'"
+            v-if="item.interview_type === 'real' && item.audit_status === 'PENDING'"
+            :src="iconReviewing"
+            class="w-15 h-15 absolute right-5 mt-1"
+          />
+          <!-- 通过状态：审核通过或不需要审核的情况 -->
+          <image
+            v-else-if="item.is_qualified === 'PASS'"
             :src="hg"
             class="w-15 h-15 absolute right-5 mt-1"
           />
+          <!-- 不通过状态 -->
           <image
-            v-if="item.is_qualified === 'FAIL'"
+            v-else-if="item.is_qualified === 'FAIL'"
             :src="bhg"
             class="w-15 h-15 absolute right-5 mt-1"
           />
@@ -118,6 +126,7 @@ import aimn from '../../static/app/icons/icon_aimn.png'
 import hg from '../../static/app/icons/icon_hg.png'
 import bhg from '../../static/app/icons/icon_bhg.png'
 import rame from '../../static/app/icons/Frame-001.png'
+import iconReviewing from '../../static/app/icons/interview-status/icon_reviewing.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import wxSdk from 'weixin-js-sdk'
 import { navigateBack } from '@/utils/platformUtils'
@@ -241,12 +250,21 @@ async function getInterviewList(keyword = '') {
     loading.value = false
   }
 }
-const jumpInterviewResult = (interviewResultId) => {
-  uni.setStorageSync('interviewId', interviewResultId)
+const jumpInterviewResult = (item) => {
+  uni.setStorageSync('interviewId', item.interviews_id)
   uni.setStorageSync('from', 'h5')
-  uni.navigateTo({
-    url: '/pages/about/mspj',
-  })
+  
+  // 如果是真实面试且审核状态为PENDING，跳转到加载页面
+  if (item.interview_type === 'real' && item.audit_status === 'PENDING') {
+    uni.navigateTo({
+      url: `/pages/about/mspj-loading?interviewId=${item.interviews_id}&type=1`,
+    })
+  } else {
+    // 其他情况直接跳转到报告页面
+    uni.navigateTo({
+      url: '/pages/about/mspj',
+    })
+  }
 }
 </script>
 

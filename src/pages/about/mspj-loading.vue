@@ -202,34 +202,25 @@ const pollInterviewReport = () => {
 const navigateToReportPage = () => {
   console.info('传递的面试ID' + interviewId.value)
   
-  // 如果是模拟面试（type=2），直接返回列表页
-  if (type.value === '2') {
-    uni.showToast({
-      title: '报告生成成功',
-      icon: 'success',
-      duration: 1500
-    })
-    setTimeout(() => {
-      uni.reLaunch({
-        url: '/pages/interviews/record-simulate'
+  // 所有类型的面试都跳转到报告页面
+  uni.redirectTo({
+    url: `/pages/about/mspj?interviewId=${interviewId.value}&type=${type.value}`,
+    success: () => {
+      console.log('成功跳转到面试报告页面')
+      uni.showToast({
+        title: '报告生成成功',
+        icon: 'success',
+        duration: 1500
       })
-    }, 1500)
-  } else {
-    // 正式面试跳转到报告页面
-    uni.redirectTo({
-      url: `/pages/about/mspj?interviewId=${interviewId.value}&type=${type.value}`,
-      success: () => {
-        console.log('成功跳转到面试报告页面')
-      },
-      fail: (error) => {
-        console.error('跳转到面试报告页面失败:', error)
-        uni.showToast({
-          title: '跳转失败，请手动返回重试',
-          icon: 'none',
-        })
-      },
-    })
-  }
+    },
+    fail: (error) => {
+      console.error('跳转到面试报告页面失败:', error)
+      uni.showToast({
+        title: '跳转失败，请手动返回重试',
+        icon: 'none',
+      })
+    },
+  })
 }
 
 // 清除所有定时器
