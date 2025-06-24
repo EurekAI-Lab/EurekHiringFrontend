@@ -144,6 +144,7 @@ import dh from '../../static/app/icons/icon_dh.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { navigateBack } from '@/utils/platformUtils'
 import { handleToken } from "@/utils/useAuth"
+import { useNavBar } from '@/utils/useNavBar'
 import { ref, watch, onMounted } from 'vue'
 const toast = useToast()
 
@@ -153,30 +154,8 @@ const searchValue = ref()
 const showSheet = ref(false)
 const showErrorTip = ref(false)
 
-// 获取系统信息
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight || 0
-
-// 获取安全区域信息 - 参考 mspj-loading.vue 的实现
-const safeAreaInsets = systemInfo.safeAreaInsets || {
-  top: statusBarHeight,
-  bottom: 0,
-  left: 0,
-  right: 0
-}
-
-// 计算导航栏高度，适配不同平台
-const navBarHeight = (() => {
-  // iOS设备
-  if (systemInfo.platform === 'ios') {
-    return 44
-  }
-  // Android设备
-  return 48
-})()
-
-// 计算总的顶部高度（使用安全区域顶部高度 + 导航栏）
-const topBarHeight = safeAreaInsets.top + navBarHeight
+// 使用导航栏工具获取高度信息
+const { safeAreaInsets, navBarHeight, topBarHeight } = useNavBar()
 const close = async () => {
   showSheet.value = false
 }
