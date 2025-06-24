@@ -12,7 +12,7 @@
 <template>
   <view class="page-container">
     <!-- 自定义导航栏 -->
-    <view class="navbar" :style="{ height: topBarHeight + 'px' }">
+    <view class="navbar fixed top-0 left-0 right-0 z-10 bg-white" :style="{ height: topBarHeight + 'px' }">
       <view class="navbar-content" :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }">
         <image 
           class="back-icon" 
@@ -28,6 +28,7 @@
     <!-- 主内容区域 -->
     <view class="content-area" :style="{ paddingTop: topBarHeight + 'px' }">
       <!-- 报告生成图标 -->
+       <div class="content-area-zw"></div>
       <image 
         class="report-icon" 
         :src="reportIcon"
@@ -51,6 +52,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { navigateBack } from '@/utils/platformUtils'
+import { useNavBar } from '@/utils/useNavBar'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 const interviewId = ref<number | null>(null)
@@ -66,27 +68,29 @@ const windowInfo = uni.getWindowInfo()
 const statusBarHeight = systemInfo.statusBarHeight || 0
 const pixelRatio = systemInfo.pixelRatio || 1
 
-// 获取安全区域信息
-const safeAreaInsets = systemInfo.safeAreaInsets || {
-  top: statusBarHeight,
-  bottom: 0,
-  left: 0,
-  right: 0
-}
+// // 获取安全区域信息
+// const safeAreaInsets = systemInfo.safeAreaInsets || {
+//   top: statusBarHeight,
+//   bottom: 0,
+//   left: 0,
+//   right: 0
+// }
 
-// 计算导航栏高度，适配刘海屏
-const navBarHeight = (() => {
-  // iOS设备
-  if (systemInfo.platform === 'ios') {
-    // 使用安全区域高度来确保正确的导航栏位置
-    return 44
-  }
-  // Android设备
-  return 48
-})()
+// // 计算导航栏高度，适配刘海屏
+// const navBarHeight = (() => {
+//   // iOS设备
+//   if (systemInfo.platform === 'ios') {
+//     // 使用安全区域高度来确保正确的导航栏位置
+//     return 44
+//   }
+//   // Android设备
+//   return 48
+// })()
 
 // 计算总的顶部高度（使用安全区域顶部高度 + 导航栏）
-const topBarHeight = safeAreaInsets.top + navBarHeight
+// const topBarHeight = safeAreaInsets.top + navBarHeight
+// 使用导航栏工具获取高度信息
+const { safeAreaInsets, navBarHeight, topBarHeight } = useNavBar()
 
 // 根据像素密度选择合适的图片
 const backIcon = computed(() => {
@@ -365,7 +369,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   padding: 0 40px;
-  padding-top: 120px; /* 调整为中间偏上 */
+  padding-top: 140px !important; /* 调整为中间偏上 */
 }
 
 .report-icon {
