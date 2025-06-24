@@ -94,7 +94,7 @@ export function useNavBar() {
 /**
  * 检测是否是刘海屏设备（仅用于 H5 平台）
  */
-function detectNotchDevice(): boolean {
+function detectNotchDevice() {
   // #ifdef H5
   if (typeof window === 'undefined') return false
   
