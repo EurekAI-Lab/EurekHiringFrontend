@@ -210,7 +210,14 @@ const handleExit = () => {
     success: (res) => {
       if (res.confirm) {
         clearAllIntervals()
-        navigateBack()
+        // 如果是模拟面试（type=2），返回到模拟面试列表页
+        if (type.value === '2') {
+          uni.reLaunch({
+            url: '/pages/interviews/record-simulate'
+          })
+        } else {
+          navigateBack()
+        }
       }
     },
   })

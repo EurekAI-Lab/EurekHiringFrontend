@@ -215,7 +215,7 @@ import iconfx from '@/static/app/icons/icon-fx.png'
 import Aizdsc from '@/pages/about/components/aizdsc.vue'
 import Aimn from '@/pages/about/components/aimn.vue'
 import Xzzw from '@/pages/about/components/xzzw.vue'
-import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { onPullDownRefresh, onBackPress } from '@dcloudio/uni-app'
 import { navigateBack } from '@/utils/platformUtils'
 import { handleToken } from "@/utils/useAuth"
 
@@ -373,6 +373,19 @@ const fetchInterviewInfo = async (interviewId: number) => {
     console.error('请求失败:', error)
   }
 }
+
+// 处理返回事件
+onBackPress(() => {
+  // 如果是模拟面试（type=2），返回到模拟面试列表页
+  if (type.value === '2') {
+    uni.reLaunch({
+      url: '/pages/interviews/record-simulate'
+    })
+    return true // 阻止默认返回行为
+  }
+  // 其他情况使用默认返回行为
+  return false
+})
 
 // 下拉刷新
 onPullDownRefresh(() => {
