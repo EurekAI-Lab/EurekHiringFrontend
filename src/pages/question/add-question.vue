@@ -138,7 +138,7 @@ const generateQuestionDebounced = () => {
   
   // 显示加载状态
   loding.value = true
-  value3.value = '正在连接AI服务...'
+  // 不在问题框显示状态文本
   
   // 设置新的定时器
   debounceTimer = setTimeout(() => {
@@ -234,15 +234,13 @@ const doGenerateQuestion = async () => {
             // 根据消息类型处理
             switch (data.type) {
               case 'start':
-                // 开始生成
-                value3.value = data.message || '正在生成...'
+                // 开始生成 - 不在问题框显示状态消息
+                // value3.value 保持为空，让用户看到空白的输入框
                 break
                 
               case 'status':
-                // 状态更新
-                if (!value3.value || value3.value === '正在分析职位要求...') {
-                  value3.value = data.message || ''
-                }
+                // 状态更新 - 不在问题框显示状态消息
+                // 可以考虑在其他地方显示状态，但不在问题框
                 break
                 
               case 'field':
