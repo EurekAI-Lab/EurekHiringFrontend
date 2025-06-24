@@ -50,7 +50,12 @@
     </view>
 
     <view class="pl-4 absolute top-80" v-if="show">
-      <Aizdsc v-model:value1="value1" v-model:value2="value2" v-model:value3="value3"></Aizdsc>
+      <Aizdsc 
+        v-model:value1="value1" 
+        v-model:value2="value2" 
+        v-model:value3="value3"
+        :isGenerating="loding"
+      ></Aizdsc>
     </view>
   </view>
 </template>
@@ -67,6 +72,14 @@ import { useToast } from 'wot-design-uni'
 
 const toast = useToast()
 const publicStore = usePublicStore()
+
+// 组件卸载时清理
+onUnmounted(() => {
+  if (currentController) {
+    currentController.abort()
+    currentController = null
+  }
+})
 const query = {
   positionName: '',
   qualification: '',
@@ -97,16 +110,120 @@ const value1 = ref('')
 const value2 = ref('')
 const value3 = ref('')
 
+// 添加 AbortController 用于取消请求
+let currentController: AbortController | null = null
+
 const getQuestion = async () => {
+  // 如果有正在进行的请求，先取消它
+  if (currentController) {
+    currentController.abort()
+    currentController = null
+  }
+  
+  // 清空之前的内容
+  value1.value = ''
+  value2.value = ''
+  value3.value = ''
+  
+  // 验证输入
+  if (!value.value || value.value.trim() === '') {
+    toast.error('请输入问题描述')
+    return
+  }
+  
   loding.value = true
+  show.value = true  // 立即显示结果区域，但内容为空
   query.guidePrompt = value.value
-  const res = await generateOneQuestionAPI(query)
-  loding.value = false
-  if (res.code === 200) {
-    show.value = true
-    value1.value = res.data.interviewAspect
-    value2.value = res.data.time
-    value3.value = res.data.question
+  
+  // 使用流式接口
+  const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+  
+  // 创建新的 AbortController
+  currentController = new AbortController()
+  
+  try {
+    const response = await fetch(baseUrl + '/interview-questions/generateOneQuestionStream', {
+      signal: currentController.signal,  // 添加信号以支持取消
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${uni.getStorageSync('token')}`
+      },
+      body: JSON.stringify(query),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    let buffer = ''
+    // 重置 partialContent，确保每次都是新的
+    let partialContent = {
+      interviewAspect: '',
+      time: '',
+      question: ''
+    }
+    
+    while (true) {
+      const { done, value: chunk } = await reader.read()
+      if (done) break
+      
+      buffer += decoder.decode(chunk, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      
+      for (const line of lines) {
+        if (!line.trim()) continue
+        
+        // 处理 SSE 格式
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.substring(6))
+            
+            if (data.partial) {
+              // 累积部分内容（打字机效果）
+              // 后端已经清理过了，直接使用
+              partialContent.question += data.partial  // 改回累积模式
+              value3.value = partialContent.question
+            } else if (data.complete && data.data) {
+              // 完整结果
+              value1.value = data.data.interviewAspect || data.data.考核点 || ''
+              value2.value = data.data.time || data.data.答题时长 || '5分钟'
+              value3.value = data.data.question || data.data.问答题 || partialContent.question
+              loding.value = false
+            }
+          } catch (error) {
+            console.error('解析SSE数据错误:', error, line)
+          }
+        }
+      }
+    }
+  } catch (error: any) {
+    // 如果是用户取消请求，不显示错误
+    if (error.name === 'AbortError') {
+      console.log('请求已取消')
+      loding.value = false
+      return
+    }
+    
+    console.error('流式生成失败:', error)
+    // 如果流式失败，回退到普通接口
+    try {
+      const res = await generateOneQuestionAPI(query)
+      if (res.code === 200) {
+        value1.value = res.data.interviewAspect
+        value2.value = res.data.time
+        value3.value = res.data.question
+      }
+    } catch (fallbackError) {
+      console.error('回退接口也失败:', fallbackError)
+      toast.error('生成失败，请重试')
+      show.value = false
+    }
+  } finally {
+    loding.value = false
   }
 }
 
@@ -128,6 +245,11 @@ const saveQuestion = () => {
   if (!value2.value || !timeRegex.test(value2.value)) {
     toast.error('面试时间格式必须为"x分钟"，如"5分钟"')
     return
+  }
+  
+  // 确保 questions 数组存在
+  if (!publicStore.questionState.questions) {
+    publicStore.questionState.questions = []
   }
   
   publicStore.questionState.questions.push({

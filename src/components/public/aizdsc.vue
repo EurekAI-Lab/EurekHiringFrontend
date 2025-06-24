@@ -12,8 +12,11 @@
           <image class="w-5 h-5 pl-4.5 pb-0.5" :src="iconkhd"></image>
         </view>
         <view class="w-3/12 font-semibold text-sm">考核点</view>
-        <view class="w-6.5/12 bg-#f9fbfc">
+        <view class="w-6.5/12 bg-#f9fbfc relative">
           <input class="ml-auto h-7.5 rounded text-sm pl-3" v-model="localValue1" />
+          <view v-if="!localValue1 && isGenerating" class="absolute inset-0 flex items-center pl-3">
+            <view class="loading-placeholder">生成中...</view>
+          </view>
         </view>
       </view>
 
@@ -22,8 +25,11 @@
           <image class="w-5 h-5 pl-4.5 pb-0.5" :src="icond"></image>
         </view>
         <view class="w-3/12 font-semibold text-sm">答题时长</view>
-        <view class="w-6.5/12">
+        <view class="w-6.5/12 relative">
           <input class="pl-3 bg-#f9fbfc ml-auto h-7.5 rounded text-sm" v-model="localValue2" />
+          <view v-if="!localValue2 && isGenerating" class="absolute inset-0 flex items-center pl-3">
+            <view class="loading-placeholder">生成中...</view>
+          </view>
         </view>
       </view>
 
@@ -73,6 +79,7 @@ const props = defineProps<{
   value1: string
   value2: string
   value3: string
+  isGenerating?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -98,4 +105,19 @@ const localValue3 = computed({
 })
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.loading-placeholder {
+  color: #999;
+  font-size: 12px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+</style>

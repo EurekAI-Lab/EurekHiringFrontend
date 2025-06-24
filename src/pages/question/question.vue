@@ -90,7 +90,40 @@
       >
         <view @click.stop="closeOutside">
           <wd-swipe-action>
-            <view class="h-auto py-3 w-86 relative bg-white rounded-xl">
+            <!-- 加载中状态 -->
+            <view v-if="item.loading" class="h-auto py-3 w-86 relative bg-white rounded-xl">
+              <view class="flex flex-row">
+                <view class="mt-5 min-w-1.5 min-h-3 h-3 rounded bg-blue-5 -ml-0.2"></view>
+                <view class="px-2 py-2 flex-1">
+                  <view class="text-gray-500 mb-2 font-medium">第{{ item.index }}题 - {{ item.interview_aspect }}</view>
+                  <!-- 如果有部分内容，显示实际内容 -->
+                  <view v-if="item.question && item.question !== '正在生成中...' && item.question !== '正在生成题目内容...'" class="text-sm leading-relaxed">
+                    {{ item.question }}
+                    <text class="inline-block w-2 h-4 bg-blue-500 animate-blink ml-1"></text>
+                  </view>
+                  <!-- 否则显示占位符 -->
+                  <view v-else class="animate-pulse">
+                    <view class="bg-gray-200 h-4 w-full rounded mb-2"></view>
+                    <view class="bg-gray-200 h-4 w-4/5 rounded mb-2"></view>
+                    <view class="bg-gray-200 h-4 w-3/4 rounded"></view>
+                  </view>
+                  <view class="flex justify-between items-center mt-3">
+                    <view class="text-xs text-gray-400">
+                      <text v-if="!item.time">预计时长生成中...</text>
+                      <text v-else>答题时间：{{ item.time }}</text>
+                    </view>
+                    <view class="text-xs text-blue-500 animate-pulse">
+                      <view class="flex items-center gap-1">
+                        <view class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping"></view>
+                        正在生成
+                      </view>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </view>
+            <!-- 正常显示状态 -->
+            <view v-else class="h-auto py-3 w-86 relative bg-white rounded-xl">
               <view class="flex flex-row">
                 <view class="mt-5 min-w-1.5 min-h-3 h-3 rounded bg-blue-5 -ml-0.2"></view>
                 <view class="px-2 text h-auto py-2 max-w-[97%]">
@@ -326,7 +359,148 @@ const query = ref({
   guidePrompt: '',
   testPaperId: '',
 })
-const chatStream = () => {
+
+// 主入口：优先尝试并行流式生成
+const chatStream = async () => {
+  // 清空现有题目
+  publicStore.questionState.questions = []
+  // 设置 loading 状态
+  publicStore.questionState.loading = true
+  
+  // 优先尝试并行流式生成
+  try {
+    await chatStreamParallel()
+  } catch (error) {
+    console.error('并行流式生成不可用，使用串行模式:', error)
+    chatStreamSerial()
+  }
+}
+
+// 新增：并行流式生成
+const chatStreamParallel = async () => {
+  console.log('尝试使用并行流式生成')
+  
+  try {
+    const response = await fetch(baseUrl + '/interview-questions/generateQuestionsParallelStream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(query.value),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    let buffer = ''
+    
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      
+      for (const line of lines) {
+        if (!line.trim()) continue
+        
+        // 处理 SSE 格式
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.substring(6))
+            
+            switch(data.type) {
+              case 'start':
+                // 初始化所有题目占位符
+                console.log('开始生成题目，主题:', data.topics)
+                publicStore.questionState.questions = Array(data.total).fill(null).map((_, i) => ({
+                  index: i + 1,
+                  loading: true,
+                  question: '正在生成中...',
+                  time: '',
+                  interview_aspect: data.topics?.[i] || `考察点${i + 1}`,
+                  partialContent: ''  // 存储部分内容
+                }))
+                break
+                
+              case 'generating':
+                // 某个题目开始生成
+                console.log(`第${data.index}题开始生成，主题: ${data.topic}`)
+                if (publicStore.questionState.questions[data.index - 1]) {
+                  publicStore.questionState.questions[data.index - 1].question = '正在生成题目内容...'
+                }
+                break
+                
+              case 'partial':
+                // 接收部分内容（流式）
+                if (publicStore.questionState.questions[data.index - 1]) {
+                  const question = publicStore.questionState.questions[data.index - 1]
+                  // 直接使用content作为题目内容（后端已经解析）
+                  if (data.content) {
+                    // 后端已经清理过了，直接使用
+                    question.question = data.content
+                    // 添加流式效果标记
+                    question.isStreaming = true
+                  }
+                }
+                break
+                
+              case 'complete':
+                // 题目生成完成
+                console.log(`第${data.index}题生成完成`)
+                if (publicStore.questionState.questions[data.index - 1]) {
+                  publicStore.questionState.questions[data.index - 1] = {
+                    index: data.index,
+                    question: data.question.question || data.question.问答题 || '',
+                    time: data.question.time || data.question.答题时长 || '3分钟',
+                    interview_aspect: data.question.interview_aspect || data.question.考核点 || '',
+                    loading: false,
+                    isStreaming: false
+                  }
+                  
+                  // 移除自动滚动
+                  // uni.pageScrollTo({
+                  //   scrollTop: 2000000,
+                  //   duration: 300,
+                  // })
+                }
+                break
+                
+              case 'error':
+                console.error(`第${data.index}题生成错误:`, data.message)
+                if (data.index && publicStore.questionState.questions[data.index - 1]) {
+                  publicStore.questionState.questions[data.index - 1] = {
+                    ...publicStore.questionState.questions[data.index - 1],
+                    question: `[生成失败] ${data.message || '请重试'}`,
+                    time: '0分钟',
+                    loading: false
+                  }
+                }
+                break
+                
+              case 'done':
+                console.log('所有题目生成完成')
+                publicStore.questionState.loading = false
+                return
+            }
+          } catch (error) {
+            console.error('解析SSE数据错误:', error, line)
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('并行流式生成失败，回退到串行模式:', error)
+    // 回退到原有的串行流式生成
+    chatStreamSerial()
+  }
+}
+
+// 原有的串行流式生成（重命名）
+const chatStreamSerial = () => {
+  console.log('使用串行流式生成')
   // 清空现有题目
   publicStore.questionState.questions = []
   // 设置 loading 状态
@@ -393,6 +567,7 @@ const chatStream = () => {
     try {
       const streamReader = stream.getReader()
       let currentIndex = 0 // 从0开始计数
+      let buffer = '' // 用于存储未完整的行
 
       while (true) {
         try {
@@ -408,27 +583,41 @@ const chatStream = () => {
             continue
           }
 
-          try {
-            const res = JSON.parse(value)
-            if (!Array.isArray(publicStore.questionState.questions)) {
-              publicStore.questionState.questions = []
+          // 将新数据添加到缓冲区
+          buffer += value
+          
+          // 按行分割处理
+          const lines = buffer.split('\n')
+          
+          // 保留最后一个可能不完整的行
+          buffer = lines.pop() || ''
+          
+          // 处理完整的行
+          for (const line of lines) {
+            if (!line.trim()) continue // 跳过空行
+            
+            try {
+              const res = JSON.parse(line)
+              if (!Array.isArray(publicStore.questionState.questions)) {
+                publicStore.questionState.questions = []
+              }
+
+              // 添加新题目到数组
+              publicStore.questionState.questions.push({
+                index: ++currentIndex,
+                question: res.question,
+                time: res.time,
+                interview_aspect: res.interview_aspect,
+              })
+
+              // 移除自动滚动
+              // uni.pageScrollTo({
+              //   scrollTop: 2000000,
+              //   duration: 300,
+              // })
+            } catch (parseError) {
+              console.error('JSON解析错误:', parseError)
             }
-
-            // 添加新题目到数组
-            publicStore.questionState.questions.push({
-              index: ++currentIndex,
-              question: res.question,
-              time: res.time,
-              interview_aspect: res.interview_aspect,
-            })
-
-            // 滚动到底部
-            uni.pageScrollTo({
-              scrollTop: 2000000,
-              duration: 300,
-            })
-          } catch (parseError) {
-            console.error('JSON解析错误:', parseError)
           }
         } catch (readError) {
           console.error('读取流错误:', readError)
@@ -554,5 +743,45 @@ const { safeAreaInsets } = uni.getSystemInfoSync()
   background: url('../../static/images/ai-bg-02.png') top center;
   background-size: 100% 185%;
   overflow: hidden;
+}
+
+/* 脉冲动画 */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 闪烁光标动画 */
+.animate-blink {
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* ping动画 */
+.animate-ping {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
 </style>
