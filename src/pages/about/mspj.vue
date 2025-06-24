@@ -107,7 +107,6 @@
         <view class="flex ml-2 mt-2">
           <view class="text-sm font-bold">面试录屏：</view>
           <view class="text-xs text-gray-500 ml-2">{{ frameAnalysis.samples ? `(${frameAnalysis.samples.length}个)` : '(加载中...)' }}</view>
-          <view class="text-xs text-blue-500 ml-4" @click="fetchInterviewReport(interviewId)" style="text-decoration: underline;">刷新</view>
         </view>
         <view class="flex w-95% justify-start mt-2 ml-2" style="overflow: hidden; overflow-x: auto">
           <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">

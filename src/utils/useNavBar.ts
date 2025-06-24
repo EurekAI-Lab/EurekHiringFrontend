@@ -41,6 +41,11 @@ export function useNavBar() {
   }
   // #endif
   
+  // 确保 top 至少等于 statusBarHeight
+  if (safeAreaInsets.top < statusBarHeight.value) {
+    safeAreaInsets.top = statusBarHeight.value
+  }
+  
   // 微信小程序平台特殊处理
   // #ifdef MP-WEIXIN
   try {
