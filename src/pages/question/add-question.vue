@@ -238,6 +238,13 @@ const doGenerateQuestion = async () => {
                 value3.value = data.message || '正在生成...'
                 break
                 
+              case 'status':
+                // 状态更新
+                if (!value3.value || value3.value === '正在分析职位要求...') {
+                  value3.value = data.message || ''
+                }
+                break
+                
               case 'field':
                 // 字段更新
                 if (data.field === 'interviewAspect') {
