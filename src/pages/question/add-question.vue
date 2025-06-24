@@ -176,13 +176,14 @@ const doGenerateQuestion = async () => {
   // 创建新的 AbortController
   currentController = new AbortController()
   
-  // 设置超时定时器
+  // 设置超时定时器 - 增加到60秒，给LLM更多时间
   const timeoutId = setTimeout(() => {
     if (currentController && requestId === currentRequestId) {
       currentController.abort()
       toast.error('请求超时，请重试')
+      loding.value = false
     }
-  }, 30000)  // 30秒超时
+  }, 60000)  // 60秒超时
   
   try {
     const response = await fetch(baseUrl + '/interview-questions/generateOneQuestionStream', {
@@ -202,12 +203,6 @@ const doGenerateQuestion = async () => {
     const reader = response.body.getReader()
     const decoder = new TextDecoder('utf-8')
     let buffer = ''
-    // 重置 partialContent，确保每次都是新的
-    let partialContent = {
-      interviewAspect: '',
-      time: '',
-      question: ''
-    }
     
     while (true) {
       const { done, value: chunk } = await reader.read()
@@ -231,119 +226,53 @@ const doGenerateQuestion = async () => {
           try {
             const data = JSON.parse(line.substring(6))
             
-            // 处理状态消息
-            if (data.status) {
-              if (requestId === currentRequestId) {
-                if (data.status === 'generating' && data.message) {
-                  value3.value = data.message
-                } else if (data.status === 'thinking') {
-                  // 收到心跳，表示还在处理中
-                  if (!value3.value || value3.value === '正在连接AI服务...') {
-                    value3.value = '正在思考中...'
-                  }
-                } else if (data.status === 'content_start') {
-                  // 开始生成实际内容
-                  value3.value = ''
-                  partialContent.question = ''
+            // 只处理当前请求的数据
+            if (requestId !== currentRequestId) {
+              return
+            }
+            
+            // 根据消息类型处理
+            switch (data.type) {
+              case 'start':
+                // 开始生成
+                value3.value = data.message || '正在生成...'
+                break
+                
+              case 'field':
+                // 字段更新
+                if (data.field === 'interviewAspect') {
+                  value1.value = data.value
+                } else if (data.field === 'time') {
+                  value2.value = data.value
+                } else if (data.field === 'question') {
+                  value3.value = data.value
                 }
-              }
-            } else if (data.partial) {
-              // 处理流式内容 - 简化逻辑，只负责显示
-              if (requestId === currentRequestId) {
-                // 如果有特定字段的流式数据
-                if (data.field) {
-                  if (data.field === 'question') {
-                    value3.value = data.content || ''
-                  } else if (data.field === 'interviewAspect') {
-                    value1.value = data.content || ''
-                  } else if (data.field === 'time') {
-                    value2.value = data.content || ''
-                  }
-                } else {
-                  // 兼容旧格式 - 直接累积显示
-                  partialContent.question += data.partial
-                  value3.value = partialContent.question
+                break
+                
+              case 'complete':
+                // 完成
+                if (data.data) {
+                  value1.value = data.data.interviewAspect || value1.value || ''
+                  value2.value = data.data.time || value2.value || '5分钟'
+                  value3.value = data.data.question || value3.value || ''
                 }
-              }
-            } else if (data.complete && data.data) {
-              // 完整结果
-              if (requestId === currentRequestId) {
-                value1.value = data.data.interviewAspect || data.data.考核点 || ''
-                value2.value = data.data.time || data.data.答题时长 || '5分钟'
-                value3.value = data.data.question || data.data.问答题 || partialContent.question
                 loding.value = false
-              }
-            } else if (data.error) {
-              // 处理错误
-              console.error('生成错误:', data.error)
-              if (requestId === currentRequestId) {
-                if (data.raw_content) {
-                  // 如果有原始内容，尝试从中提取有用信息
-                  try {
-                    const raw = data.raw_content
-                    
-                    // 尝试提取问答题（使用相同的逻辑）
-                    const questionStart = raw.indexOf('"问答题"')
-                    if (questionStart !== -1) {
-                      const afterQuestion = raw.substring(questionStart)
-                      const colonIndex = afterQuestion.indexOf(':')
-                      if (colonIndex !== -1) {
-                        const valueStart = afterQuestion.indexOf('"', colonIndex + 1)
-                        if (valueStart !== -1) {
-                          let valueEnd = -1
-                          let inEscape = false
-                          
-                          for (let i = valueStart + 1; i < afterQuestion.length; i++) {
-                            if (inEscape) {
-                              inEscape = false
-                              continue
-                            }
-                            if (afterQuestion[i] === '\\') {
-                              inEscape = true
-                              continue
-                            }
-                            if (afterQuestion[i] === '"') {
-                              valueEnd = i
-                              break
-                            }
-                          }
-                          
-                          if (valueEnd !== -1) {
-                            value3.value = afterQuestion.substring(valueStart + 1, valueEnd)
-                              .replace(/\\n/g, '\n')
-                              .replace(/\\"/g, '"')
-                              .replace(/\\\\/g, '\\')
-                          } else {
-                            value3.value = afterQuestion.substring(valueStart + 1)
-                              .replace(/\\n/g, '\n')
-                              .replace(/\\"/g, '"')
-                              .replace(/\\\\/g, '\\')
-                          }
-                        }
-                      }
-                    } else if (partialContent.question) {
-                      value3.value = partialContent.question
-                    } else {
-                      value3.value = '生成失败，请重试'
-                    }
-                    
-                    // 尝试提取其他字段
-                    const aspectMatch = raw.match(/"考核点"\s*:\s*"([^"]*?)(?:"|$)/)
-                    if (aspectMatch && aspectMatch[1]) {
-                      value1.value = aspectMatch[1]
-                    }
-                    
-                    const timeMatch = raw.match(/"答题时长"\s*:\s*"([^"]*?)(?:"|$)/)
-                    if (timeMatch && timeMatch[1]) {
-                      value2.value = timeMatch[1]
-                    }
-                  } catch (e) {
-                    value3.value = partialContent.question || '生成失败，请重试'
-                  }
-                } else {
-                  value3.value = partialContent.question || '生成失败，请重试'
+                break
+                
+              case 'error':
+                // 错误
+                console.error('生成错误:', data.message)
+                toast.error('生成失败，请重试')
+                loding.value = false
+                break
+                
+              default:
+                // 兼容旧格式
+                if (data.error) {
+                  console.error('生成错误:', data.error)
+                  toast.error('生成失败，请重试')
+                  loding.value = false
                 }
-              }
             }
           } catch (error) {
             console.error('解析SSE数据错误:', error, line)
