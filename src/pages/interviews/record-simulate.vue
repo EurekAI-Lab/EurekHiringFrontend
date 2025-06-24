@@ -8,10 +8,10 @@
     <view
       class="fixed top-0 left-0 right-0 z-10 bg-white"
       :style="{
-        height: statusBarHeight + 44 + 'px',
+        height: safeAreaInsets.top + 44 + 'px',
       }"
     >
-      <view class="relative flex items-center" :style="{ marginTop: statusBarHeight + 'px', height: '44px' }">
+      <view class="relative flex items-center" :style="{ marginTop: safeAreaInsets.top + 'px', height: '44px' }">
         <view
           class="i-carbon-chevron-left w-8 h-8 absolute left-5 text-black"
           @click="handleClickLeft"
@@ -21,7 +21,7 @@
     </view>
     
     <!-- 内容区域，包含滚动内容 -->
-    <view class="flex-1 overflow-y-auto" :style="{ paddingTop: statusBarHeight + 44 + 'px', paddingBottom: '80px' }">
+    <view class="flex-1 overflow-y-auto" :style="{ paddingTop: safeAreaInsets.top + 44 + 'px', paddingBottom: '80px' }">
       <!-- 背景图 点击跳转操作了流程 -->
       <view @click="goProcess()" class="w-full">
         <image :src="aibg07" class="w-full" style="aspect-ratio: 375/160;" mode="widthFix"></image>
@@ -106,9 +106,9 @@
             >
               <image :src="zfj" class="w-5 h-5" />
             </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5">
-              <view class="w-75%">{{ item.title }}</view>
-              <view class="text-gray-400 w-80%">{{ item.description }}</view>
+            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-20">
+              <view class="font-medium">{{ item.description }}</view>
+              <view class="text-gray-600">{{ item.title }}</view>
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
               <view class="text-#1778ff" style="text-align: center">{{ item.salary }}</view>
@@ -156,6 +156,8 @@ const showErrorTip = ref(false)
 // 获取系统信息
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = systemInfo.statusBarHeight || 0
+// 获取安全区域信息，适配刘海屏
+const safeAreaInsets = systemInfo.safeAreaInsets || { top: statusBarHeight }
 const close = async () => {
   showSheet.value = false
 }
