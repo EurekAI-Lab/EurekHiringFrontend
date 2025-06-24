@@ -145,6 +145,9 @@ export const getEnvBaseUrl = () => {
     }
   }
 
+  // H5环境下，如果baseUrl为空，则保持为空
+  // 让nginx或其他反向代理处理API路由
+
   return baseUrl
 }
 
