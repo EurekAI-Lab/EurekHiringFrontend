@@ -107,8 +107,8 @@
               <image :src="zfj" class="w-5 h-5" />
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-20">
-              <view class="font-medium">{{ item.description }}</view>
-              <view class="text-gray-600">{{ item.title }}</view>
+              <view class="font-medium">{{ item.industry || '行业不限' }}</view>
+              <view class="text-gray-600">{{ item.position_name || item.title }}</view>
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
               <view class="text-#1778ff" style="text-align: center">{{ item.salary }}</view>
