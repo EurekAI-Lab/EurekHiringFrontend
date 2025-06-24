@@ -103,21 +103,83 @@
           <view class="text-sm font-bold">评估结果：</view>
           <view class="text-sm font-bold" :class="pgjg === '不通过' ? 'text-red-500' : 'text-#6ee7b7'">{{ pgjg }}</view>
         </view>
-        <!-- <view class="ml-2 mt-2 text-xs text-#a1a1aa">暂无</view> -->
+        
+        <!-- 显示异常检测结果 -->
+        <view class="ml-2 mt-2">
+          <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">
+            <view v-if="hasAnomalies()" class="text-xs text-orange-500">
+              检测到 {{ getAnomalyCount() }} 个异常片段
+            </view>
+            <view v-else class="text-xs text-green-500">
+              未检测到异常行为
+            </view>
+          </template>
+        </view>
+        
         <view class="flex ml-2 mt-2">
           <view class="text-sm font-bold">面试录屏：</view>
-          <view class="text-xs text-gray-500 ml-2">{{ frameAnalysis.samples ? `(${frameAnalysis.samples.length}个)` : '(加载中...)' }}</view>
+          <view class="text-xs text-gray-500 ml-2">
+            <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">
+              ({{ frameAnalysis.samples.length }}个片段)
+            </template>
+            <template v-else-if="interviewReport.length > 0">
+              ({{ interviewReport.length }}个视频)
+            </template>
+            <template v-else>
+              (加载中...)
+            </template>
+          </view>
         </view>
+        
         <view class="flex w-95% justify-start mt-2 ml-2" style="overflow: hidden; overflow-x: auto">
+          <!-- 如果有视频分析数据，显示分析片段 -->
           <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">
             <view class="relative w-14 h-18 ml-2 mt-2" v-for="(sample, index) in frameAnalysis.samples" :key="index">
-              <image class="w-14 h-18" :src="sample.frame_url || icon001" mode="aspectFill"></image>
+              <!-- 显示缩略图 -->
               <image 
-                v-if="sample.original_video_url" 
+                class="w-14 h-18" 
+                :src="sample.frame_url || icon001" 
+                mode="aspectFill"
+              ></image>
+              
+              <!-- 显示异常标记 -->
+              <view v-if="sample.has_anomaly" class="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded">
+                异常
+              </view>
+              
+              <image 
+                v-if="sample.video_url || sample.original_video_url" 
                 class="absolute w-5 h-5 z-1" 
                 style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
                 :src="iconframe" 
-                @click="showVideoModal(sample.original_video_url)"
+                @click="showVideoModal(sample.video_url || sample.original_video_url)"
+              ></image>
+              <view v-else class="absolute text-xs text-gray-400" style="top: 50%; left: 50%; transform: translate(-50%, -50%)">
+                无视频
+              </view>
+
+              <view class="h-5 video_title" style="font-size: 12px">
+                第{{ numberToChinese(sample.question_id || index + 1) }}题
+              </view>
+            </view>
+          </template>
+          
+          <!-- 如果没有视频分析数据但有面试录像，显示完整视频 -->
+          <template v-else-if="interviewReport.length > 0">
+            <view class="relative w-14 h-18 ml-2 mt-2" v-for="(item, index) in interviewReport" :key="index">
+              <!-- 显示默认缩略图 -->
+              <image 
+                class="w-14 h-18" 
+                :src="icon001" 
+                mode="aspectFill"
+              ></image>
+              
+              <image 
+                v-if="item.video_url" 
+                class="absolute w-5 h-5 z-1" 
+                style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
+                :src="iconframe" 
+                @click="showVideoModal(item.video_url)"
               ></image>
               <view v-else class="absolute text-xs text-gray-400" style="top: 50%; left: 50%; transform: translate(-50%, -50%)">
                 无视频
@@ -128,6 +190,8 @@
               </view>
             </view>
           </template>
+          
+          <!-- 加载中状态 -->
           <template v-else>
             <view class="w-full flex flex-col items-center justify-center py-4">
               <view class="text-gray-500 text-sm mb-2">视频分析处理中，请稍后刷新查看</view>
@@ -538,22 +602,37 @@ const fetchInterviewReport = async (interviewId: number) => {
         }
         frame_analysis?: {
           summary: {
-            total_frames: number
-            abnormal_frames: number
+            total_segments?: number  // 新格式
+            abnormal_segments?: number  // 新格式
+            total_frames?: number  // 旧格式
+            abnormal_frames?: number  // 旧格式
             abnormal_rate: number
-            abnormal_type_stats: Record<string, any>
+            abnormal_types?: string[]  // 新格式
+            abnormal_type_stats?: Record<string, any>  // 旧格式
           }
           samples: Array<{
-            id: number
-            interview_id: number
-            interview_record_id: number
-            frame_timestamp: number
-            frame_url: string
+            // 新格式字段
+            question_id?: number
+            segment_index?: number
+            video_url?: string
+            has_anomaly?: boolean
+            anomalies?: string[]
+            confidence?: number
+            status?: string
+            start_time?: number
+            end_time?: number
+            analyzed_at?: string
+            // 旧格式字段
+            id?: number
+            interview_id?: number
+            interview_record_id?: number
+            frame_timestamp?: number
+            frame_url?: string
             original_video_url?: string
-            action_status: string
-            is_normal: number
-            analysis_detail: string
-            created_at: string
+            action_status?: string
+            is_normal?: number
+            analysis_detail?: string
+            created_at?: string
           }>
         }
       }
@@ -578,11 +657,15 @@ const fetchInterviewReport = async (interviewId: number) => {
         // 检查视频URL是否存在
         if (responseData.frame_analysis.samples && responseData.frame_analysis.samples.length > 0) {
           responseData.frame_analysis.samples.forEach((sample, index) => {
-            console.log(`Sample ${index} video URL:`, sample.original_video_url)
-            if (!sample.original_video_url) {
-              console.warn(`Sample ${index} is missing original_video_url`)
-            }
+            console.log(`Sample ${index} 完整数据:`, sample)
+            console.log(`Sample ${index} video_url:`, sample.video_url)
+            console.log(`Sample ${index} original_video_url:`, sample.original_video_url)
+            console.log(`Sample ${index} frame_url:`, sample.frame_url)
+            console.log(`Sample ${index} has_anomaly:`, sample.has_anomaly)
+            console.log(`Sample ${index} question_id:`, sample.question_id)
           })
+        } else {
+          console.log('frame_analysis.samples 为空')
         }
       } else {
         console.log('没有帧分析数据')
@@ -687,6 +770,22 @@ const handleVideoError = (error: any) => {
     duration: 2000
   })
   isModalVisible.value = false
+}
+
+// 检查是否有异常
+const hasAnomalies = () => {
+  if (!frameAnalysis.value.samples || frameAnalysis.value.samples.length === 0) {
+    return false
+  }
+  return frameAnalysis.value.samples.some(sample => sample.has_anomaly === true)
+}
+
+// 获取异常数量
+const getAnomalyCount = () => {
+  if (!frameAnalysis.value.samples || frameAnalysis.value.samples.length === 0) {
+    return 0
+  }
+  return frameAnalysis.value.samples.filter(sample => sample.has_anomaly === true).length
 }
 </script>
 
