@@ -12,8 +12,8 @@
 <template>
   <view class="page-container">
     <!-- 自定义导航栏 -->
-    <view class="navbar" :style="{ paddingTop: safeAreaInsets.top + 'px', height: topBarHeight + 'px' }">
-      <view class="navbar-content" :style="{ height: navBarHeight + 'px' }">
+    <view class="navbar" :style="{ height: topBarHeight + 'px' }">
+      <view class="navbar-content" :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }">
         <image 
           class="back-icon" 
           :src="backIcon"
