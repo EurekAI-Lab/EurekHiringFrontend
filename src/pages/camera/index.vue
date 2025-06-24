@@ -84,7 +84,7 @@
           </view>
           <view>
             <view class="flex flex-row gap-x-3">
-              {{ interviewDetails.data.questions[currentQuestionIndex].question }}
+              {{ interviewDetails.data.questions && interviewDetails.data.questions[currentQuestionIndex] ? interviewDetails.data.questions[currentQuestionIndex].question : '加载中...' }}
             </view>
           </view>
         </view>
@@ -305,6 +305,20 @@ const play = () => {
     audioPlayTimeout = null
   }
 
+  // 检查是否有问题数据
+  if (!interviewDetails.value.data.questions || interviewDetails.value.data.questions.length === 0) {
+    console.error('面试问题列表为空')
+    uni.showToast({
+      title: '获取面试题目失败，请重试',
+      icon: 'none',
+      duration: 2000
+    })
+    setTimeout(() => {
+      uni.navigateBack()
+    }, 2000)
+    return
+  }
+  
   // 检查当前问题是否存在以及是否有音频URL
   const currentQuestion = interviewDetails.value.data.questions[currentQuestionIndex.value]
   if (!currentQuestion) {
