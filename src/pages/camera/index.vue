@@ -1901,41 +1901,39 @@ const handleExit = async () => {
           closeOnClickModal: false,
           beforeConfirm: async ({ resolve }) => {
             try {
-              if (!test.value) {
-                navigateBack()
+              // 跳转到报告生成页面
+              if (test.value) {
+                // 模拟面试
+                uni.redirectTo({
+                  url:
+                    '/pages/about/mspj-loading?interviewId=' +
+                    interviewId.value +
+                    '&interviewType=1&type=2',
+                })
               } else {
-                if (test.value) {
-                  uni.redirectTo({
-                    url:
-                      '/pages/about/mspj-loading?interviewId=' +
-                      interviewId.value +
-                      '&interviewType=1&type=2',
-                  })
-                } else {
-                  uni.redirectTo({
-                    url:
-                      '/pages/about/mspj-loading?interviewId=' +
-                      interviewId.value +
-                      '&interviewType=1',
-                  })
-                }
+                // 正式面试
+                uni.redirectTo({
+                  url:
+                    '/pages/about/mspj-loading?interviewId=' +
+                    interviewId.value +
+                    '&interviewType=1',
+                })
               }
               isRequesting.value = false
+              resolve() // 关闭对话框
             } catch (error) {
-              console.log('提交面试数据失败', error)
-              toast.error('提交面试数据失败')
+              console.log('跳转失败', error)
+              toast.error('跳转失败')
               isRequesting.value = false
+              resolve() // 即使失败也关闭对话框
             }
           },
         })
         .then(() => {
-          // 确认后返回
-          uni.navigateBack()
+          // 确认后的处理已经在 beforeConfirm 中完成
         })
         .catch(() => {
-          // 取消后也提交数据并返回
-          // saveInterview()
-          // uni.navigateBack()
+          // 用户取消，不做任何操作
         })
     } catch (error) {
       console.error('获取重定向URL失败:', error)
