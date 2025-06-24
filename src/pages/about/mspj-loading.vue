@@ -10,22 +10,46 @@
 }
 </route>
 <template>
-  <view class="w-full bg-black bg-opacity-57 h-100vh flex items-center justify-center">
-    <!-- 背景图 -->
-    <view class="flex w-full h-full items-center justify-center">
-      <view class="relative w-70% h-13%">
-        <image :src="aiBg09" class="z-0 h-full w-full" />
-        <view class="absolute top-0 left-0 w-full h-full flex items-center ml-4">
-          <view class="text-white text-sm mt-2 opacity-80">报告生成中，请稍等...</view>
-        </view>
+  <view class="page-container">
+    <!-- 自定义导航栏 -->
+    <view class="navbar" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="navbar-content">
+        <image 
+          class="back-icon" 
+          :src="backIcon"
+          @click="handleExit"
+          mode="aspectFit"
+        />
+        <text class="navbar-title">AI面试</text>
+        <view class="navbar-right"></view>
+      </view>
+    </view>
+    
+    <!-- 主内容区域 -->
+    <view class="content-area">
+      <!-- 报告生成图标 -->
+      <image 
+        class="report-icon" 
+        :src="reportIcon"
+        mode="aspectFit"
+      />
+      
+      <!-- 提示文字 -->
+      <text class="loading-text">报告生成中，请稍等...</text>
+      <text class="sub-text">大模型正在分析您的面试表现</text>
+    </view>
+    
+    <!-- 底部返回按钮 -->
+    <view class="bottom-area">
+      <view class="return-button" @click="handleExit">
+        返回
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import aiBg09 from '@/static/images/ai-bg-09.png'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { navigateBack } from '@/utils/platformUtils'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
@@ -35,6 +59,30 @@ const subText = ref('请耐心等待，这可能需要几分钟时间')
 const progress = ref(0)
 const timer = ref<number | null>(null)
 const pollInterval = ref<number | null>(null)
+
+// 获取系统信息
+const systemInfo = uni.getSystemInfoSync()
+const statusBarHeight = systemInfo.statusBarHeight || 0
+const pixelRatio = systemInfo.pixelRatio || 1
+
+// 根据像素密度选择合适的图片
+const backIcon = computed(() => {
+  if (pixelRatio >= 3) {
+    return '/static/images/mspj_loading/back_3x.png'
+  } else if (pixelRatio >= 2) {
+    return '/static/images/mspj_loading/back_2x.png'
+  }
+  return '/static/images/mspj_loading/back.png'
+})
+
+const reportIcon = computed(() => {
+  if (pixelRatio >= 3) {
+    return '/static/images/mspj_loading/mspj_3x_background.png'
+  } else if (pixelRatio >= 2) {
+    return '/static/images/mspj_loading/mspj_2x_background.png'
+  }
+  return '/static/images/mspj_loading/mspj_background.png'
+})
 
 // 模拟进度增加
 const startProgressSimulation = () => {
@@ -240,7 +288,91 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.h-100vh {
+.page-container {
+  width: 100%;
   height: 100vh;
+  background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 导航栏样式 */
+.navbar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.navbar-content {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.back-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.navbar-title {
+  font-size: 17px;
+  font-weight: 500;
+  color: #333333;
+}
+
+.navbar-right {
+  width: 24px;
+}
+
+/* 内容区域 */
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 40px;
+}
+
+.report-icon {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 24px;
+}
+
+.loading-text {
+  font-size: 18px;
+  color: #333333;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.sub-text {
+  font-size: 14px;
+  color: #666666;
+  text-align: center;
+}
+
+/* 底部区域 */
+.bottom-area {
+  padding: 20px 40px 40px;
+}
+
+.return-button {
+  width: 100%;
+  height: 48px;
+  background-color: #1890ff;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.return-button:active {
+  opacity: 0.8;
 }
 </style>
