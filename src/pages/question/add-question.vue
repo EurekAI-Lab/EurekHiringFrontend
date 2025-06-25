@@ -289,28 +289,28 @@ const doGenerateQuestion = async () => {
       const questionData = result.data
       console.log('[DEBUG] 问题数据:', questionData)
       
-      // 设置对应的值
-      if (questionData.interviewAspect !== undefined && questionData.interviewAspect !== null) {
-        console.log('[DEBUG] 设置value1:', questionData.interviewAspect)
+      // 设置对应的值 - 使用中文字段名
+      if (questionData['考核点'] !== undefined && questionData['考核点'] !== null) {
+        console.log('[DEBUG] 设置value1:', questionData['考核点'])
         if (isMounted && value1) {
-          value1.value = String(questionData.interviewAspect)
+          value1.value = String(questionData['考核点'])
         }
       }
       
-      if (questionData.timeDuration !== undefined && questionData.timeDuration !== null) {
-        console.log('[DEBUG] 设置value2:', questionData.timeDuration)
+      if (questionData['答题时长'] !== undefined && questionData['答题时长'] !== null) {
+        console.log('[DEBUG] 设置value2:', questionData['答题时长'])
         if (isMounted && value2) {
-          value2.value = String(questionData.timeDuration)
+          value2.value = String(questionData['答题时长'])
         }
       } else if (isMounted && value2) {
         console.log('[DEBUG] 设置value2默认值')
         value2.value = '5分钟' // 默认值
       }
       
-      if (questionData.interviewQuestion !== undefined && questionData.interviewQuestion !== null) {
-        console.log('[DEBUG] 设置value3:', questionData.interviewQuestion)
+      if (questionData['问答题'] !== undefined && questionData['问答题'] !== null) {
+        console.log('[DEBUG] 设置value3:', questionData['问答题'])
         if (isMounted && value3) {
-          value3.value = String(questionData.interviewQuestion)
+          value3.value = String(questionData['问答题'])
         }
       }
       
