@@ -440,7 +440,7 @@ const chatStreamBasic = async () => {
             // 添加到问题列表
             if (data.question && data.interview_aspect) {
               publicStore.questionState.questions.push({
-                index: data.index || publicStore.questionState.questions.length + 1,
+                index: data.index || (publicStore.questionState.questions?.length || 0) + 1,
                 interview_aspect: data.interview_aspect,
                 time: data.time || '5分钟',
                 question: data.question,
@@ -503,7 +503,9 @@ const chatStreamParallel = async () => {
               case 'start':
                 // 初始化所有题目占位符
                 console.log('开始生成题目，主题:', data.topics)
-                publicStore.questionState.questions = Array(data.total).fill(null).map((_, i) => ({
+                // 确保 total 是有效的数字
+                const totalQuestions = data.total || 0
+                publicStore.questionState.questions = Array(totalQuestions).fill(null).map((_, i) => ({
                   index: i + 1,
                   loading: true,
                   question: '正在生成中...',
