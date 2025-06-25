@@ -31,7 +31,7 @@
           />
         </view>
         <!-- 自定义字数限制显示 在左下角 -->
-        <view class="absolute bottom-4 left-10 text-xs text-gray-4">{{ (value || '').length }}/500</view>
+        <view class="absolute bottom-4 left-10 text-xs text-gray-4">{{ getValueLength() }}/500</view>
         <!-- 智能识别按钮 -->
         <view
           class="absolute bottom-3 right-10 text-xs w-23 h-8 rounded flex justify-center items-center"
@@ -69,7 +69,7 @@ import Aizdsc from '@/components/public/aizdsc.vue'
 
 import aibg08 from '../../static/images/ai-bg-08.png'
 import iconFj from '../../static/app/icons/icon_fj.png'
-import { ref, onUnmounted, onMounted, watch } from 'vue'
+import { ref, onUnmounted, onMounted, watch, nextTick } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 // import { generateOneQuestionAPI } from '@/service/api' // 不再使用非流式接口
 import { usePublicStore } from '@/store'
@@ -95,6 +95,7 @@ if (!publicStore.questionState) {
 
 // 组件挂载时的调试
 onMounted(() => {
+  isMounted = true
   console.log('[DEBUG] add-question组件已挂载', {
     value1: value1.value,
     value2: value2.value,
@@ -131,6 +132,7 @@ onMounted(() => {
 
 // 组件卸载时清理
 onUnmounted(() => {
+  isMounted = false
   console.log('[DEBUG] add-question组件卸载')
   if (currentController) {
     currentController.abort()
@@ -189,6 +191,20 @@ watch([value1, value2, value3], ([v1, v2, v3]) => {
 let currentController: AbortController | null = null
 let currentRequestId = 0  // 添加请求ID
 let debounceTimer: number | null = null  // 防抖定时器
+let isMounted = true  // 组件挂载状态标志
+
+// 安全获取value长度的方法
+const getValueLength = () => {
+  try {
+    if (value.value === null || value.value === undefined) {
+      return 0
+    }
+    return String(value.value).length
+  } catch (error) {
+    console.error('[DEBUG] getValueLength error:', error)
+    return 0
+  }
+}
 
 // 创建防抖的题目生成函数
 const generateQuestionDebounced = () => {
@@ -229,13 +245,27 @@ const getQuestion = async () => {
 
 // 实际的生成函数
 const doGenerateQuestion = async () => {
+  console.log('[DEBUG] doGenerateQuestion 开始')
+  
   // 生成新的请求ID
   const requestId = ++currentRequestId
   
-  // 清空之前的内容
-  value1.value = ''
-  value2.value = ''
-  value3.value = ''
+  try {
+    // 清空之前的内容
+    value1.value = ''
+    value2.value = ''
+    value3.value = ''
+    
+    // 等待 DOM 更新
+    await nextTick()
+    console.log('[DEBUG] 清空内容后的值:', {
+      value1: value1.value,
+      value2: value2.value,
+      value3: value3.value
+    })
+  } catch (error) {
+    console.error('[DEBUG] 清空内容时出错:', error)
+  }
   
   // 使用流式接口
   const baseUrl = import.meta.env.VITE_SERVER_BASEURL
@@ -294,23 +324,43 @@ const doGenerateQuestion = async () => {
       // 检查chunk是否存在
       if (!chunk) continue
       
-      buffer += decoder.decode(chunk, { stream: true })
+      // 安全地解码chunk
+      try {
+        const decoded = decoder.decode(chunk, { stream: true })
+        buffer += decoded || ''
+      } catch (decodeError) {
+        console.error('[DEBUG] 解码错误:', decodeError)
+        continue
+      }
+      
       // 确保 buffer 不是 undefined
       if (typeof buffer !== 'string') {
+        console.warn('[DEBUG] buffer不是字符串:', typeof buffer)
         buffer = ''
         continue
       }
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
+      
+      // 安全地分割行
+      let lines: string[] = []
+      try {
+        lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+      } catch (splitError) {
+        console.error('[DEBUG] 分割buffer错误:', splitError)
+        buffer = ''
+        continue
+      }
       
       // 确保 lines 是数组
       if (!Array.isArray(lines)) continue
       
       for (const line of lines) {
+        // 确保line是字符串
+        if (!line || typeof line !== 'string') continue
         if (!line.trim()) continue
         
         // 处理 SSE 格式
-        if (line && typeof line === 'string' && line.startsWith('data: ')) {
+        if (line.startsWith('data: ')) {
           const jsonStr = line.substring(6)
           // 检查 JSON 字符串是否有效
           if (!jsonStr || jsonStr.trim() === '') {
@@ -406,6 +456,8 @@ const doGenerateQuestion = async () => {
                     // 直接使用问题文本，不需要markdown渲染
                     value3.value = String(fieldValue)
                     console.log('[DEBUG] 设置value3后:', value3.value)
+                    // 使用 nextTick 确保 DOM 更新
+                    await nextTick()
                   }
                 } catch (error) {
                   console.error('[DEBUG] 设置字段值时出错:', error, {
@@ -422,48 +474,57 @@ const doGenerateQuestion = async () => {
                   data: data,
                   hasData: !!data.data,
                   dataType: typeof data.data,
-                  hasValue1: !!value1,
-                  hasValue2: !!value2,
-                  hasValue3: !!value3
+                  isMounted: isMounted
                 })
                 
-                // 确保在更新状态前检查组件是否仍然存在
-                if (!value1 || !value2 || !value3) {
+                // 确保在更新状态前检查组件是否仍然挂载
+                if (!isMounted) {
                   console.warn('组件已卸载，忽略complete事件')
                   break
                 }
                 
                 try {
-                  if (data.data && typeof data.data === 'object') {
+                  // 确保data和data.data存在且为对象
+                  if (data && data.data && typeof data.data === 'object') {
                     console.log('[DEBUG] complete事件的data内容:', data.data)
                     
                     // 安全地更新字段值
                     if (data.data.interviewAspect !== undefined && data.data.interviewAspect !== null) {
                       console.log('[DEBUG] 从complete设置value1:', data.data.interviewAspect)
-                      value1.value = String(data.data.interviewAspect)
+                      if (isMounted && value1) {
+                        value1.value = String(data.data.interviewAspect)
+                      }
                     }
                     if (data.data.time !== undefined && data.data.time !== null) {
                       console.log('[DEBUG] 从complete设置value2:', data.data.time)
-                      value2.value = String(data.data.time)
-                    } else if (!value2.value) {
+                      if (isMounted && value2) {
+                        value2.value = String(data.data.time)
+                      }
+                    } else if (isMounted && value2 && !value2.value) {
                       console.log('[DEBUG] 设置value2默认值')
                       value2.value = '5分钟' // 默认值
                     }
                     if (data.data.question !== undefined && data.data.question !== null) {
                       console.log('[DEBUG] 从complete设置value3:', data.data.question)
-                      value3.value = String(data.data.question)
+                      if (isMounted && value3) {
+                        value3.value = String(data.data.question)
+                      }
                     }
                   }
                   
-                  console.log('[DEBUG] complete处理后的值:', {
-                    value1: value1.value,
-                    value2: value2.value,
-                    value3: value3.value
-                  })
+                  if (isMounted) {
+                    console.log('[DEBUG] complete处理后的值:', {
+                      value1: value1.value,
+                      value2: value2.value,
+                      value3: value3.value
+                    })
+                  }
                 } catch (error) {
                   console.error('[DEBUG] complete处理出错:', error)
                 } finally {
-                  loding.value = false
+                  if (isMounted) {
+                    loding.value = false
+                  }
                 }
                 break
                 
@@ -537,7 +598,10 @@ const doGenerateQuestion = async () => {
       value2: value2.value,
       value3: value3.value,
       loding: loding.value,
-      show: show.value
+      show: show.value,
+      value1Ref: value1,
+      value2Ref: value2,
+      value3Ref: value3
     })
   }
 }
@@ -591,7 +655,9 @@ const saveQuestion = () => {
     // 安全地获取长度
     let currentLength = 0
     try {
-      currentLength = publicStore.questionState.questions.length || 0
+      if (publicStore.questionState.questions && Array.isArray(publicStore.questionState.questions)) {
+        currentLength = publicStore.questionState.questions.length || 0
+      }
     } catch (e) {
       console.error('获取questions长度失败:', e)
       currentLength = 0

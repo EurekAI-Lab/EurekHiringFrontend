@@ -45,7 +45,7 @@
           <view class="w-90% rounded-xl min-h-40 bg-#f9fbfc overflow-hidden">
             <wd-textarea 
               :model-value="localValue3 || ''"
-              @update:model-value="(val) => localValue3 = String(val || '')"
+              @update:model-value="handleTextareaUpdate"
               :maxlength="500"
               :auto-height="true"
               class="textarea-custom"
@@ -169,6 +169,25 @@ const getTextLength = (text: any): number => {
   } catch (error) {
     console.error('[AIZDSC DEBUG] getTextLength error:', error, 'text:', text)
     return 0
+  }
+}
+
+// 处理textarea更新
+const handleTextareaUpdate = (val: any) => {
+  try {
+    console.log('[AIZDSC DEBUG] handleTextareaUpdate:', {
+      val,
+      valType: typeof val,
+      valIsNull: val === null,
+      valIsUndefined: val === undefined
+    })
+    
+    // 确保值为字符串
+    const newValue = val === null || val === undefined ? '' : String(val)
+    localValue3.value = newValue
+  } catch (error) {
+    console.error('[AIZDSC DEBUG] handleTextareaUpdate error:', error)
+    localValue3.value = ''
   }
 }
 </script>
