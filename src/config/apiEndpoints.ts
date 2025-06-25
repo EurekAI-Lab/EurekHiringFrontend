@@ -12,6 +12,8 @@ export const API_ENDPOINTS = {
     getById: (id: number | string) => `/interviews/${id}`,
     redirectUrl: '/interviews/redirect-url/',
     report: (id: number | string) => `/interviews/interview_report/${id}`,
+    myAiInterviews: '/interviews/my_ai_interviews',
+    enterpriseAiInterviews: '/interviews/enterprise_ai_interviews',
   },
 
   // 面试问题相关

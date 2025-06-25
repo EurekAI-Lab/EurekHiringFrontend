@@ -159,6 +159,7 @@ import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import wxSdk from 'weixin-js-sdk'
 import { navigateBack } from '@/utils/platformUtils'
 import { handleToken } from "@/utils/useAuth"
+import { API_ENDPOINTS } from '@/config/apiEndpoints'
 
 function getENVIR() {
   let text = ''
@@ -288,8 +289,8 @@ async function getInterviewList(keyword = '') {
     const trimmedKeyword = keyword.trim()
     const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
     // 根据用户类型调用不同的API
-    const apiPath = isEnterpriseUser.value ? 'enterprise_ai_interviews' : 'my_ai_interviews'
-    const url = `${baseUrl}/interviews/${apiPath}${queryParams}`
+    const apiPath = isEnterpriseUser.value ? API_ENDPOINTS.interviews.enterpriseAiInterviews : API_ENDPOINTS.interviews.myAiInterviews
+    const url = `${baseUrl}${apiPath}${queryParams}`
     console.log('请求URL：', url)
 
     loading.value = true

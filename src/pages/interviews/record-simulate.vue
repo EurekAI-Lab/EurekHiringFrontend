@@ -425,7 +425,12 @@ const submitTestInerview = async () => {
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         success: (res: any) => {
           console.log('submitTestInerview - 成功响应:', res)
-          window.location.href = res.data.data.redirect_url
+          if (res.statusCode === 200 && res.data && res.data.data && res.data.data.redirect_url) {
+            window.location.href = res.data.data.redirect_url
+          } else {
+            console.error('响应格式错误:', res)
+            toast.error('创建面试失败，请稍后重试')
+          }
         },
         fail: (error) => {
           console.error('submitTestInerview - 失败详情:', {
