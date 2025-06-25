@@ -230,8 +230,16 @@ const doGenerateQuestion = async () => {
       if (!chunk) continue
       
       buffer += decoder.decode(chunk, { stream: true })
+      // 确保 buffer 不是 undefined
+      if (typeof buffer !== 'string') {
+        buffer = ''
+        continue
+      }
       const lines = buffer.split('\n')
       buffer = lines.pop() || ''
+      
+      // 确保 lines 是数组
+      if (!Array.isArray(lines)) continue
       
       for (const line of lines) {
         if (!line.trim()) continue

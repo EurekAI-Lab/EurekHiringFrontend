@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>测试面试记录API</h1>
+    <button onclick="testAPI()">测试API</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testAPI() {
+            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OCIsImV4cCI6MTczNTEyNTI4Nn0.EKbiRQQ0yEQfBcrVjHQ4HxxOySQtGb1jUNBMwJ_pJCM';
+            const url = 'https://interview.ycjp-work.com/test/api/interviews/my_ai_interviews/';
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                document.getElementById('result').textContent = JSON.stringify({
+                    status: response.status,
+                    data: data
+                }, null, 2);
+            } catch (error) {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

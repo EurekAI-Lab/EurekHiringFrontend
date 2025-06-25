@@ -369,19 +369,19 @@ const query = ref({
   testPaperId: '',
 })
 
-// 主入口：使用流式生成
+// 主入口：使用并行流式生成
 const chatStream = async () => {
   // 清空现有题目
   publicStore.questionState.questions = []
   // 设置 loading 状态
   publicStore.questionState.loading = true
   
-  // 使用流式生成接口
+  // 优先使用并行流式生成接口
   try {
-    await chatStreamBasic()
+    await chatStreamParallel()
   } catch (error) {
-    console.error('流式生成失败:', error)
-    // 如果流式生成失败，回退到串行模式
+    console.error('并行流式生成失败:', error)
+    // 如果并行流式生成失败，回退到串行模式
     chatStreamSerial()
   }
 }
@@ -471,7 +471,10 @@ const chatStreamParallel = async () => {
   try {
     const response = await fetch(FULL_API_URLS.interviewQuestions.generateParallelStream(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${uni.getStorageSync('token')}`
+      },
       body: JSON.stringify(query.value),
     })
     

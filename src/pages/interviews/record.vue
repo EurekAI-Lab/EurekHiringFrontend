@@ -82,19 +82,19 @@
           />
           <!-- 非常合格状态 -->
           <image
-            v-else-if="(item.interview_type === 'test' || item.audit_status === 'APPROVED') && item.qualification_level === 'VERY_QUALIFIED'"
+            v-else-if="item.qualification_level === 'VERY_QUALIFIED'"
             :src="iconVeryQualified"
             class="w-15 h-15 absolute right-5 mt-1"
           />
           <!-- 合格状态 -->
           <image
-            v-else-if="(item.interview_type === 'test' || item.audit_status === 'APPROVED') && item.qualification_level === 'QUALIFIED'"
+            v-else-if="item.qualification_level === 'QUALIFIED'"
             :src="iconQualified"
             class="w-15 h-15 absolute right-5 mt-1"
           />
           <!-- 不合格状态 -->
           <image
-            v-else-if="(item.interview_type === 'test' || item.audit_status === 'APPROVED') && item.qualification_level === 'NOT_QUALIFIED'"
+            v-else-if="item.qualification_level === 'NOT_QUALIFIED'"
             :src="iconNotQualified"
             class="w-15 h-15 absolute right-5 mt-1"
           />
@@ -119,6 +119,17 @@
       </view>
 
       <!-- <wd-status-tip image="search" tip="当前搜索无结果" /> -->
+    </view>
+    
+    <!-- 空状态提示 -->
+    <view v-if="!loading && interviewResults.length === 0" class="flex flex-col items-center justify-center pt-20">
+      <view class="text-gray-400 text-lg">暂无面试记录</view>
+      <view class="text-gray-300 text-sm mt-2">完成面试后记录将显示在这里</view>
+    </view>
+    
+    <!-- Loading 状态 -->
+    <view v-if="loading" class="flex flex-col items-center justify-center pt-20">
+      <view class="text-gray-400">加载中...</view>
     </view>
 
     <!-- <view class="flex justify-center items-center">
@@ -212,7 +223,7 @@ function formatCompletionTime(isoString) {
 onMounted(async () => {
   // 检测用户类型
   await checkUserType()
-  getInterviewList()
+  await getInterviewList()
 })
 function handleClickLeft() {
   // uni.navigateBack()
@@ -234,23 +245,10 @@ const formatTimeToMinSec = (seconds: number) => {
 }
 // 检测用户类型
 async function checkUserType() {
-  try {
-    const token = uni.getStorageSync('token')
-    // 尝试调用企业接口，如果成功则为企业用户
-    const response = await uni.request({
-      url: `${baseUrl}/interviews/enterprise_ai_interviews/`,
-      method: 'GET',
-      header: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-    if (response.statusCode === 200) {
-      isEnterpriseUser.value = true
-    }
-  } catch (error) {
-    // 如果调用失败，则为普通用户
-    isEnterpriseUser.value = false
-  }
+  // 暂时默认为C端用户，因为目前主要处理C端面试记录
+  // 后续可以通过用户角色或其他标识来判断
+  isEnterpriseUser.value = false
+  console.log('用户类型：', isEnterpriseUser.value ? '企业用户' : 'C端用户')
 }
 
 // 获取面试记录
@@ -263,10 +261,13 @@ async function getInterviewList(keyword = '') {
     const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
     // 根据用户类型调用不同的API
     const apiPath = isEnterpriseUser.value ? 'enterprise_ai_interviews' : 'my_ai_interviews'
-    const url = `${baseUrl}/interviews/${apiPath}/${queryParams}`
+    const url = `${baseUrl}/interviews/${apiPath}${queryParams}`
+    console.log('请求URL：', url)
 
     loading.value = true
     const token = uni.getStorageSync('token')
+    console.log('使用的Token:', token ? `${token.substring(0, 20)}...` : 'Token为空')
+    
     const response = await uni.request({
       url: url,
       method: 'GET',
@@ -274,20 +275,43 @@ async function getInterviewList(keyword = '') {
         Authorization: `Bearer ${token}`,
       },
     })
+    console.log('API响应：', response)
     if (response.statusCode === 200) {
-      originalInterviewResults.value = response.data.data || [] // 保存原始数据
+      // 检查响应数据结构
+      const responseData = response.data
+      console.log('响应数据结构：', responseData)
+      originalInterviewResults.value = responseData.data || [] // 保存原始数据
       interviewResults.value = originalInterviewResults.value // 初始显示所有数据
+      console.log('获取到面试记录数量：', interviewResults.value.length)
+      console.log('面试记录数据：', interviewResults.value)
+      // 打印第一条记录的详细信息以便调试
+      if (interviewResults.value.length > 0) {
+        console.log('第一条记录详情：', {
+          interview_type: interviewResults.value[0].interview_type,
+          audit_status: interviewResults.value[0].audit_status,
+          qualification_level: interviewResults.value[0].qualification_level,
+          is_qualified: interviewResults.value[0].is_qualified
+        })
+      }
     } else {
+      console.error('API返回错误状态码：', response.statusCode)
+      console.error('错误响应：', response.data)
       uni.showToast({
-        title: '获取面试记录失败，请稍后再试',
+        title: `获取面试记录失败：${response.statusCode}`,
         icon: 'none'
       })
     }
   } catch (error) {
     console.error('Error fetching interview list:', error)
+    console.error('错误详情:', {
+      message: error.message,
+      stack: error.stack,
+      error: error
+    })
     uni.showToast({
         title: '网络错误，请检查您的连接',
-        icon: 'none'
+        icon: 'none',
+        duration: 3000
       })
   } finally {
     loading.value = false
