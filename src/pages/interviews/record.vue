@@ -280,7 +280,7 @@ async function getInterviewList(keyword = '') {
     const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
     // 根据用户类型调用不同的API
     const apiPath = isEnterpriseUser.value ? API_ENDPOINTS.interviews.enterpriseAiInterviews : API_ENDPOINTS.interviews.myAiInterviews
-    // 不要包含baseUrl，让拦截器处理
+    // 不要添加尾部斜杠，让后端路由匹配正确
     const url = `${apiPath}${queryParams}`
     console.log('请求URL：', url)
 

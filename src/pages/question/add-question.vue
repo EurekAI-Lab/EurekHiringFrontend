@@ -134,10 +134,6 @@ onMounted(() => {
 onUnmounted(() => {
   isMounted = false
   console.log('[DEBUG] add-question组件卸载')
-  if (currentController) {
-    currentController.abort()
-    currentController = null
-  }
   if (debounceTimer) {
     clearTimeout(debounceTimer)
     debounceTimer = null
@@ -187,8 +183,7 @@ watch([value1, value2, value3], ([v1, v2, v3]) => {
   })
 })
 
-// 添加 AbortController 用于取消请求
-let currentController: AbortController | null = null
+// 追踪当前请求
 let currentRequestId = 0  // 添加请求ID
 let debounceTimer: number | null = null  // 防抖定时器
 let isMounted = true  // 组件挂载状态标志
@@ -211,12 +206,6 @@ const generateQuestionDebounced = () => {
   // 清除之前的定时器
   if (debounceTimer) {
     clearTimeout(debounceTimer)
-  }
-  
-  // 如果有正在进行的请求，先取消它
-  if (currentController) {
-    currentController.abort()
-    currentController = null
   }
   
   // 显示加载状态
@@ -267,341 +256,92 @@ const doGenerateQuestion = async () => {
     console.error('[DEBUG] 清空内容时出错:', error)
   }
   
-  // 使用流式接口
-  const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-  
-  // 创建新的 AbortController
-  currentController = new AbortController()
-  
-  // 设置超时定时器 - 增加到60秒，给LLM更多时间
-  const timeoutId = setTimeout(() => {
-    if (currentController && requestId === currentRequestId) {
-      currentController.abort()
-      toast.error('请求超时，请重试')
-      loding.value = false
-    }
-  }, 60000)  // 60秒超时
-  
   try {
-    const response = await fetch(FULL_API_URLS.interviewQuestions.generateOneStream(), {
-      signal: currentController.signal,  // 添加信号以支持取消
+    // 使用普通API请求
+    const response = await uni.request({
+      url: FULL_API_URLS.interviewQuestions.generateOne(),
       method: 'POST',
-      headers: { 
+      header: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${uni.getStorageSync('token')}`
       },
-      body: JSON.stringify(query),
+      data: query,
+      timeout: 60000  // 60秒超时
     })
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
+    console.log('[DEBUG] API响应:', response)
     
-    // 检查response.body是否存在
-    if (!response.body) {
-      throw new Error('Response body is empty')
-    }
-    
-    // 检查getReader方法是否存在
-    if (!response.body.getReader) {
-      throw new Error('Streaming not supported in this environment')
-    }
-    
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder('utf-8')
-    let buffer = ''
-    
-    while (true) {
-      const { done, value: chunk } = await reader.read()
-      if (done) break
-      
-      // 检查是否是当前请求
-      if (requestId !== currentRequestId) {
-        console.log('忽略旧请求的响应', requestId, currentRequestId)
-        break
-      }
-      
-      // 检查chunk是否存在
-      if (!chunk) continue
-      
-      // 安全地解码chunk
-      try {
-        const decoded = decoder.decode(chunk, { stream: true })
-        buffer += decoded || ''
-      } catch (decodeError) {
-        console.error('[DEBUG] 解码错误:', decodeError)
-        continue
-      }
-      
-      // 确保 buffer 不是 undefined
-      if (typeof buffer !== 'string') {
-        console.warn('[DEBUG] buffer不是字符串:', typeof buffer)
-        buffer = ''
-        continue
-      }
-      
-      // 安全地分割行
-      let lines: string[] = []
-      try {
-        lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-      } catch (splitError) {
-        console.error('[DEBUG] 分割buffer错误:', splitError)
-        buffer = ''
-        continue
-      }
-      
-      // 确保 lines 是数组
-      if (!Array.isArray(lines)) continue
-      
-      for (const line of lines) {
-        // 确保line是字符串
-        if (!line || typeof line !== 'string') continue
-        if (!line.trim()) continue
-        
-        // 处理 SSE 格式
-        if (line.startsWith('data: ')) {
-          const jsonStr = line.substring(6)
-          // 检查 JSON 字符串是否有效
-          if (!jsonStr || jsonStr.trim() === '') {
-            console.warn('空的 SSE 数据')
-            continue
-          }
-          
-          try {
-            const data = JSON.parse(jsonStr)
-            // 验证解析后的数据
-            if (!data || typeof data !== 'object') {
-              console.warn('无效的 SSE 数据格式:', data)
-              continue
-            }
-            console.log('收到SSE数据:', data)  // 添加调试日志
-            
-            // 只处理当前请求的数据
-            if (requestId !== currentRequestId) {
-              return
-            }
-            
-            // 根据消息类型处理
-            if (!data.type || typeof data.type !== 'string') {
-              console.warn('消息缺少类型字段:', data)
-              continue
-            }
-            
-            console.log(`[DEBUG] 处理消息类型: ${data.type}`, {
-              type: data.type,
-              field: data.field,
-              value: data.value,
-              hasValue1: !!value1,
-              hasValue2: !!value2,
-              hasValue3: !!value3,
-              value1Type: typeof value1?.value,
-              value2Type: typeof value2?.value,
-              value3Type: typeof value3?.value
-            })
-            
-            switch (data.type) {
-              case 'start':
-                // 开始生成 - 不在问题框显示状态消息
-                // value3.value 保持为空，让用户看到空白的输入框
-                console.log('[DEBUG] 处理start消息')
-                break
-                
-              case 'status':
-                // 状态更新 - 不在问题框显示状态消息
-                // 可以考虑在其他地方显示状态，但不在问题框
-                console.log('[DEBUG] 处理status消息:', data.message)
-                break
-                
-              case 'field':
-                // 字段更新 - 增加类型检查
-                console.log('[DEBUG] 处理field消息:', {
-                  field: data.field,
-                  value: data.value,
-                  valueType: typeof data.value
-                })
-                
-                if (!data.field || typeof data.field !== 'string') {
-                  console.warn('字段更新缺少field属性:', data)
-                  break
-                }
-                
-                // 确保 value 存在且不是 undefined
-                const fieldValue = data.value
-                if (fieldValue === undefined || fieldValue === null) {
-                  console.warn(`字段 ${data.field} 的值为空`)
-                  // 为空值设置默认值
-                  if (data.field === 'interviewAspect') {
-                    value1.value = ''
-                  } else if (data.field === 'time') {
-                    value2.value = '5分钟'
-                  } else if (data.field === 'question') {
-                    value3.value = ''
-                  }
-                  break
-                }
-                
-                try {
-                  if (data.field === 'interviewAspect') {
-                    console.log('[DEBUG] 设置value1前:', value1.value)
-                    value1.value = String(fieldValue)
-                    console.log('[DEBUG] 设置value1后:', value1.value)
-                  } else if (data.field === 'time') {
-                    console.log('[DEBUG] 设置value2前:', value2.value)
-                    // 直接使用后端返回的时间值
-                    value2.value = String(fieldValue)
-                    console.log('[DEBUG] 设置value2后:', value2.value)
-                  } else if (data.field === 'question') {
-                    console.log('[DEBUG] 设置value3前:', value3.value)
-                    // 直接使用问题文本，不需要markdown渲染
-                    value3.value = String(fieldValue)
-                    console.log('[DEBUG] 设置value3后:', value3.value)
-                    // 使用 nextTick 确保 DOM 更新
-                    await nextTick()
-                  }
-                } catch (error) {
-                  console.error('[DEBUG] 设置字段值时出错:', error, {
-                    field: data.field,
-                    value: fieldValue,
-                    error: error.message
-                  })
-                }
-                break
-                
-              case 'complete':
-                // 完成
-                console.log('[DEBUG] 收到complete事件:', {
-                  data: data,
-                  hasData: !!data.data,
-                  dataType: typeof data.data,
-                  isMounted: isMounted
-                })
-                
-                // 确保在更新状态前检查组件是否仍然挂载
-                if (!isMounted) {
-                  console.warn('组件已卸载，忽略complete事件')
-                  break
-                }
-                
-                try {
-                  // 确保data和data.data存在且为对象
-                  if (data && data.data && typeof data.data === 'object') {
-                    console.log('[DEBUG] complete事件的data内容:', data.data)
-                    
-                    // 安全地更新字段值
-                    if (data.data.interviewAspect !== undefined && data.data.interviewAspect !== null) {
-                      console.log('[DEBUG] 从complete设置value1:', data.data.interviewAspect)
-                      if (isMounted && value1) {
-                        value1.value = String(data.data.interviewAspect)
-                      }
-                    }
-                    if (data.data.time !== undefined && data.data.time !== null) {
-                      console.log('[DEBUG] 从complete设置value2:', data.data.time)
-                      if (isMounted && value2) {
-                        value2.value = String(data.data.time)
-                      }
-                    } else if (isMounted && value2 && !value2.value) {
-                      console.log('[DEBUG] 设置value2默认值')
-                      value2.value = '5分钟' // 默认值
-                    }
-                    if (data.data.question !== undefined && data.data.question !== null) {
-                      console.log('[DEBUG] 从complete设置value3:', data.data.question)
-                      if (isMounted && value3) {
-                        value3.value = String(data.data.question)
-                      }
-                    }
-                  }
-                  
-                  if (isMounted) {
-                    console.log('[DEBUG] complete处理后的值:', {
-                      value1: value1.value,
-                      value2: value2.value,
-                      value3: value3.value
-                    })
-                  }
-                } catch (error) {
-                  console.error('[DEBUG] complete处理出错:', error)
-                } finally {
-                  if (isMounted) {
-                    loding.value = false
-                  }
-                }
-                break
-                
-              case 'error':
-                // 错误
-                console.error('生成错误:', data.message)
-                // 根据不同的错误类型提供更具体的提示
-                if (data.message && data.message.includes('_plan_question_topics')) {
-                  toast.error('服务器配置错误，请稍后重试')
-                } else if (data.message && data.message.includes('timeout')) {
-                  toast.error('生成超时，请重试')
-                } else {
-                  toast.error(data.message || '生成失败，请重试')
-                }
-                loding.value = false
-                // 清空已生成的部分内容
-                value1.value = ''
-                value2.value = ''
-                value3.value = ''
-                break
-                
-              default:
-                // 兼容旧格式 - 只有在明确表示错误时才处理
-                if (data.error && !data.type) {
-                  console.error('生成错误（旧格式）:', data.error)
-                  toast.error('生成失败，请重试')
-                  loding.value = false
-                }
-            }
-          } catch (error) {
-            console.error('[DEBUG] 解析SSE数据错误:', {
-              error: error.message,
-              line: line,
-              lineLength: line?.length,
-              lineType: typeof line
-            })
-            // 继续处理下一行，不要中断
-          }
-        }
-      }
-    }
-  } catch (error: any) {
-    // 如果是用户取消请求，不显示错误
-    if (error.name === 'AbortError') {
-      console.log('请求已取消')
-      loding.value = false
+    // 检查是否是当前请求
+    if (requestId !== currentRequestId) {
+      console.log('忽略旧请求的响应', requestId, currentRequestId)
       return
     }
     
-    console.error('[DEBUG] 流式生成失败:', {
-      error: error.message,
-      stack: error.stack,
-      name: error.name
-    })
+    // 确保组件仍然挂载
+    if (!isMounted) {
+      console.warn('组件已卸载，忽略响应')
+      return
+    }
+    
+    // 处理响应数据
+    const result = response.data as any
+    if (result && result.data) {
+      const questionData = result.data
+      console.log('[DEBUG] 问题数据:', questionData)
+      
+      // 设置对应的值
+      if (questionData.interviewAspect !== undefined && questionData.interviewAspect !== null) {
+        console.log('[DEBUG] 设置value1:', questionData.interviewAspect)
+        if (isMounted && value1) {
+          value1.value = String(questionData.interviewAspect)
+        }
+      }
+      
+      if (questionData.timeDuration !== undefined && questionData.timeDuration !== null) {
+        console.log('[DEBUG] 设置value2:', questionData.timeDuration)
+        if (isMounted && value2) {
+          value2.value = String(questionData.timeDuration)
+        }
+      } else if (isMounted && value2) {
+        console.log('[DEBUG] 设置value2默认值')
+        value2.value = '5分钟' // 默认值
+      }
+      
+      if (questionData.interviewQuestion !== undefined && questionData.interviewQuestion !== null) {
+        console.log('[DEBUG] 设置value3:', questionData.interviewQuestion)
+        if (isMounted && value3) {
+          value3.value = String(questionData.interviewQuestion)
+        }
+      }
+      
+      console.log('[DEBUG] 设置后的值:', {
+        value1: value1.value,
+        value2: value2.value,
+        value3: value3.value
+      })
+    }
+  } catch (error: any) {
+    console.error('[DEBUG] 生成失败:', error)
     
     // 显示错误提示
-    if (error.message && error.message.includes('network')) {
+    if (error.errMsg && error.errMsg.includes('timeout')) {
+      toast.error('请求超时，请重试')
+    } else if (error.errMsg && error.errMsg.includes('network')) {
       toast.error('网络连接异常，请检查网络后重试')
     } else {
-      toast.error('生成失败，请重试')
+      toast.error('生成失败: ' + (error.errMsg || error.message || '未知错误'))
     }
     show.value = false
   } finally {
-    clearTimeout(timeoutId)  // 清理超时定时器
     loding.value = false
-    currentController = null  // 清理控制器
     
     // 最终检查
-    console.log('[DEBUG] 流式生成结束，最终状态:', {
+    console.log('[DEBUG] 生成结束，最终状态:', {
       value1: value1.value,
       value2: value2.value,
       value3: value3.value,
       loding: loding.value,
-      show: show.value,
-      value1Ref: value1,
-      value2Ref: value2,
-      value3Ref: value3
+      show: show.value
     })
   }
 }

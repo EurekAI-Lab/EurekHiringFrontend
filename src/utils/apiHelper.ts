@@ -14,6 +14,7 @@ export const getFullApiUrl = (endpoint: string): string => {
 // 导出一个包含完整URL的API对象（用于fetch请求）
 export const FULL_API_URLS = {
   interviewQuestions: {
+    generateOne: () => getFullApiUrl(API_ENDPOINTS.interviewQuestions.generateOne),
     generateOneStream: () => getFullApiUrl(API_ENDPOINTS.interviewQuestions.generateOneStream),
     generateStream: () => getFullApiUrl(API_ENDPOINTS.interviewQuestions.generateStream),
     generateParallelStream: () => getFullApiUrl(API_ENDPOINTS.interviewQuestions.generateParallelStream),
