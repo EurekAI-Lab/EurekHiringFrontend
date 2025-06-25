@@ -290,27 +290,27 @@ const doGenerateQuestion = async () => {
       console.log('[DEBUG] 问题数据:', questionData)
       
       // 设置对应的值 - 使用英文字段名
-      if (questionData['interviewAspect'] !== undefined && questionData['interviewAspect'] !== null) {
-        console.log('[DEBUG] 设置value1:', questionData['interviewAspect'])
+      if (questionData.interviewAspect !== undefined && questionData.interviewAspect !== null) {
+        console.log('[DEBUG] 设置value1:', questionData.interviewAspect)
         if (isMounted && value1) {
-          value1.value = String(questionData['interviewAspect'])
+          value1.value = String(questionData.interviewAspect)
         }
       }
       
-      if (questionData['time'] !== undefined && questionData['time'] !== null) {
-        console.log('[DEBUG] 设置value2:', questionData['time'])
+      if (questionData.time !== undefined && questionData.time !== null) {
+        console.log('[DEBUG] 设置value2:', questionData.time)
         if (isMounted && value2) {
-          value2.value = String(questionData['time'])
+          value2.value = String(questionData.time)
         }
       } else if (isMounted && value2) {
         console.log('[DEBUG] 设置value2默认值')
         value2.value = '5分钟' // 默认值
       }
       
-      if (questionData['question'] !== undefined && questionData['question'] !== null) {
-        console.log('[DEBUG] 设置value3:', questionData['question'])
+      if (questionData.question !== undefined && questionData.question !== null) {
+        console.log('[DEBUG] 设置value3:', questionData.question)
         if (isMounted && value3) {
-          value3.value = String(questionData['question'])
+          value3.value = String(questionData.question)
         }
       }
       
