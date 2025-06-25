@@ -245,9 +245,21 @@ const doGenerateQuestion = async () => {
         if (!line.trim()) continue
         
         // 处理 SSE 格式
-        if (line.startsWith('data: ')) {
+        if (line && typeof line === 'string' && line.startsWith('data: ')) {
+          const jsonStr = line.substring(6)
+          // 检查 JSON 字符串是否有效
+          if (!jsonStr || jsonStr.trim() === '') {
+            console.warn('空的 SSE 数据')
+            continue
+          }
+          
           try {
-            const data = JSON.parse(line.substring(6))
+            const data = JSON.parse(jsonStr)
+            // 验证解析后的数据
+            if (!data || typeof data !== 'object') {
+              console.warn('无效的 SSE 数据格式:', data)
+              continue
+            }
             console.log('收到SSE数据:', data)  // 添加调试日志
             
             // 只处理当前请求的数据
@@ -256,6 +268,11 @@ const doGenerateQuestion = async () => {
             }
             
             // 根据消息类型处理
+            if (!data.type || typeof data.type !== 'string') {
+              console.warn('消息缺少类型字段:', data)
+              continue
+            }
+            
             switch (data.type) {
               case 'start':
                 // 开始生成 - 不在问题框显示状态消息
@@ -268,24 +285,45 @@ const doGenerateQuestion = async () => {
                 break
                 
               case 'field':
-                // 字段更新
-                if (data.field === 'interviewAspect' && data.value) {
-                  value1.value = data.value
-                } else if (data.field === 'time' && data.value) {
+                // 字段更新 - 增加类型检查
+                if (!data.field || typeof data.field !== 'string') {
+                  console.warn('字段更新缺少field属性:', data)
+                  break
+                }
+                
+                // 确保 value 存在且不是 undefined
+                const fieldValue = data.value
+                if (fieldValue === undefined || fieldValue === null) {
+                  console.warn(`字段 ${data.field} 的值为空`)
+                  break
+                }
+                
+                if (data.field === 'interviewAspect') {
+                  value1.value = String(fieldValue)
+                } else if (data.field === 'time') {
                   // 直接使用后端返回的时间值
-                  value2.value = data.value
-                } else if (data.field === 'question' && data.value) {
+                  value2.value = String(fieldValue)
+                } else if (data.field === 'question') {
                   // 直接使用问题文本，不需要markdown渲染
-                  value3.value = data.value
+                  value3.value = String(fieldValue)
                 }
                 break
                 
               case 'complete':
                 // 完成
-                if (data.data) {
-                  value1.value = data.data.interviewAspect || value1.value || ''
-                  value2.value = data.data.time || value2.value || '5分钟'
-                  value3.value = data.data.question || value3.value || ''
+                if (data.data && typeof data.data === 'object') {
+                  // 安全地更新字段值
+                  if (data.data.interviewAspect !== undefined) {
+                    value1.value = String(data.data.interviewAspect)
+                  }
+                  if (data.data.time !== undefined) {
+                    value2.value = String(data.data.time)
+                  } else if (!value2.value) {
+                    value2.value = '5分钟' // 默认值
+                  }
+                  if (data.data.question !== undefined) {
+                    value3.value = String(data.data.question)
+                  }
                 }
                 loding.value = false
                 break
@@ -379,17 +417,24 @@ const saveQuestion = () => {
     }
   }
   
+  // 确保 publicStore 和 questionState 存在
+  if (!publicStore || !publicStore.questionState) {
+    console.error('publicStore.questionState 未初始化')
+    toast.error('系统错误，请刷新页面重试')
+    return
+  }
+  
   // 确保 questions 数组存在
-  if (!publicStore.questionState.questions) {
+  if (!Array.isArray(publicStore.questionState.questions)) {
     publicStore.questionState.questions = []
   }
   
-  const currentLength = publicStore.questionState.questions?.length || 0
+  const currentLength = publicStore.questionState.questions.length
   publicStore.questionState.questions.push({
     index: currentLength + 1,
-    interview_aspect: value1.value,
-    time: value2.value,
-    question: value3.value,
+    interview_aspect: String(value1.value).trim(),
+    time: String(value2.value),
+    question: String(value3.value).trim(),
   })
   uni.navigateBack()
 }

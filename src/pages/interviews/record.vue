@@ -245,10 +245,38 @@ const formatTimeToMinSec = (seconds: number) => {
 }
 // 检测用户类型
 async function checkUserType() {
-  // 暂时默认为C端用户，因为目前主要处理C端面试记录
-  // 后续可以通过用户角色或其他标识来判断
-  isEnterpriseUser.value = false
-  console.log('用户类型：', isEnterpriseUser.value ? '企业用户' : 'C端用户')
+  try {
+    const token = uni.getStorageSync('token')
+    if (!token) {
+      console.error('Token不存在，无法获取用户信息')
+      isEnterpriseUser.value = false
+      return
+    }
+    
+    const response = await uni.request({
+      url: `${baseUrl}/users/me`,
+      method: 'GET',
+      header: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    
+    if (response.statusCode === 200) {
+      const userData = response.data
+      console.log('用户信息：', userData)
+      // 根据user_type判断用户类型
+      isEnterpriseUser.value = userData.user_type === 'ENTERPRISE'
+      console.log('用户类型：', isEnterpriseUser.value ? '企业用户' : 'C端用户(求职者)')
+    } else {
+      console.error('获取用户信息失败：', response.statusCode, response.data)
+      // 默认为C端用户
+      isEnterpriseUser.value = false
+    }
+  } catch (error) {
+    console.error('获取用户信息异常：', error)
+    // 默认为C端用户
+    isEnterpriseUser.value = false
+  }
 }
 
 // 获取面试记录
