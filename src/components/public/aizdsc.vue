@@ -52,7 +52,7 @@
           </view>
           <!-- 自定义字数限制显示 在左下角 -->
           <view class="absolute bottom-4 left-10 text-xs text-gray-4">
-            {{ localValue3.length }}/500
+            {{ (localValue3 || '').length }}/500
           </view>
         </view>
       </view>
@@ -95,17 +95,17 @@ const emit = defineEmits<{
 
 // 创建响应式的 localValue
 const localValue1 = computed({
-  get: () => props.value1,
+  get: () => props.value1 || '',
   set: (value: string) => emit('update:value1', value),
 })
 
 const localValue2 = computed({
-  get: () => props.value2,
+  get: () => props.value2 || '',
   set: (value: string) => emit('update:value2', value),
 })
 
 const localValue3 = computed({
-  get: () => props.value3,
+  get: () => props.value3 || '',
   set: (value: string) => emit('update:value3', value),
 })
 </script>

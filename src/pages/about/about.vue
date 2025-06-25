@@ -255,6 +255,7 @@
   import { useToast, useMessage } from 'wot-design-uni'
   import { navigateBack, inviteInterview, openUserVitaeInfo } from '@/utils/platformUtils'
   import { getInterviewListAPI } from '@/service/api'
+  import { API_ENDPOINTS } from '@/config/apiEndpoints'
   import { handleToken } from "@/utils/useAuth"
 
   const baseUrl = import.meta.env.VITE_SERVER_BASEURL
@@ -403,7 +404,7 @@
   // 获取面试结果
   const getInterviewList = async () => {
     // 构建URL，仅在enterpriseId.value有效时添加参数
-    let url = baseUrl + '/interviews/getList/';
+    let url = API_ENDPOINTS.interviews.getList;
     let aId = '';
     if (enterpriseId.value !== undefined && enterpriseId.value !== null) {
       url += `?enterprise_id=${enterpriseId.value}`;
@@ -455,7 +456,7 @@
         loading.value = true
         // await inviteDiscardAPI(resultId,{ result_id: resultId, next_step: nextStep });
         uni.request({
-          url: baseUrl + '/interview-results/evaluation_with_score/' + resultId + '/finalize',
+          url: API_ENDPOINTS.interviewResults.evaluationWithScore(resultId),
           method: 'PATCH',
           header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
           data: { result_id: resultId, next_step: nextStep },

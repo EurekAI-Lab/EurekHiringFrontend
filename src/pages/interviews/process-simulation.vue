@@ -130,6 +130,7 @@ import dh from '../../static/app/icons/icon_dh.png'
 import { onPageScroll as uniPageScroll } from '@dcloudio/uni-app'
 
 import { useToast } from 'wot-design-uni'
+import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { navigateBack } from '@/utils/platformUtils'
  import { handleToken } from "@/utils/useAuth"
 const toast = useToast()
@@ -172,7 +173,7 @@ const getPostionInfo = async () => {
 
   try {
     const response = await uni.request({
-      url: baseUrl + `/jobseekers/by-user/`,
+      url: API_ENDPOINTS.jobseekers.byUser,
       method: 'GET',
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })
@@ -217,7 +218,7 @@ const submitTestInerview = async () => {
     toast.loading({ loadingType: 'ring', msg: '正在生成题目...' })
     try {
       uni.request({
-        url: baseUrl + `/interviews/create_mock_interview/${selectedItem.id}`,
+        url: API_ENDPOINTS.interviews.createMock(selectedItem.id),
         method: 'POST',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         success: (res: any) => {

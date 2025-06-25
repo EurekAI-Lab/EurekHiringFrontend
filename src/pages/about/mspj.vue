@@ -63,7 +63,7 @@
           </view>
         </view>
         <view class="m-3 text-xs mt-5 text-#a1a1aa whitespace-pre-wrap">
-          {{ renderMarkdownText(overallSummary) }}
+          {{ renderMarkdownText(cleanMarkdownCodeBlocks(overallSummary)) }}
         </view>
       </view>
       <!-- 能力提升建议 -->
@@ -77,7 +77,7 @@
           </view>
         </view>
         <view class="m-3 text-xs mt-5 text-#a1a1aa whitespace-pre-wrap">
-          {{ renderMarkdownText(improvementSuggestions) }}
+          {{ renderMarkdownText(cleanMarkdownCodeBlocks(improvementSuggestions)) }}
         </view>
       </view>
       <!-- 风险评价 -->
@@ -301,7 +301,8 @@ import Xzzw from '@/pages/about/components/xzzw.vue'
 import { onPullDownRefresh, onBackPress } from '@dcloudio/uni-app'
 import { navigateBack } from '@/utils/platformUtils'
 import { handleToken } from "@/utils/useAuth"
-import { renderMarkdownText } from '@/utils/markdownUtils'
+import { renderMarkdownText, cleanMarkdownCodeBlocks } from '@/utils/markdownUtils'
+import { API_ENDPOINTS } from '@/config/apiEndpoints'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 console.log('env', import.meta.env.MODE)
@@ -450,7 +451,7 @@ onMounted(() => {
 const fetchInterviewInfo = async (interviewId: number) => {
   try {
     const response = await uni.request({
-      url: baseUrl + `/interviews/${interviewId}`,
+      url: API_ENDPOINTS.interviews.getById(interviewId),
       method: 'GET',
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })
@@ -557,7 +558,7 @@ const fetchInterviewReport = async (interviewId: number) => {
   isLoading.value = true
   try {
     const response = await uni.request({
-      url: baseUrl + `/interviews/interview_report/${interviewId}`,
+      url: API_ENDPOINTS.interviews.report(interviewId),
       method: 'GET',
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })

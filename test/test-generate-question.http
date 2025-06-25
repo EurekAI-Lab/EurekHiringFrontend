@@ -1,0 +1,17 @@
+### Test generateOneQuestionStream endpoint
+POST https://interview.ycjp-work.com/test/api/interview-questions/generateOneQuestionStream
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+  "positionName": "前端开发工程师",
+  "qualification": "本科",
+  "companySize": "50-150人",
+  "tradeName": "互联网",
+  "workLife": "3-5年",
+  "miniWage": "15000",
+  "maxWage": "25000",
+  "jobDescription": "负责前端开发工作",
+  "interviewTime": "5分钟",
+  "guidePrompt": "请设计一个关于React Hook使用的面试题"
+}

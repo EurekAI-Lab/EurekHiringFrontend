@@ -1,13 +1,14 @@
 import { http } from '@/utils/http'
+import { API_ENDPOINTS } from '@/config/apiEndpoints'
 
 // 获取问题by提示词
 export const generateOneQuestionAPI = (params: any) => {
-  return http.post('/interview-questions/generateOneQuestion', params)
+  return http.post(API_ENDPOINTS.interviewQuestions.generateOne, params)
 }
 
 // 获取面试结果
 export const getInterviewListAPI = (params: any) => {
-  let url = '/interviews/getList/';
+  let url = API_ENDPOINTS.interviews.getList;
   if (params) {
     url += `?enterprise_id=${params}`
   }

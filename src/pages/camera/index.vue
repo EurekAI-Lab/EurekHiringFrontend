@@ -77,10 +77,10 @@
         <view class="flex flex-col gap-y-2 pl-2">
           <view class="flex flex-row gap-x-3">
             题目（{{
-              currentQuestionIndex + 1 > interviewDetails.data.questions.length
+              currentQuestionIndex + 1 > (interviewDetails.data.questions?.length || 0)
                 ? currentQuestionIndex
                 : currentQuestionIndex + 1
-            }}/{{ interviewDetails.data.questions.length }}）
+            }}/{{ interviewDetails.data.questions?.length || 0 }}）
           </view>
           <view>
             <view class="flex flex-row gap-x-3">
@@ -152,6 +152,7 @@ const message = useMessage()
 
 const toast = useToast()
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+import { API_ENDPOINTS } from '@/config/apiEndpoints'
 
 // 控制视频黑色遮罩层显示/隐藏
 const showVideoMask = ref(true)
@@ -645,7 +646,7 @@ const stopRecordingAndSave = async () => {
             }, 100);
 
             // 上传成功后才更新索引和处理下一题
-            if (currentIndex < interviewDetails.value.data.questions.length - 1) {
+            if (currentIndex < (interviewDetails.value.data.questions?.length || 0) - 1) {
               currentQuestionIndex.value++
               console.log(`成功进入下一题: ${currentQuestionIndex.value}`)
 
@@ -678,7 +679,7 @@ const stopRecordingAndSave = async () => {
             }, 100);
 
             // 即使上传失败也继续下一题
-            if (currentIndex < interviewDetails.value.data.questions.length - 1) {
+            if (currentIndex < (interviewDetails.value.data.questions?.length || 0) - 1) {
               currentQuestionIndex.value++
               console.log(`上传失败但继续下一题: ${currentQuestionIndex.value}`)
 
@@ -701,8 +702,9 @@ const stopRecordingAndSave = async () => {
           recordingStatus[currentIndex] = 'failed'
 
           // 创建失败记录
+          const currentQuestion = interviewDetails.value.data.questions[currentIndex]
           const failedData = {
-            question_id: currentIndex + 1,
+            question_id: currentQuestion ? currentQuestion.id : currentIndex + 1,
             video_url: '',
             video_duration: videoDuration.value || 0,
             recording_failed: true,
@@ -710,7 +712,7 @@ const stopRecordingAndSave = async () => {
           }
 
           const existingIndex = fileFrom.fileUrls.findIndex(
-            (item) => item.question_id === currentIndex + 1,
+            (item) => item.question_id === (currentQuestion ? currentQuestion.id : currentIndex + 1),
           )
 
           if (existingIndex >= 0) {
@@ -725,7 +727,7 @@ const stopRecordingAndSave = async () => {
             }, 100);
 
           // 即使没有数据也要继续处理下一题
-          if (currentIndex < interviewDetails.value.data.questions.length - 1) {
+          if (currentIndex < (interviewDetails.value.data.questions?.length || 0) - 1) {
             currentQuestionIndex.value++
             console.log(`进入下一题: ${currentQuestionIndex.value}`)
 
@@ -756,7 +758,7 @@ const stopRecordingAndSave = async () => {
       }, 100);
 
       // 即使不在录制状态，也继续处理下一题
-      if (currentIndex < interviewDetails.value.data.questions.length - 1) {
+      if (currentIndex < (interviewDetails.value.data.questions?.length || 0) - 1) {
         currentQuestionIndex.value++
         console.log(`进入下一题: ${currentQuestionIndex.value}`)
 
@@ -781,7 +783,7 @@ const stopRecordingAndSave = async () => {
     }, 100)
 
     // 如果没有 mediaRecorder，直接处理下一题
-    if (currentIndex < interviewDetails.value.data.questions.length - 1) {
+    if (currentIndex < (interviewDetails.value.data.questions?.length || 0) - 1) {
       currentQuestionIndex.value++
       console.log(`进入下一题: ${currentQuestionIndex.value}`)
 
@@ -805,7 +807,7 @@ const saveInterview = async () => {
   console.log('开始提交面试数据，fileUrls:', fileFrom.fileUrls)
 
   // 检查是否所有题目都有对应的视频数据
-  const totalQuestions = interviewDetails.value.data.questions.length
+  const totalQuestions = interviewDetails.value.data.questions?.length || 0
   console.log(`总题目数: ${totalQuestions}, 已上传视频数: ${fileFrom.fileUrls.length}`)
 
   // 如果上传的视频数量少于题目数量，可能有题目的视频未上传成功
@@ -813,21 +815,23 @@ const saveInterview = async () => {
     console.error(`有${totalQuestions - fileFrom.fileUrls.length}道题的数据缺失`)
 
     // 检查哪些题目索引缺失
-    const uploadedIndices = fileFrom.fileUrls.map((item) => item.question_id)
-    const missingIndices = []
+    const uploadedQuestionIds = fileFrom.fileUrls.map((item) => item.question_id)
+    const allQuestions = interviewDetails.value.data.questions || []
+    const missingQuestions = []
 
-    for (let i = 0; i < totalQuestions; i++) {
-      if (!uploadedIndices.includes(i + 1)) {
-        missingIndices.push(i + 1)
+    for (let i = 0; i < allQuestions.length; i++) {
+      const question = allQuestions[i]
+      if (question && !uploadedQuestionIds.includes(question.id)) {
+        missingQuestions.push({ index: i, question })
       }
     }
 
-    console.error(`缺失的题目ID: ${missingIndices.join(', ')}`)
+    console.error(`缺失的题目: ${missingQuestions.map(m => `题${m.index + 1}(ID:${m.question.id})`).join(', ')}`)
 
     // 为缺失的题目添加失败记录
-    for (const missingIdx of missingIndices) {
+    for (const missing of missingQuestions) {
       const failedData = {
-        question_id: missingIdx,
+        question_id: missing.question.id,
         video_url: '',
         video_duration: 0,
         recording_failed: true,
@@ -963,8 +967,9 @@ const getUploadInfo = async (retryCount: number = 0) => {
       recordingStatus[currentQuestionIdx] = 'failed'
 
       // 创建一个失败记录
+      const currentQuestion = interviewDetails.value.data.questions[currentQuestionIdx]
       const failedData = {
-        question_id: currentQuestionIdx + 1,
+        question_id: currentQuestion ? currentQuestion.id : currentQuestionIdx + 1,
         video_url: '',
         video_duration: videoDuration.value,
         recording_failed: true,
@@ -973,7 +978,7 @@ const getUploadInfo = async (retryCount: number = 0) => {
 
       // 添加到上传列表中，标记为失败
       const existingIndex = fileFrom.fileUrls.findIndex(
-        (item) => item.question_id === currentQuestionIdx + 1,
+        (item) => item.question_id === (currentQuestion ? currentQuestion.id : currentQuestionIdx + 1),
       )
 
       if (existingIndex >= 0) {
@@ -1056,14 +1061,15 @@ const uploadFile = async (opt: any) => {
         const uploadedFileUrl =
           'https://' + opt.cosHost + '/' + camSafeUrlEncode(opt.cosKey).replace(/%2F/g, '/')
 
+        const currentQuestion = interviewDetails.value.data.questions[currentQuestionIdx]
         const fileData = {
-          question_id: currentQuestionIdx + 1,
+          question_id: currentQuestion ? currentQuestion.id : currentQuestionIdx + 1,
           video_url: uploadedFileUrl,
           video_duration: currentVideoDuration,
         }
 
         const existingIndex = fileFrom.fileUrls.findIndex(
-          (item) => item.question_id === currentQuestionIdx + 1,
+          (item) => item.question_id === (currentQuestion ? currentQuestion.id : currentQuestionIdx + 1),
         )
 
         if (existingIndex >= 0) {
@@ -1190,9 +1196,9 @@ const nextQuestion = async () => {
   }
 
   console.log('当前题目索引:', currentQuestionIndex.value)
-  console.log('总题目数量:', interviewDetails.value.data.questions.length)
+  console.log('总题目数量:', interviewDetails.value.data.questions?.length || 0)
 
-  if (currentQuestionIndex.value < interviewDetails.value.data.questions.length - 1) {
+  if (currentQuestionIndex.value < (interviewDetails.value.data.questions?.length || 0) - 1) {
     console.log('显示确认对话框：进入下一题')
     message
       .confirm({
@@ -1208,7 +1214,7 @@ const nextQuestion = async () => {
           mask: true,
         })
 
-        if (currentQuestionIndex.value === interviewDetails.value.data.questions.length - 2) {
+        if (currentQuestionIndex.value === (interviewDetails.value.data.questions?.length || 0) - 2) {
           console.log('进入最后一题，设置完成面试按钮')
           overQuestion.value = true
         }
@@ -1466,7 +1472,7 @@ const handleStart = () => {
           }
 
           // 检查是否只有一道题
-          if (interviewDetails.value.data.questions.length === 1) {
+          if ((interviewDetails.value.data.questions?.length || 0) === 1) {
             overQuestion.value = true
           }
         } else {
@@ -1765,7 +1771,7 @@ const fetchInterviewInfo = async (interviewId: number) => {
         // 不显示错误提示，静默处理
       }
 
-      if (interviewDetails.value.data.questions.length === 1 && isInterviewStarted.value) {
+      if ((interviewDetails.value.data.questions?.length || 0) === 1 && isInterviewStarted.value) {
         overQuestion.value = true
       }
     } else {
@@ -1907,7 +1913,7 @@ const handleExit = async () => {
     try {
       // 获取重定向URL
       const res1 = await uni.request({
-        url: baseUrl + `/interviews/redirect-url/`,
+        url: API_ENDPOINTS.interviews.redirectUrl,
         method: 'GET',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         data: { status: 3, interview_id: interviewId.value },
@@ -1939,13 +1945,14 @@ const handleExit = async () => {
       console.log('检查视频上传状态，当前已上传:', fileFrom.fileUrls.length, '条记录')
 
       // 检查是否所有题目都有对应的视频数据
-      const totalQuestions = interviewDetails.value.data.questions.length
+      const totalQuestions = interviewDetails.value.data.questions?.length || 0
       console.log(`总题目数: ${totalQuestions}, 已上传视频数: ${fileFrom.fileUrls.length}`)
 
       // 检查最后一题是否已上传
-      const lastQuestionUploaded = fileFrom.fileUrls.some(
-        (item) => item.question_id === currentQuestionIndex.value,
-      )
+      const lastQuestion = interviewDetails.value.data.questions?.[currentQuestionIndex.value - 1]
+      const lastQuestionUploaded = lastQuestion ? fileFrom.fileUrls.some(
+        (item) => item.question_id === lastQuestion.id,
+      ) : false
 
       if (!lastQuestionUploaded) {
         console.warn(`最后一题(索引 ${currentQuestionIndex.value})未上传，尝试再次上传`)

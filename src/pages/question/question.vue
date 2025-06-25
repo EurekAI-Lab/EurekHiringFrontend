@@ -217,6 +217,8 @@ import icoTs from '../../static/app/icons/icon_ts.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { usePublicStore } from '@/store'
 import { navigateBack, aiInterviewSaved } from '@/utils/platformUtils'
+import { API_ENDPOINTS } from '@/config/apiEndpoints'
+import { FULL_API_URLS } from '@/utils/apiHelper'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 
@@ -257,7 +259,7 @@ onLoad((options) => {
 const getInterviewInfo = async (positionsId: any) => {
   try {
     const response = await uni.request({
-      url: baseUrl + `/positions/get-positions-info/${positionsId}`,
+      url: API_ENDPOINTS.positions.getInfo(positionsId),
       method: 'GET',
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })
@@ -274,18 +276,25 @@ const getInterviewInfo = async (positionsId: any) => {
       query.value.qualification = response.data.position.qualification
       query.value.tradeName = response.data.position.title
       query.value.workLife = response.data.position.work_life
-      console.log('salary_range', response.data.position.salary_range)
+      console.log('salary_range', response.data.position?.salary_range || '薪资面议')
 
       // 检查是否为具体工资范围(数字-数字格式)
       const salaryRange = response.data.position.salary_range
-      const salaryPattern = /^\d+\s*-\s*\d+$/
-
-      if (!salaryPattern.test(salaryRange)) {
+      
+      // 添加空值检查
+      if (!salaryRange || typeof salaryRange !== 'string') {
         query.value.miniWage = '待议'
         query.value.maxWage = '待议'
       } else {
-        query.value.miniWage = salaryRange.split('-')[0].trim()
-        query.value.maxWage = salaryRange.split('-')[1].trim()
+        const salaryPattern = /^\d+\s*-\s*\d+$/
+        
+        if (!salaryPattern.test(salaryRange)) {
+          query.value.miniWage = '待议'
+          query.value.maxWage = '待议'
+        } else {
+          query.value.miniWage = salaryRange.split('-')[0].trim()
+          query.value.maxWage = salaryRange.split('-')[1].trim()
+        }
       }
       query.value.jobDescription = response.data.position.description
       query.value.interviewTime = '五分钟'
@@ -360,19 +369,98 @@ const query = ref({
   testPaperId: '',
 })
 
-// 主入口：优先尝试并行流式生成
+// 主入口：使用流式生成
 const chatStream = async () => {
   // 清空现有题目
   publicStore.questionState.questions = []
   // 设置 loading 状态
   publicStore.questionState.loading = true
   
-  // 优先尝试并行流式生成
+  // 使用流式生成接口
   try {
-    await chatStreamParallel()
+    await chatStreamBasic()
   } catch (error) {
-    console.error('并行流式生成不可用，使用串行模式:', error)
+    console.error('流式生成失败:', error)
+    // 如果流式生成失败，回退到串行模式
     chatStreamSerial()
+  }
+}
+
+// 基础流式生成 - 使用 generateQuestionStream 接口
+const chatStreamBasic = async () => {
+  console.log('使用基础流式生成接口')
+  
+  try {
+    const response = await fetch(FULL_API_URLS.interviewQuestions.generateStream(), {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${uni.getStorageSync('token')}`
+      },
+      body: JSON.stringify(query.value),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    let buffer = ''
+    
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      
+      for (const line of lines) {
+        if (!line.trim()) continue
+        
+        // 处理 SSE 格式
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.substring(6))
+            
+            // 检查是否是完成标记
+            if (data.complete) {
+              console.log('生成完成，共生成', data.total, '道题')
+              publicStore.questionState.loading = false
+              continue
+            }
+            
+            // 检查是否有错误
+            if (data.error) {
+              console.error(`第${data.index}题生成失败:`, data.error)
+              continue
+            }
+            
+            // 添加到问题列表
+            if (data.question && data.interview_aspect) {
+              publicStore.questionState.questions.push({
+                index: data.index || publicStore.questionState.questions.length + 1,
+                interview_aspect: data.interview_aspect,
+                time: data.time || '5分钟',
+                question: data.question,
+                loading: false
+              })
+            }
+          } catch (e) {
+            console.error('解析SSE数据失败:', e, line)
+          }
+        }
+      }
+    }
+    
+    // 完成后关闭 loading
+    publicStore.questionState.loading = false
+    
+  } catch (error) {
+    console.error('基础流式生成失败:', error)
+    publicStore.questionState.loading = false
+    throw error
   }
 }
 
@@ -381,7 +469,7 @@ const chatStreamParallel = async () => {
   console.log('尝试使用并行流式生成')
   
   try {
-    const response = await fetch(baseUrl + '/interview-questions/generateQuestionsParallelStream', {
+    const response = await fetch(FULL_API_URLS.interviewQuestions.generateParallelStream(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(query.value),
@@ -510,7 +598,7 @@ const chatStreamSerial = () => {
   // 创建一个新的 ReadableStream
   const stream = new ReadableStream({
     start(controller) {
-      fetch(baseUrl + '/interview-questions/generateQuestion', {
+      fetch(FULL_API_URLS.interviewQuestions.generateBatch(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(query.value),

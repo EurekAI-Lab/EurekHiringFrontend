@@ -20,7 +20,7 @@
     </view>
     <!-- 背景图 -->
     <view class="">
-      <image :src="aibg06" class="w-full h-50"></image>
+      <image :src="aiInterviewHeader" class="w-full h-50"></image>
     </view>
 
     <wd-sticky :offset-top="-45">
@@ -68,22 +68,34 @@
             </view>
           </view>
 
-          <!-- 审核中状态：只有真实面试且审核状态为PENDING时显示 -->
+          <!-- 审核中状态 -->
           <image
             v-if="item.interview_type === 'real' && item.audit_status === 'PENDING'"
             :src="iconReviewing"
             class="w-15 h-15 absolute right-5 mt-1"
           />
-          <!-- 通过状态：审核通过或不需要审核的情况 -->
+          <!-- 审核未通过状态 -->
           <image
-            v-else-if="item.is_qualified === 'PASS'"
-            :src="hg"
+            v-else-if="item.interview_type === 'real' && item.audit_status === 'REJECTED'"
+            :src="iconReviewFailed"
             class="w-15 h-15 absolute right-5 mt-1"
           />
-          <!-- 不通过状态 -->
+          <!-- 非常合格状态 -->
           <image
-            v-else-if="item.is_qualified === 'FAIL'"
-            :src="bhg"
+            v-else-if="(item.interview_type === 'test' || item.audit_status === 'APPROVED') && item.qualification_level === 'VERY_QUALIFIED'"
+            :src="iconVeryQualified"
+            class="w-15 h-15 absolute right-5 mt-1"
+          />
+          <!-- 合格状态 -->
+          <image
+            v-else-if="(item.interview_type === 'test' || item.audit_status === 'APPROVED') && item.qualification_level === 'QUALIFIED'"
+            :src="iconQualified"
+            class="w-15 h-15 absolute right-5 mt-1"
+          />
+          <!-- 不合格状态 -->
+          <image
+            v-else-if="(item.interview_type === 'test' || item.audit_status === 'APPROVED') && item.qualification_level === 'NOT_QUALIFIED'"
+            :src="iconNotQualified"
             class="w-15 h-15 absolute right-5 mt-1"
           />
         </view>
@@ -126,7 +138,12 @@ import aimn from '../../static/app/icons/icon_aimn.png'
 import hg from '../../static/app/icons/icon_hg.png'
 import bhg from '../../static/app/icons/icon_bhg.png'
 import rame from '../../static/app/icons/Frame-001.png'
-import iconReviewing from '../../static/app/icons/interview-status/icon_reviewing.png'
+import iconReviewing from '../../static/app/icons/interview-status-new/under_review_2x.png'
+import iconReviewFailed from '../../static/app/icons/interview-status-new/review_failed_2x.png'
+import iconQualified from '../../static/app/icons/interview-status-new/suitable_2x.png'
+import iconNotQualified from '../../static/app/icons/interview-status-new/unqualified_2x.png'
+import iconVeryQualified from '../../static/app/icons/interview-status-new/very_suitable_2x.png'
+import aiInterviewHeader from '../../static/app/icons/interview-status-new/AI_interview_record_header_2x.jpg'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import wxSdk from 'weixin-js-sdk'
 import { navigateBack } from '@/utils/platformUtils'
@@ -156,6 +173,7 @@ const originalInterviewResults = ref([]) // 存储原始数据
 const interviewResults = ref([]) // 存储筛选后的数据
 const loading = ref(false)
 const searchValue = ref('')
+const isEnterpriseUser = ref(false) // 是否为企业用户
 
 // 添加搜索监听
 watch(searchValue, (newValue) => {
@@ -191,7 +209,9 @@ onLoad((options) => {
 function formatCompletionTime(isoString) {
   return isoString.replace('T', ' ').substring(0, 19)
 }
-onMounted(() => {
+onMounted(async () => {
+  // 检测用户类型
+  await checkUserType()
   getInterviewList()
 })
 function handleClickLeft() {
@@ -212,6 +232,27 @@ const formatTimeToMinSec = (seconds: number) => {
     return `${minutes}分钟${remainingSeconds}秒`
   }
 }
+// 检测用户类型
+async function checkUserType() {
+  try {
+    const token = uni.getStorageSync('token')
+    // 尝试调用企业接口，如果成功则为企业用户
+    const response = await uni.request({
+      url: `${baseUrl}/interviews/enterprise_ai_interviews/`,
+      method: 'GET',
+      header: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    if (response.statusCode === 200) {
+      isEnterpriseUser.value = true
+    }
+  } catch (error) {
+    // 如果调用失败，则为普通用户
+    isEnterpriseUser.value = false
+  }
+}
+
 // 获取面试记录
 async function getInterviewList(keyword = '') {
   if (keyword.trim() !== '') {
@@ -220,7 +261,9 @@ async function getInterviewList(keyword = '') {
   try {
     const trimmedKeyword = keyword.trim()
     const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
-    const url = `${baseUrl}/interviews/my_ai_interviews/${queryParams}`
+    // 根据用户类型调用不同的API
+    const apiPath = isEnterpriseUser.value ? 'enterprise_ai_interviews' : 'my_ai_interviews'
+    const url = `${baseUrl}/interviews/${apiPath}/${queryParams}`
 
     loading.value = true
     const token = uni.getStorageSync('token')
@@ -254,13 +297,19 @@ const jumpInterviewResult = (item) => {
   uni.setStorageSync('interviewId', item.interviews_id)
   uni.setStorageSync('from', 'h5')
   
-  // 如果是真实面试且审核状态为PENDING，跳转到加载页面
+  // 根据不同状态跳转到不同页面
   if (item.interview_type === 'real' && item.audit_status === 'PENDING') {
+    // 审核中状态跳转到加载页面
     uni.navigateTo({
       url: `/pages/about/mspj-loading?interviewId=${item.interviews_id}&type=1`,
     })
+  } else if (item.interview_type === 'real' && item.audit_status === 'REJECTED') {
+    // 审核未通过也可以查看报告
+    uni.navigateTo({
+      url: '/pages/about/mspj',
+    })
   } else {
-    // 其他情况直接跳转到报告页面
+    // 其他情况（模拟面试或审核通过）直接跳转到报告页面
     uni.navigateTo({
       url: '/pages/about/mspj',
     })

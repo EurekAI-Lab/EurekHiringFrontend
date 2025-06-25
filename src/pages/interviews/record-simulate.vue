@@ -146,6 +146,7 @@ import { navigateBack } from '@/utils/platformUtils'
 import { handleToken } from "@/utils/useAuth"
 import { useNavBar } from '@/utils/useNavBar'
 import { ref, watch, onMounted } from 'vue'
+import { API_ENDPOINTS } from '@/config/apiEndpoints'
 const toast = useToast()
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
@@ -230,7 +231,7 @@ const getPostionInfo = async () => {
   console.log('=== getPostionInfo 开始执行 ===')
   
   // 构建完整URL并记录
-  const url = baseUrl + `/jobseekers/by-user/`
+  const url = API_ENDPOINTS.jobseekers.byUser
   const token = uni.getStorageSync('token')
   
   console.log('getPostionInfo - 请求详情:', {
@@ -419,7 +420,7 @@ const submitTestInerview = async () => {
     toast.loading({ loadingType: 'ring', msg: '正在生成题目...' })
     try {
       uni.request({
-        url: baseUrl + `/interviews/create_mock_interview/${selectedItem.id}`,
+        url: API_ENDPOINTS.interviews.createMock(selectedItem.id),
         method: 'POST',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         success: (res: any) => {

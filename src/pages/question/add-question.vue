@@ -31,7 +31,7 @@
           />
         </view>
         <!-- 自定义字数限制显示 在左下角 -->
-        <view class="absolute bottom-4 left-10 text-xs text-gray-4">{{ value.length }}/500</view>
+        <view class="absolute bottom-4 left-10 text-xs text-gray-4">{{ (value || '').length }}/500</view>
         <!-- 智能识别按钮 -->
         <view
           class="absolute bottom-3 right-10 text-xs w-23 h-8 rounded flex justify-center items-center"
@@ -69,11 +69,12 @@ import Aizdsc from '@/components/public/aizdsc.vue'
 
 import aibg08 from '../../static/images/ai-bg-08.png'
 import iconFj from '../../static/app/icons/icon_fj.png'
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 // import { generateOneQuestionAPI } from '@/service/api' // 不再使用非流式接口
 import { usePublicStore } from '@/store'
 import { useToast } from 'wot-design-uni'
-import { renderMarkdownText, cleanMarkdownCodeBlocks } from '@/utils/markdownUtils'
+import { FULL_API_URLS } from '@/utils/apiHelper'
 
 const toast = useToast()
 const publicStore = usePublicStore()
@@ -115,9 +116,9 @@ const loding = ref(false)
 const show = ref(false)
 const value = ref('')
 
-const value1 = ref('')
-const value2 = ref('')
-const value3 = ref('')
+const value1 = ref('')  // 考核点
+const value2 = ref('5分钟')  // 答题时长，默认5分钟
+const value3 = ref('')  // 问题内容
 
 // 添加 AbortController 用于取消请求
 let currentController: AbortController | null = null
@@ -187,7 +188,7 @@ const doGenerateQuestion = async () => {
   }, 60000)  // 60秒超时
   
   try {
-    const response = await fetch(baseUrl + '/interview-questions/generateOneQuestionStream', {
+    const response = await fetch(FULL_API_URLS.interviewQuestions.generateOneStream(), {
       signal: currentController.signal,  // 添加信号以支持取消
       method: 'POST',
       headers: { 
@@ -199,6 +200,16 @@ const doGenerateQuestion = async () => {
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    // 检查response.body是否存在
+    if (!response.body) {
+      throw new Error('Response body is empty')
+    }
+    
+    // 检查getReader方法是否存在
+    if (!response.body.getReader) {
+      throw new Error('Streaming not supported in this environment')
     }
     
     const reader = response.body.getReader()
@@ -215,6 +226,9 @@ const doGenerateQuestion = async () => {
         break
       }
       
+      // 检查chunk是否存在
+      if (!chunk) continue
+      
       buffer += decoder.decode(chunk, { stream: true })
       const lines = buffer.split('\n')
       buffer = lines.pop() || ''
@@ -226,6 +240,7 @@ const doGenerateQuestion = async () => {
         if (line.startsWith('data: ')) {
           try {
             const data = JSON.parse(line.substring(6))
+            console.log('收到SSE数据:', data)  // 添加调试日志
             
             // 只处理当前请求的数据
             if (requestId !== currentRequestId) {
@@ -246,14 +261,14 @@ const doGenerateQuestion = async () => {
                 
               case 'field':
                 // 字段更新
-                if (data.field === 'interviewAspect') {
+                if (data.field === 'interviewAspect' && data.value) {
                   value1.value = data.value
-                } else if (data.field === 'time') {
+                } else if (data.field === 'time' && data.value) {
+                  // 直接使用后端返回的时间值
                   value2.value = data.value
-                } else if (data.field === 'question') {
-                  // 先清理代码块标记，然后进行 Markdown 渲染
-                  const cleaned = cleanMarkdownCodeBlocks(data.value)
-                  value3.value = renderMarkdownText(cleaned)
+                } else if (data.field === 'question' && data.value) {
+                  // 直接使用问题文本，不需要markdown渲染
+                  value3.value = data.value
                 }
                 break
                 
@@ -262,10 +277,7 @@ const doGenerateQuestion = async () => {
                 if (data.data) {
                   value1.value = data.data.interviewAspect || value1.value || ''
                   value2.value = data.data.time || value2.value || '5分钟'
-                  // 先清理代码块标记，然后进行 Markdown 渲染
-                  const questionText = data.data.question || value3.value || ''
-                  const cleaned = cleanMarkdownCodeBlocks(questionText)
-                  value3.value = renderMarkdownText(cleaned)
+                  value3.value = data.data.question || value3.value || ''
                 }
                 loding.value = false
                 break
@@ -273,20 +285,32 @@ const doGenerateQuestion = async () => {
               case 'error':
                 // 错误
                 console.error('生成错误:', data.message)
-                toast.error('生成失败，请重试')
+                // 根据不同的错误类型提供更具体的提示
+                if (data.message && data.message.includes('_plan_question_topics')) {
+                  toast.error('服务器配置错误，请稍后重试')
+                } else if (data.message && data.message.includes('timeout')) {
+                  toast.error('生成超时，请重试')
+                } else {
+                  toast.error(data.message || '生成失败，请重试')
+                }
                 loding.value = false
+                // 清空已生成的部分内容
+                value1.value = ''
+                value2.value = ''
+                value3.value = ''
                 break
                 
               default:
-                // 兼容旧格式
-                if (data.error) {
-                  console.error('生成错误:', data.error)
+                // 兼容旧格式 - 只有在明确表示错误时才处理
+                if (data.error && !data.type) {
+                  console.error('生成错误（旧格式）:', data.error)
                   toast.error('生成失败，请重试')
                   loding.value = false
                 }
             }
           } catch (error) {
             console.error('解析SSE数据错误:', error, line)
+            // 继续处理下一行，不要中断
           }
         }
       }
@@ -330,9 +354,21 @@ const saveQuestion = () => {
   
   // 校验面试时间格式
   const timeRegex = /^\d+分钟$/
-  if (!value2.value || !timeRegex.test(value2.value)) {
-    toast.error('面试时间格式必须为"x分钟"，如"5分钟"')
+  if (!value2.value) {
+    toast.error('面试时间不能为空')
     return
+  }
+  
+  // 确保时间格式正确
+  if (!timeRegex.test(value2.value)) {
+    // 尝试自动修正格式
+    const timeMatch = value2.value.match(/\d+/)
+    if (timeMatch) {
+      value2.value = `${timeMatch[0]}分钟`
+    } else {
+      toast.error('面试时间格式必须为"x分钟"，如"5分钟"')
+      return
+    }
   }
   
   // 确保 questions 数组存在
@@ -340,8 +376,9 @@ const saveQuestion = () => {
     publicStore.questionState.questions = []
   }
   
+  const currentLength = publicStore.questionState.questions?.length || 0
   publicStore.questionState.questions.push({
-    index: publicStore.questionState.questions.length + 1,
+    index: currentLength + 1,
     interview_aspect: value1.value,
     time: value2.value,
     question: value3.value,

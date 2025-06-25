@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSE Test Client</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>SSE generateOneQuestionStream Test</h1>
+    <button onclick="testSSE()">Test SSE</button>
+    <div id="results"></div>
+
+    <script>
+    async function testSSE() {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = '<p>Testing...</p>';
+        
+        const payload = {
+            "positionName": "前端开发工程师",
+            "qualification": "本科",
+            "companySize": "50-99人",
+            "tradeName": "前端工程师",
+            "workLife": "1-3年",
+            "miniWage": "8000",
+            "maxWage": "12000",
+            "jobDescription": "负责公司产品的前端开发，要求熟悉React",
+            "guidePrompt": "请生成一道考察React性能优化的问题",
+            "interviewTime": "5分钟"
+        };
+
+        try {
+            const response = await fetch('http://119.45.15.47:8001/test/api/interview-questions/generateOneQuestionStream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.substring(6));
+                            console.log('Received:', data);
+                            
+                            const p = document.createElement('p');
+                            p.textContent = `${data.type}: ${JSON.stringify(data)}`;
+                            resultsDiv.appendChild(p);
+                        } catch (e) {
+                            console.error('Parse error:', e, line);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            resultsDiv.innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
+            console.error('Error:', error);
+        }
+    }
+    </script>
+</body>
+</html>

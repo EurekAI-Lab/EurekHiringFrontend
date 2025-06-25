@@ -53,6 +53,7 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { navigateBack } from '@/utils/platformUtils'
 import { useNavBar } from '@/utils/useNavBar'
+import { API_ENDPOINTS } from '@/config/apiEndpoints'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 const interviewId = ref<number | null>(null)
@@ -135,14 +136,14 @@ const pollInterviewReport = () => {
       console.log(`第 ${retryCount} 次轮询查询`)
 
       const response = await uni.request({
-        url: baseUrl + `/interviews/interview_report/${interviewId.value}`,
+        url: API_ENDPOINTS.interviews.report(interviewId.value),
         method: 'GET',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
       })
 
       if (response.statusCode === 200) {
         const responseData = response.data as any
-        if (responseData && responseData.report_data && responseData.report_data.length > 0) {
+        if (responseData && responseData.report_data && Array.isArray(responseData.report_data) && responseData.report_data.length > 0) {
           // 停止轮询和进度模拟
           clearAllIntervals()
           // 设置进度为100%
@@ -280,7 +281,7 @@ onMounted(async () => {
     try {
       if (interviewType.value !== 1) {
         const response = await uni.request({
-          url: baseUrl + `/interviews/interview_report/${interviewId.value}`,
+          url: API_ENDPOINTS.interviews.report(interviewId.value),
           method: 'GET',
           header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         })
@@ -288,7 +289,7 @@ onMounted(async () => {
         // 如果第一次查询就成功且有数据
         if (response.statusCode === 200) {
           const responseData = response.data as any
-          if (responseData && responseData.report_data && responseData.report_data.length > 0) {
+          if (responseData && responseData.report_data && Array.isArray(responseData.report_data) && responseData.report_data.length > 0) {
             console.log('首次查询成功，直接跳转')
             // 设置进度为100%
             progress.value = 100

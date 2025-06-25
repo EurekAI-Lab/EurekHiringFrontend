@@ -89,7 +89,8 @@ import {
   userIdentityChange,
 } from '@/utils/platformUtils'
 import { onPageScroll as uniPageScroll } from '@dcloudio/uni-app'
- import { handleToken } from "@/utils/useAuth"
+import { handleToken } from "@/utils/useAuth"
+import { API_ENDPOINTS } from '@/config/apiEndpoints'
 
 const toast = useToast()
 const showSheet = ref(false)
@@ -127,7 +128,7 @@ const getPostionInfo = async () => {
 
   try {
     const response = await uni.request({
-      url: baseUrl + `/jobseekers/by-user/`,
+      url: API_ENDPOINTS.jobseekers.byUser,
       method: 'GET',
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })
@@ -167,7 +168,7 @@ const submitTestInerview = async () => {
     toast.loading({ loadingType: 'ring', msg: '正在生成题目...' })
     try {
       uni.request({
-        url: baseUrl + `/interviews/create_mock_interview/${selectedItem.id}`,
+        url: API_ENDPOINTS.interviews.createMock(selectedItem.id),
         method: 'POST',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         success: (res: any) => {

@@ -81,6 +81,7 @@ import dw from '../../static/app/icons/icon_dw.png'
 import sybz from '../../static/app/icons/icon_sybz.png'
 import dh from '../../static/app/icons/icon_dh.png'
 import { useToast } from 'wot-design-uni'
+import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import {
   getPlatformType,
   navigateBack,
@@ -126,7 +127,7 @@ const getPostionInfo = async () => {
 
   try {
     const response = await uni.request({
-      url: baseUrl + `/jobseekers/by-user/`,
+      url: API_ENDPOINTS.jobseekers.byUser,
       method: 'GET',
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })
@@ -166,7 +167,7 @@ const submitTestInerview = async () => {
     toast.loading({ loadingType: 'ring', msg: '正在生成题目...' })
     try {
       uni.request({
-        url: baseUrl + `/interviews/create_mock_interview/${selectedItem.id}`,
+        url: API_ENDPOINTS.interviews.createMock(selectedItem.id),
         method: 'POST',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         success: (res: any) => {
