@@ -31,7 +31,7 @@
           />
         </view>
         <!-- 自定义字数限制显示 在左下角 -->
-        <view class="absolute bottom-4 left-10 text-xs text-gray-4">{{ (value || '').length }}/500</view>
+        <view class="absolute bottom-4 left-10 text-xs text-gray-4">{{ value ? value.length : 0 }}/500</view>
         <!-- 智能识别按钮 -->
         <view
           class="absolute bottom-3 right-10 text-xs w-23 h-8 rounded flex justify-center items-center"
@@ -78,6 +78,20 @@ import { FULL_API_URLS } from '@/utils/apiHelper'
 
 const toast = useToast()
 const publicStore = usePublicStore()
+
+// 确保 store 初始化正确
+if (!publicStore.questionState) {
+  console.warn('questionState 未初始化，正在初始化')
+  publicStore.$patch({
+    questionState: {
+      positionName: '',
+      companyType: '',
+      companySize: '',
+      questions: [],
+      loading: false,
+    }
+  })
+}
 
 // 组件卸载时清理
 onUnmounted(() => {
@@ -273,19 +287,39 @@ const doGenerateQuestion = async () => {
               continue
             }
             
+            console.log(`[DEBUG] 处理消息类型: ${data.type}`, {
+              type: data.type,
+              field: data.field,
+              value: data.value,
+              hasValue1: !!value1,
+              hasValue2: !!value2,
+              hasValue3: !!value3,
+              value1Type: typeof value1?.value,
+              value2Type: typeof value2?.value,
+              value3Type: typeof value3?.value
+            })
+            
             switch (data.type) {
               case 'start':
                 // 开始生成 - 不在问题框显示状态消息
                 // value3.value 保持为空，让用户看到空白的输入框
+                console.log('[DEBUG] 处理start消息')
                 break
                 
               case 'status':
                 // 状态更新 - 不在问题框显示状态消息
                 // 可以考虑在其他地方显示状态，但不在问题框
+                console.log('[DEBUG] 处理status消息:', data.message)
                 break
                 
               case 'field':
                 // 字段更新 - 增加类型检查
+                console.log('[DEBUG] 处理field消息:', {
+                  field: data.field,
+                  value: data.value,
+                  valueType: typeof data.value
+                })
+                
                 if (!data.field || typeof data.field !== 'string') {
                   console.warn('字段更新缺少field属性:', data)
                   break
@@ -295,37 +329,91 @@ const doGenerateQuestion = async () => {
                 const fieldValue = data.value
                 if (fieldValue === undefined || fieldValue === null) {
                   console.warn(`字段 ${data.field} 的值为空`)
+                  // 为空值设置默认值
+                  if (data.field === 'interviewAspect') {
+                    value1.value = ''
+                  } else if (data.field === 'time') {
+                    value2.value = '5分钟'
+                  } else if (data.field === 'question') {
+                    value3.value = ''
+                  }
                   break
                 }
                 
-                if (data.field === 'interviewAspect') {
-                  value1.value = String(fieldValue)
-                } else if (data.field === 'time') {
-                  // 直接使用后端返回的时间值
-                  value2.value = String(fieldValue)
-                } else if (data.field === 'question') {
-                  // 直接使用问题文本，不需要markdown渲染
-                  value3.value = String(fieldValue)
+                try {
+                  if (data.field === 'interviewAspect') {
+                    console.log('[DEBUG] 设置value1前:', value1.value)
+                    value1.value = String(fieldValue)
+                    console.log('[DEBUG] 设置value1后:', value1.value)
+                  } else if (data.field === 'time') {
+                    console.log('[DEBUG] 设置value2前:', value2.value)
+                    // 直接使用后端返回的时间值
+                    value2.value = String(fieldValue)
+                    console.log('[DEBUG] 设置value2后:', value2.value)
+                  } else if (data.field === 'question') {
+                    console.log('[DEBUG] 设置value3前:', value3.value)
+                    // 直接使用问题文本，不需要markdown渲染
+                    value3.value = String(fieldValue)
+                    console.log('[DEBUG] 设置value3后:', value3.value)
+                  }
+                } catch (error) {
+                  console.error('[DEBUG] 设置字段值时出错:', error, {
+                    field: data.field,
+                    value: fieldValue,
+                    error: error.message
+                  })
                 }
                 break
                 
               case 'complete':
                 // 完成
-                if (data.data && typeof data.data === 'object') {
-                  // 安全地更新字段值
-                  if (data.data.interviewAspect !== undefined) {
-                    value1.value = String(data.data.interviewAspect)
-                  }
-                  if (data.data.time !== undefined) {
-                    value2.value = String(data.data.time)
-                  } else if (!value2.value) {
-                    value2.value = '5分钟' // 默认值
-                  }
-                  if (data.data.question !== undefined) {
-                    value3.value = String(data.data.question)
-                  }
+                console.log('[DEBUG] 收到complete事件:', {
+                  data: data,
+                  hasData: !!data.data,
+                  dataType: typeof data.data,
+                  hasValue1: !!value1,
+                  hasValue2: !!value2,
+                  hasValue3: !!value3
+                })
+                
+                // 确保在更新状态前检查组件是否仍然存在
+                if (!value1 || !value2 || !value3) {
+                  console.warn('组件已卸载，忽略complete事件')
+                  break
                 }
-                loding.value = false
+                
+                try {
+                  if (data.data && typeof data.data === 'object') {
+                    console.log('[DEBUG] complete事件的data内容:', data.data)
+                    
+                    // 安全地更新字段值
+                    if (data.data.interviewAspect !== undefined && data.data.interviewAspect !== null) {
+                      console.log('[DEBUG] 从complete设置value1:', data.data.interviewAspect)
+                      value1.value = String(data.data.interviewAspect)
+                    }
+                    if (data.data.time !== undefined && data.data.time !== null) {
+                      console.log('[DEBUG] 从complete设置value2:', data.data.time)
+                      value2.value = String(data.data.time)
+                    } else if (!value2.value) {
+                      console.log('[DEBUG] 设置value2默认值')
+                      value2.value = '5分钟' // 默认值
+                    }
+                    if (data.data.question !== undefined && data.data.question !== null) {
+                      console.log('[DEBUG] 从complete设置value3:', data.data.question)
+                      value3.value = String(data.data.question)
+                    }
+                  }
+                  
+                  console.log('[DEBUG] complete处理后的值:', {
+                    value1: value1.value,
+                    value2: value2.value,
+                    value3: value3.value
+                  })
+                } catch (error) {
+                  console.error('[DEBUG] complete处理出错:', error)
+                } finally {
+                  loding.value = false
+                }
                 break
                 
               case 'error':
@@ -355,7 +443,12 @@ const doGenerateQuestion = async () => {
                 }
             }
           } catch (error) {
-            console.error('解析SSE数据错误:', error, line)
+            console.error('[DEBUG] 解析SSE数据错误:', {
+              error: error.message,
+              line: line,
+              lineLength: line?.length,
+              lineType: typeof line
+            })
             // 继续处理下一行，不要中断
           }
         }
@@ -386,57 +479,84 @@ const doGenerateQuestion = async () => {
 }
 
 const saveQuestion = () => {
-  // 校验题目标题不能为空
-  if (!value3.value || value3.value.trim() === '') {
-    toast.error('题目内容不能为空')
-    return
-  }
-  
-  // 校验考核点不能为空
-  if (!value1.value || value1.value.trim() === '') {
-    toast.error('考核点不能为空')
-    return
-  }
-  
-  // 校验面试时间格式
-  const timeRegex = /^\d+分钟$/
-  if (!value2.value) {
-    toast.error('面试时间不能为空')
-    return
-  }
-  
-  // 确保时间格式正确
-  if (!timeRegex.test(value2.value)) {
-    // 尝试自动修正格式
-    const timeMatch = value2.value.match(/\d+/)
-    if (timeMatch) {
-      value2.value = `${timeMatch[0]}分钟`
-    } else {
-      toast.error('面试时间格式必须为"x分钟"，如"5分钟"')
+  try {
+    // 校验题目标题不能为空
+    if (!value3.value || value3.value.trim() === '') {
+      toast.error('题目内容不能为空')
       return
     }
+    
+    // 校验考核点不能为空
+    if (!value1.value || value1.value.trim() === '') {
+      toast.error('考核点不能为空')
+      return
+    }
+    
+    // 校验面试时间格式
+    const timeRegex = /^\d+分钟$/
+    if (!value2.value) {
+      toast.error('面试时间不能为空')
+      return
+    }
+    
+    // 确保时间格式正确
+    if (!timeRegex.test(value2.value)) {
+      // 尝试自动修正格式
+      const timeMatch = value2.value.match(/\d+/)
+      if (timeMatch) {
+        value2.value = `${timeMatch[0]}分钟`
+      } else {
+        toast.error('面试时间格式必须为"x分钟"，如"5分钟"')
+        return
+      }
+    }
+    
+    // 确保 publicStore 和 questionState 存在
+    if (!publicStore || !publicStore.questionState) {
+      console.error('publicStore.questionState 未初始化')
+      toast.error('系统错误，请刷新页面重试')
+      return
+    }
+    
+    // 确保 questions 数组存在
+    if (!Array.isArray(publicStore.questionState.questions)) {
+      console.warn('questions 数组不存在，正在初始化')
+      publicStore.questionState.questions = []
+    }
+    
+    // 安全地获取长度
+    let currentLength = 0
+    try {
+      currentLength = publicStore.questionState.questions.length || 0
+    } catch (e) {
+      console.error('获取questions长度失败:', e)
+      currentLength = 0
+    }
+    
+    // 创建新问题对象
+    const newQuestion = {
+      index: currentLength + 1,
+      interview_aspect: String(value1.value || '').trim(),
+      time: String(value2.value || '5分钟'),
+      question: String(value3.value || '').trim(),
+    }
+    
+    // 安全地添加到数组
+    try {
+      publicStore.questionState.questions.push(newQuestion)
+      console.log('成功添加问题:', newQuestion)
+    } catch (e) {
+      console.error('添加问题失败:', e)
+      toast.error('保存失败，请重试')
+      return
+    }
+    
+    // 成功后返回
+    uni.navigateBack()
+  } catch (error) {
+    console.error('saveQuestion 执行失败:', error)
+    toast.error('保存失败，请重试')
   }
-  
-  // 确保 publicStore 和 questionState 存在
-  if (!publicStore || !publicStore.questionState) {
-    console.error('publicStore.questionState 未初始化')
-    toast.error('系统错误，请刷新页面重试')
-    return
-  }
-  
-  // 确保 questions 数组存在
-  if (!Array.isArray(publicStore.questionState.questions)) {
-    publicStore.questionState.questions = []
-  }
-  
-  const currentLength = publicStore.questionState.questions.length
-  publicStore.questionState.questions.push({
-    index: currentLength + 1,
-    interview_aspect: String(value1.value).trim(),
-    time: String(value2.value),
-    question: String(value3.value).trim(),
-  })
-  uni.navigateBack()
 }
 function handleClickLeft() {
   uni.navigateBack()

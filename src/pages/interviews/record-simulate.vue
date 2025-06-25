@@ -192,7 +192,7 @@ const my_test_interviews = async (keyword = '') => {
   // 将url定义移到try块外部，这样catch块也能访问
   const trimmedKeyword = keyword.trim()
   const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
-  const url = `${baseUrl}/interviews/my_test_interviews${queryParams}`
+  const url = `/interviews/my_test_interviews${queryParams}`
   
   try {
     const response = await uni.request({

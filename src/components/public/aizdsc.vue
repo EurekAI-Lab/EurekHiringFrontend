@@ -44,7 +44,8 @@
         <view class="flex justify-center items-center">
           <view class="w-90% rounded-xl min-h-40 bg-#f9fbfc overflow-hidden">
             <wd-textarea 
-              v-model="localValue3" 
+              :model-value="localValue3 || ''"
+              @update:model-value="(val) => localValue3 = String(val || '')"
               :maxlength="500"
               :auto-height="true"
               class="textarea-custom"
@@ -95,18 +96,39 @@ const emit = defineEmits<{
 
 // 创建响应式的 localValue
 const localValue1 = computed({
-  get: () => props.value1 || '',
-  set: (value: string) => emit('update:value1', value),
+  get: () => {
+    const val = String(props.value1 || '')
+    console.log('[AIZDSC DEBUG] localValue1 get:', val, 'props.value1:', props.value1)
+    return val
+  },
+  set: (value: string) => {
+    console.log('[AIZDSC DEBUG] localValue1 set:', value)
+    emit('update:value1', String(value || ''))
+  },
 })
 
 const localValue2 = computed({
-  get: () => props.value2 || '',
-  set: (value: string) => emit('update:value2', value),
+  get: () => {
+    const val = String(props.value2 || '')
+    console.log('[AIZDSC DEBUG] localValue2 get:', val, 'props.value2:', props.value2)
+    return val
+  },
+  set: (value: string) => {
+    console.log('[AIZDSC DEBUG] localValue2 set:', value)
+    emit('update:value2', String(value || ''))
+  },
 })
 
 const localValue3 = computed({
-  get: () => props.value3 || '',
-  set: (value: string) => emit('update:value3', value),
+  get: () => {
+    const val = String(props.value3 || '')
+    console.log('[AIZDSC DEBUG] localValue3 get:', val, 'props.value3:', props.value3)
+    return val
+  },
+  set: (value: string) => {
+    console.log('[AIZDSC DEBUG] localValue3 set:', value)
+    emit('update:value3', String(value || ''))
+  },
 })
 </script>
 

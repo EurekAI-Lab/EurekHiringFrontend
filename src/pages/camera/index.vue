@@ -1937,7 +1937,7 @@ const handleExit = async () => {
 
       // 通知面试结果
       await uni.request({
-        url: baseUrl + `/interviews/notify_interview_result/${interviewId.value}`,
+        url: baseUrl + API_ENDPOINTS.interviews.notifyResult(interviewId.value),
         method: 'POST',
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
       })

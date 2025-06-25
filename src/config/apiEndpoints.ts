@@ -12,8 +12,15 @@ export const API_ENDPOINTS = {
     getById: (id: number | string) => `/interviews/${id}`,
     redirectUrl: '/interviews/redirect-url/',
     report: (id: number | string) => `/interviews/interview_report/${id}`,
+    reportStream: (id: number | string) => `/interviews/interview_report_stream/${id}`,
     myAiInterviews: '/interviews/my_ai_interviews',
     enterpriseAiInterviews: '/interviews/enterprise_ai_interviews',
+    submitSingleQuestion: '/interviews/submit_single_question',
+    submitInterview: '/interviews/submit_interview',
+    asrCallback: '/interviews/asr_callback',
+    evaluateStream: (id: number | string) => `/interviews/evaluate_interview_stream/${id}`,
+    interviewDetails: (id: number | string) => `/interviews/interview_details/${id}`,
+    notifyResult: (id: number | string) => `/interviews/notify_interview_result/${id}`,
   },
 
   // 面试问题相关
@@ -38,6 +45,24 @@ export const API_ENDPOINTS = {
     list: '/positions/list',
   },
 
+  // 试卷相关
+  testPapers: {
+    create: '/test-papers/create',
+    getById: (id: number | string) => `/test-papers/${id}`,
+    update: (id: number | string) => `/test-papers/${id}`,
+    delete: (id: number | string) => `/test-papers/${id}`,
+    list: '/test-papers/',
+  },
+
+  // 试卷题目相关
+  testPaperQuestions: {
+    create: '/test-papers-questions/create',
+    getById: (id: number | string) => `/test-papers-questions/${id}`,
+    getByTestPaper: (testPaperId: number | string) => `/test-papers-questions/by-test-paper/${testPaperId}`,
+    update: (id: number | string) => `/test-papers-questions/${id}`,
+    delete: (id: number | string) => `/test-papers-questions/${id}`,
+  },
+
   // 面试结果相关
   interviewResults: {
     evaluationWithScore: (id: number | string) => `/interview-results/evaluation_with_score/${id}/finalize`,
@@ -54,6 +79,26 @@ export const API_ENDPOINTS = {
     login: '/users/login',
     profile: '/users/profile',
     updateProfile: '/users/update-profile',
+  },
+
+  // 审核相关
+  audits: {
+    list: '/audits/',
+    getById: (id: number | string) => `/audits/${id}`,
+    approve: (id: number | string) => `/audits/${id}/approve`,
+    reject: (id: number | string) => `/audits/${id}/reject`,
+    bulkApprove: '/audits/bulk_approve',
+    bulkReject: '/audits/bulk_reject',
+  },
+
+  // 帧分析相关
+  frameAnalysis: {
+    analyze: (interviewId: number | string) => `/frame-analysis/analyze/${interviewId}`,
+  },
+
+  // TTS相关
+  tts: {
+    generate: '/tts/generate_speech',
   },
 } as const
 

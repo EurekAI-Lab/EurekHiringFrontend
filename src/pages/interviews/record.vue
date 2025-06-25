@@ -160,6 +160,7 @@ import wxSdk from 'weixin-js-sdk'
 import { navigateBack } from '@/utils/platformUtils'
 import { handleToken } from "@/utils/useAuth"
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
+import { useUserStore } from '@/store'
 
 function getENVIR() {
   let text = ''
@@ -205,18 +206,17 @@ watch(searchValue, (newValue) => {
 })
 
 onLoad((options) => {
-  // const storedToken = uni.getStorageSync('token')
-  // if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
-  //   uni.setStorageSync('token', options.token)
-  // } else if (storedToken) {
-  //   uni.setStorageSync('token', storedToken)
-  // } else {
-  //   uni.showToast({
-  //       title: '未找到 token 参数',
-  //       icon: 'none'
-  //     })
-  // }ss
   handleToken(options)
+  
+  // Sync token with user store
+  const token = uni.getStorageSync('token')
+  if (token) {
+    const userStore = useUserStore()
+    // Update user store with token if not already set
+    if (!userStore.userInfo.token) {
+      userStore.setUserInfo({ ...userStore.userInfo, token })
+    }
+  }
 })
 function formatCompletionTime(isoString) {
   return isoString.replace('T', ' ').substring(0, 19)
@@ -247,19 +247,9 @@ const formatTimeToMinSec = (seconds: number) => {
 // 检测用户类型
 async function checkUserType() {
   try {
-    const token = uni.getStorageSync('token')
-    if (!token) {
-      console.error('Token不存在，无法获取用户信息')
-      isEnterpriseUser.value = false
-      return
-    }
-    
     const response = await uni.request({
-      url: `${baseUrl}/users/me`,
+      url: `/users/me`,
       method: 'GET',
-      header: {
-        Authorization: `Bearer ${token}`,
-      },
     })
     
     if (response.statusCode === 200) {
@@ -290,19 +280,15 @@ async function getInterviewList(keyword = '') {
     const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
     // 根据用户类型调用不同的API
     const apiPath = isEnterpriseUser.value ? API_ENDPOINTS.interviews.enterpriseAiInterviews : API_ENDPOINTS.interviews.myAiInterviews
-    const url = `${baseUrl}${apiPath}${queryParams}`
+    // 不要包含baseUrl，让拦截器处理
+    const url = `${apiPath}${queryParams}`
     console.log('请求URL：', url)
 
     loading.value = true
-    const token = uni.getStorageSync('token')
-    console.log('使用的Token:', token ? `${token.substring(0, 20)}...` : 'Token为空')
     
     const response = await uni.request({
       url: url,
       method: 'GET',
-      header: {
-        Authorization: `Bearer ${token}`,
-      },
     })
     console.log('API响应：', response)
     if (response.statusCode === 200) {

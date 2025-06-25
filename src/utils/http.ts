@@ -94,7 +94,7 @@ export const httpPatch = <T>(
     url,
     query,
     data,
-    method: 'POST',
+    method: 'PATCH',
   })
 }
 
