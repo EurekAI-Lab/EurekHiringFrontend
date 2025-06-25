@@ -31,7 +31,7 @@
           />
         </view>
         <!-- 自定义字数限制显示 在左下角 -->
-        <view class="absolute bottom-4 left-10 text-xs text-gray-4">{{ value ? value.length : 0 }}/500</view>
+        <view class="absolute bottom-4 left-10 text-xs text-gray-4">{{ (value || '').length }}/500</view>
         <!-- 智能识别按钮 -->
         <view
           class="absolute bottom-3 right-10 text-xs w-23 h-8 rounded flex justify-center items-center"
@@ -69,7 +69,7 @@ import Aizdsc from '@/components/public/aizdsc.vue'
 
 import aibg08 from '../../static/images/ai-bg-08.png'
 import iconFj from '../../static/app/icons/icon_fj.png'
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, onMounted, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 // import { generateOneQuestionAPI } from '@/service/api' // 不再使用非流式接口
 import { usePublicStore } from '@/store'
@@ -93,8 +93,45 @@ if (!publicStore.questionState) {
   })
 }
 
+// 组件挂载时的调试
+onMounted(() => {
+  console.log('[DEBUG] add-question组件已挂载', {
+    value1: value1.value,
+    value2: value2.value,
+    value3: value3.value,
+    valueTypes: {
+      value1: typeof value1.value,
+      value2: typeof value2.value,
+      value3: typeof value3.value
+    }
+  })
+  
+  // 添加全局错误处理 (仅在H5环境下)
+  // #ifdef H5
+  if (typeof window !== 'undefined') {
+    window.addEventListener('error', (event) => {
+      console.error('[DEBUG] 全局错误捕获:', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error
+      })
+    })
+    
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('[DEBUG] 未处理的Promise拒绝:', {
+        reason: event.reason,
+        promise: event.promise
+      })
+    })
+  }
+  // #endif
+})
+
 // 组件卸载时清理
 onUnmounted(() => {
+  console.log('[DEBUG] add-question组件卸载')
   if (currentController) {
     currentController.abort()
     currentController = null
@@ -133,6 +170,20 @@ const value = ref('')
 const value1 = ref('')  // 考核点
 const value2 = ref('5分钟')  // 答题时长，默认5分钟
 const value3 = ref('')  // 问题内容
+
+// 监听值的变化
+watch([value1, value2, value3], ([v1, v2, v3]) => {
+  console.log('[DEBUG] 值变化:', {
+    value1: v1,
+    value2: v2,
+    value3: v3,
+    types: {
+      value1: typeof v1,
+      value2: typeof v2,
+      value3: typeof v3
+    }
+  })
+})
 
 // 添加 AbortController 用于取消请求
 let currentController: AbortController | null = null
@@ -462,7 +513,11 @@ const doGenerateQuestion = async () => {
       return
     }
     
-    console.error('流式生成失败:', error)
+    console.error('[DEBUG] 流式生成失败:', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name
+    })
     
     // 显示错误提示
     if (error.message && error.message.includes('network')) {
@@ -475,6 +530,15 @@ const doGenerateQuestion = async () => {
     clearTimeout(timeoutId)  // 清理超时定时器
     loding.value = false
     currentController = null  // 清理控制器
+    
+    // 最终检查
+    console.log('[DEBUG] 流式生成结束，最终状态:', {
+      value1: value1.value,
+      value2: value2.value,
+      value3: value3.value,
+      loding: loding.value,
+      show: show.value
+    })
   }
 }
 

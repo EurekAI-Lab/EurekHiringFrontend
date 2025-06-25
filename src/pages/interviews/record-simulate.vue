@@ -147,6 +147,7 @@ import { handleToken } from "@/utils/useAuth"
 import { useNavBar } from '@/utils/useNavBar'
 import { ref, watch, onMounted } from 'vue'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
+import { useUserStore } from '@/store'
 const toast = useToast()
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
@@ -198,7 +199,6 @@ const my_test_interviews = async (keyword = '') => {
     const response = await uni.request({
       url: url,
       method: 'GET',
-      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })
     console.log('my_test_interviews - 响应状态码:', response.statusCode)
     console.log('my_test_interviews - 响应数据:', response.data)
@@ -245,7 +245,6 @@ const getPostionInfo = async () => {
     const response = await uni.request({
       url: url,
       method: 'GET',
-      header: { Authorization: `Bearer ${token}` },
     })
     
     console.log('getPostionInfo - 响应详情:', {
@@ -348,18 +347,17 @@ const getPostionInfo = async () => {
   console.log('=== getPostionInfo 执行结束 ===')
 }
 onLoad((options) => {
-  // const storedToken = uni.getStorageSync('token')
-  // if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
-  //   uni.setStorageSync('token', options.token)
-  // } else if (storedToken) {
-  //   uni.setStorageSync('token', storedToken)
-  // } else {
-  //   uni.showToast({
-  //       title: '未找到 token 参数',
-  //       icon: 'none'
-  //     })
-  // }
   handleToken(options)
+  
+  // Sync token with user store
+  const token = uni.getStorageSync('token')
+  if (token) {
+    const userStore = useUserStore()
+    // Update user store with token if not already set
+    if (!userStore.userInfo.token) {
+      userStore.setUserInfo({ ...userStore.userInfo, token })
+    }
+  }
 })
 function handleClickLeft() {
   navigateBack()
@@ -422,7 +420,6 @@ const submitTestInerview = async () => {
       uni.request({
         url: API_ENDPOINTS.interviews.createMock(selectedItem.id),
         method: 'POST',
-        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         success: (res: any) => {
           console.log('submitTestInerview - 成功响应:', res)
           if (res.statusCode === 200 && res.data && res.data.data && res.data.data.redirect_url) {

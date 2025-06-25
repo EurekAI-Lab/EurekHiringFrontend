@@ -53,7 +53,7 @@
           </view>
           <!-- 自定义字数限制显示 在左下角 -->
           <view class="absolute bottom-4 left-10 text-xs text-gray-4">
-            {{ (localValue3 || '').length }}/500
+            {{ getTextLength(localValue3) }}/500
           </view>
         </view>
       </view>
@@ -97,39 +97,80 @@ const emit = defineEmits<{
 // 创建响应式的 localValue
 const localValue1 = computed({
   get: () => {
-    const val = String(props.value1 || '')
-    console.log('[AIZDSC DEBUG] localValue1 get:', val, 'props.value1:', props.value1)
-    return val
+    try {
+      const val = String(props.value1 || '')
+      console.log('[AIZDSC DEBUG] localValue1 get:', val, 'props.value1:', props.value1)
+      return val
+    } catch (error) {
+      console.error('[AIZDSC DEBUG] localValue1 get error:', error)
+      return ''
+    }
   },
   set: (value: string) => {
-    console.log('[AIZDSC DEBUG] localValue1 set:', value)
-    emit('update:value1', String(value || ''))
+    try {
+      console.log('[AIZDSC DEBUG] localValue1 set:', value)
+      emit('update:value1', String(value || ''))
+    } catch (error) {
+      console.error('[AIZDSC DEBUG] localValue1 set error:', error)
+    }
   },
 })
 
 const localValue2 = computed({
   get: () => {
-    const val = String(props.value2 || '')
-    console.log('[AIZDSC DEBUG] localValue2 get:', val, 'props.value2:', props.value2)
-    return val
+    try {
+      const val = String(props.value2 || '')
+      console.log('[AIZDSC DEBUG] localValue2 get:', val, 'props.value2:', props.value2)
+      return val
+    } catch (error) {
+      console.error('[AIZDSC DEBUG] localValue2 get error:', error)
+      return ''
+    }
   },
   set: (value: string) => {
-    console.log('[AIZDSC DEBUG] localValue2 set:', value)
-    emit('update:value2', String(value || ''))
+    try {
+      console.log('[AIZDSC DEBUG] localValue2 set:', value)
+      emit('update:value2', String(value || ''))
+    } catch (error) {
+      console.error('[AIZDSC DEBUG] localValue2 set error:', error)
+    }
   },
 })
 
 const localValue3 = computed({
   get: () => {
-    const val = String(props.value3 || '')
-    console.log('[AIZDSC DEBUG] localValue3 get:', val, 'props.value3:', props.value3)
-    return val
+    try {
+      const val = String(props.value3 || '')
+      console.log('[AIZDSC DEBUG] localValue3 get:', val, 'props.value3:', props.value3)
+      return val
+    } catch (error) {
+      console.error('[AIZDSC DEBUG] localValue3 get error:', error)
+      return ''
+    }
   },
   set: (value: string) => {
-    console.log('[AIZDSC DEBUG] localValue3 set:', value)
-    emit('update:value3', String(value || ''))
+    try {
+      console.log('[AIZDSC DEBUG] localValue3 set:', value)
+      emit('update:value3', String(value || ''))
+    } catch (error) {
+      console.error('[AIZDSC DEBUG] localValue3 set error:', error)
+    }
   },
 })
+
+// 辅助函数：安全地获取文本长度
+const getTextLength = (text: any): number => {
+  try {
+    if (text === null || text === undefined) {
+      return 0
+    }
+    const str = String(text)
+    return str.length
+  } catch (error) {
+    console.error('[AIZDSC DEBUG] getTextLength error:', error, 'text:', text)
+    return 0
+  }
+}
 </script>
 
 <style scoped lang="scss">
