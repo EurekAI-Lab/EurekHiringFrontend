@@ -95,7 +95,8 @@
       "path": "pages/interviews/record-simulate",
       "type": "page",
       "style": {
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {

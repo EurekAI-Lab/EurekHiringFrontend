@@ -154,8 +154,10 @@
             </view>
             <!-- 合格或不合格图片 -->
             <view class="absolute top-20 left-68" v-if="isBigTabOneActive">
-              <image v-if="item.interview_result.result === 'PASS'" class="w-15 h-15" :src="hg"></image>
-              <image v-else class="w-15 h-15" :src="bhg"></image>
+              <!-- 根据分数显示不同的图标 -->
+              <image v-if="item.interview_result.score >= 85" class="w-15 h-15" :src="iconVeryQualified"></image>
+              <image v-else-if="item.interview_result.score >= 60" class="w-15 h-15" :src="iconQualified"></image>
+              <image v-else class="w-15 h-15" :src="iconNotQualified"></image>
             </view>
             <!-- 已邀约/已弃用 -->
             <view class="absolute top-20 left-68" v-if="!isBigTabOneActive">
@@ -252,6 +254,10 @@
   import yyy from '../../static/app/icons/icon_yyy.png'
   // import fchs from '../../static/app/icons/icon_fchs.png'
   import jobIcon from '../../static/app/icons/icon_job.png'
+  // 导入新的面试状态图标
+  import iconQualified from '../../static/app/icons/interview-status-new/suitable_2x.png'
+  import iconNotQualified from '../../static/app/icons/interview-status-new/unqualified_2x.png'
+  import iconVeryQualified from '../../static/app/icons/interview-status-new/very_suitable_2x.png'
   import { useToast, useMessage } from 'wot-design-uni'
   import { navigateBack, inviteInterview, openUserVitaeInfo } from '@/utils/platformUtils'
   import { getInterviewListAPI } from '@/service/api'
