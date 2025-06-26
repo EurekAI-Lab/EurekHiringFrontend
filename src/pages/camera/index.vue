@@ -1886,7 +1886,7 @@ const handleExit = async () => {
   } else {
     isExiting.value = true
     uni.showLoading({
-      title: '正在提交面试数据',
+      title: '正在生成面试报告',
       mask: true
     })
     if (isInterviewStarted.value) {
@@ -1935,6 +1935,53 @@ const handleExit = async () => {
         console.log('面试结束app函数报错', error)
       }
 
+      // 等待ASR处理完成和评估生成
+      console.log('等待ASR处理和评估生成...')
+      const maxWaitTime = 60000 // 最多等待60秒
+      const checkInterval = 3000 // 每3秒检查一次
+      const startTime = Date.now()
+      
+      // 轮询检查评估是否完成
+      let evaluationComplete = false
+      while (!evaluationComplete && (Date.now() - startTime) < maxWaitTime) {
+        try {
+          // 检查面试评估状态（通过notify接口的返回来判断）
+          const checkResponse = await uni.request({
+            url: baseUrl + `/interviews/get_interview_detail/${interviewId.value}`,
+            method: 'GET',
+            header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+          })
+          
+          // 检查是否有interview_results数据
+          if (checkResponse.data && checkResponse.data.interview_results && checkResponse.data.interview_results.length > 0) {
+            const results = checkResponse.data.interview_results[0]
+            // 检查是否有综合评价和建议
+            if (results.summary && results.improvement_suggestions) {
+              console.log('评估已完成，包含综合评价和建议')
+              evaluationComplete = true
+              break
+            }
+          }
+        } catch (error) {
+          console.log('检查评估状态时出错:', error)
+        }
+        
+        if (!evaluationComplete) {
+          const waitedSeconds = Math.floor((Date.now() - startTime) / 1000)
+          console.log(`等待评估完成... 已等待 ${waitedSeconds} 秒`)
+          // 更新loading提示
+          uni.showLoading({
+            title: `正在生成报告(${waitedSeconds}s)`,
+            mask: true
+          })
+          await new Promise((resolve) => setTimeout(resolve, checkInterval))
+        }
+      }
+      
+      if (!evaluationComplete) {
+        console.warn('评估等待超时，继续提交')
+      }
+      
       // 通知面试结果
       await uni.request({
         url: baseUrl + API_ENDPOINTS.interviews.notifyResult(interviewId.value),
