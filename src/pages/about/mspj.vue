@@ -920,14 +920,22 @@ const getVideoThumbnail = (questionId: number, index: number) => {
     }
     
     // 如果后端没有返回缩略图，前端尝试生成
-    if (reportItem.video_url && 
-        (reportItem.video_url.includes('.myqcloud.com') || reportItem.video_url.includes('interview-cos.ycjp-work.com')) && 
-        (reportItem.video_url.includes('.mp4') || reportItem.video_url.includes('.webm'))) {
-      const baseUrl = reportItem.video_url.split('?')[0]
-      // 添加width、height和format参数，与后端保持一致
-      const thumbnailUrl = `${baseUrl}?ci-process=snapshot&time=1&width=224&height=288&format=jpg`
-      console.log(`前端生成缩略图URL: ${thumbnailUrl}`)
-      return thumbnailUrl
+    if (reportItem.video_url && reportItem.video_url.includes('.webm')) {
+      // 如果是转换后的域名，需要还原成原始COS域名
+      let originalUrl = reportItem.video_url
+      if (originalUrl.includes('interview-cos.ycjp-work.com')) {
+        // 将自定义域名替换回原始COS域名，因为数据万象只支持原始域名
+        originalUrl = originalUrl.replace('interview-cos.ycjp-work.com', 'interview-system-1325886122.cos.ap-nanjing.myqcloud.com')
+        console.log(`转换域名: ${reportItem.video_url} -> ${originalUrl}`)
+      }
+      
+      if (originalUrl.includes('.myqcloud.com')) {
+        const baseUrl = originalUrl.split('?')[0]
+        // 添加width、height和format参数，与后端保持一致
+        const thumbnailUrl = `${baseUrl}?ci-process=snapshot&time=1&width=224&height=288&format=jpg`
+        console.log(`前端生成缩略图URL: ${thumbnailUrl}`)
+        return thumbnailUrl
+      }
     }
   }
   
