@@ -155,8 +155,8 @@
             <!-- 合格或不合格图片 -->
             <view class="absolute top-20 left-68" v-if="isBigTabOneActive">
               <!-- 根据分数显示不同的图标 -->
-              <image v-if="item.interview_result.score >= 85" class="w-15 h-15" :src="iconVeryQualified"></image>
-              <image v-else-if="item.interview_result.score >= 60" class="w-15 h-15" :src="iconQualified"></image>
+              <image v-if="item.interview_result.score > 90" class="w-15 h-15" :src="iconVeryQualified"></image>
+              <image v-else-if="item.interview_result.score >= 60 && item.interview_result.score <= 90" class="w-15 h-15" :src="iconQualified"></image>
               <image v-else class="w-15 h-15" :src="iconNotQualified"></image>
             </view>
             <!-- 已邀约/已弃用 -->
