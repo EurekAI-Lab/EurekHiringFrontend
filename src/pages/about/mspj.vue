@@ -102,19 +102,16 @@
         <view class="flex justify-between items-center mx-2">
           <view class="flex">
             <view class="text-sm font-bold">评估结果：</view>
-            <view class="text-sm font-bold" :class="pgjg === '不通过' ? 'text-red-500' : 'text-#6ee7b7'">{{ pgjg }}</view>
+            <view class="text-sm font-bold" :class="hasAnomalies() ? 'text-red-500' : 'text-green-500'">
+              {{ hasAnomalies() ? '检测到异常行为' : '未检测到异常行为' }}
+            </view>
           </view>
           
-          <!-- 显示异常检测结果 -->
-          <view>
-            <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">
-              <view v-if="hasAnomalies()" class="text-xs text-orange-500">
-                检测到 {{ getAnomalyCount() }} 个异常片段
-              </view>
-              <view v-else class="text-xs text-green-500">
-                未检测到异常行为
-              </view>
-            </template>
+          <!-- 显示异常详情 -->
+          <view v-if="hasAnomalies()">
+            <view class="text-xs text-orange-500">
+              {{ getAnomalyCount() }} 个异常片段
+            </view>
           </view>
         </view>
         
@@ -155,7 +152,7 @@
                 class="absolute w-5 h-5 z-1" 
                 style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
                 :src="iconframe" 
-                @click="showVideoModal(item.video_url)"
+                @click="showVideoModal(item.video_url, index)"
               ></image>
               <view v-else class="absolute text-xs text-gray-400" style="top: 50%; left: 50%; transform: translate(-50%, -50%)">
                 无视频
@@ -213,7 +210,7 @@
                 v-if="item.video_url" 
                 class="w-5 h-5 ml-2" 
                 :src="iconframe" 
-                @click="showVideoModal(item.video_url)"
+                @click="showVideoModal(item.video_url, index)"
               ></image>
               <view v-if="item.video_url" class="text-xs ml-2 mt-0.5 text-#a1a1aa">
                 第{{ numberToChinese(index + 1) }}题录屏
@@ -264,18 +261,54 @@
             <aimn class="mt-10" />
             <xzzw class="my-10" />
             <xzzw class="my-10" /> -->
-      <wd-popup v-model="isModalVisible">
-        <video 
-          v-if="showVideo" 
-          class="mirror" 
-          :src="showVideo" 
-          controls 
-          preload="metadata" 
-          style="width: 380px; height: 214px"
-          @error="handleVideoError"
-        ></video>
-        <view v-else class="flex items-center justify-center" style="width: 380px; height: 214px">
-          <text class="text-gray-500">视频加载失败</text>
+      <!-- 优化的视频播放弹窗 -->
+      <wd-popup 
+        v-model="isModalVisible" 
+        custom-style="background-color: transparent; width: 90vw; max-width: 600px;"
+        position="center"
+        close-on-click-modal
+      >
+        <view class="video-player-container">
+          <!-- 关闭按钮 -->
+          <view class="close-btn" @click="closeVideoModal">
+            <text class="i-carbon-close text-2xl text-white"></text>
+          </view>
+          
+          <!-- 视频标题 -->
+          <view class="video-title" v-if="currentVideoTitle">
+            {{ currentVideoTitle }}
+          </view>
+          
+          <!-- 视频播放器 -->
+          <view class="video-wrapper">
+            <video 
+              v-if="showVideo" 
+              class="interview-video mirror" 
+              :src="showVideo" 
+              controls 
+              show-center-play-btn
+              show-fullscreen-btn
+              show-play-btn
+              show-progress
+              autoplay
+              preload="metadata" 
+              @error="handleVideoError"
+              @play="onVideoPlay"
+              @pause="onVideoPause"
+              @ended="onVideoEnded"
+              @timeupdate="onVideoTimeUpdate"
+              style="width: 100%; height: 100%;"
+            ></video>
+            <view v-else class="video-error">
+              <text class="i-carbon-warning text-4xl text-gray-400"></text>
+              <text class="text-gray-500 mt-2">视频加载失败</text>
+            </view>
+          </view>
+          
+          <!-- 视频信息 -->
+          <view class="video-info" v-if="currentVideoDuration">
+            <text class="text-xs text-gray-400">时长：{{ formatTimeToMinSec(currentVideoDuration) }}</text>
+          </view>
         </view>
       </wd-popup>
     </view>
@@ -375,7 +408,7 @@ interface FrameAnalysis {
 
 const isModalVisible = ref(false)
 const showVideo = ref()
-const showVideoModal = (videoUrl: string) => {
+const showVideoModal = (videoUrl: string, questionIndex?: number) => {
   console.log('showVideoModal called with URL:', videoUrl)
   if (!videoUrl) {
     uni.showToast({
@@ -385,9 +418,44 @@ const showVideoModal = (videoUrl: string) => {
     })
     return
   }
+  
+  // 设置视频信息
   showVideo.value = videoUrl
+  if (questionIndex !== undefined && interviewReport.value[questionIndex]) {
+    currentVideoTitle.value = `第${numberToChinese(questionIndex + 1)}题录屏`
+    currentVideoDuration.value = interviewReport.value[questionIndex].duration_sec || 0
+    currentVideoIndex.value = questionIndex
+  }
+  
   isModalVisible.value = true
 }
+
+// 关闭视频弹窗
+const closeVideoModal = () => {
+  isModalVisible.value = false
+  showVideo.value = ''
+  currentVideoTitle.value = ''
+  currentVideoDuration.value = 0
+  currentVideoIndex.value = -1
+}
+
+// 视频播放事件处理
+const onVideoPlay = () => {
+  console.log('视频开始播放')
+}
+
+const onVideoPause = () => {
+  console.log('视频暂停')
+}
+
+const onVideoEnded = () => {
+  console.log('视频播放结束')
+}
+
+const onVideoTimeUpdate = (e: any) => {
+  // 可以在这里更新播放进度
+}
+
 // 面试报告数据
 const interviewReport = ref<InterviewReportItem[]>([])
 const isLoading = ref(true)
@@ -711,6 +779,11 @@ const overallSummary = ref('')
 const improvementSuggestions = ref('')
 const score = ref(0)
 
+// 视频播放器相关状态
+const currentVideoTitle = ref('')
+const currentVideoDuration = ref(0)
+const currentVideoIndex = ref(-1)
+
 function handleClickLeft() {
   if (type.value === '1') {
     uni.navigateBack()
@@ -789,13 +862,26 @@ const getAnomalyCount = () => {
 
 // 获取视频缩略图
 const getVideoThumbnail = (questionId: number, index: number) => {
-  // 查找对应题目的风险分析数据
+  // 首先查找对应题目的风险分析数据
   if (frameAnalysis.value.samples && frameAnalysis.value.samples.length > 0) {
     const sample = frameAnalysis.value.samples.find(s => s.question_id === questionId)
     if (sample && sample.frame_url) {
       return sample.frame_url
     }
   }
+  
+  // 如果没有风险分析数据，尝试从视频URL生成缩略图
+  const reportItem = interviewReport.value[index]
+  if (reportItem && reportItem.video_url) {
+    // 对于腾讯云COS视频，可以使用视频处理参数获取缩略图
+    // 格式：?ci-process=snapshot&time=0&format=jpg
+    if (reportItem.video_url.includes('.myqcloud.com')) {
+      return `${reportItem.video_url}?ci-process=snapshot&time=0&format=jpg&width=112&height=144`
+    }
+    // 对于其他视频源，返回视频URL让浏览器尝试生成缩略图
+    return reportItem.video_url
+  }
+  
   // 返回默认缩略图
   return icon001
 }
@@ -858,5 +944,80 @@ uni-page-body,
 .fxbg {
   background: url('../../static/app/icons/icon-fxbg.png') top left;
   background-size: 100% 100%;
+}
+
+/* 视频播放器样式 */
+.video-player-container {
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.close-btn:active {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.video-title {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  color: white;
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.video-wrapper {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.interview-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.video-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+
+.video-info {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 10;
+  color: white;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 </style>

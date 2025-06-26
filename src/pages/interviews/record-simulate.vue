@@ -1,5 +1,10 @@
 <route lang="json5">
-{ style: { navigationStyle: 'custom' } }
+{ 
+  style: { 
+    navigationStyle: 'custom',
+    enablePullDownRefresh: true 
+  } 
+}
 </route>
 
 <template>
@@ -55,8 +60,33 @@
             </view>
           </view>
           <view class="absolute top-10 right-2">
-            <image v-if="item.is_qualified == 'FAIL'" :src="bhg" class="w-18 h-18" />
-            <image v-else :src="hg" class="w-18 h-18" />
+            <!-- 根据qualification_level显示不同图标 -->
+            <image 
+              v-if="item.qualification_level === 'VERY_QUALIFIED'" 
+              :src="iconVeryQualified" 
+              class="w-15 h-15" 
+            />
+            <image 
+              v-else-if="item.qualification_level === 'QUALIFIED'" 
+              :src="iconQualified" 
+              class="w-15 h-15" 
+            />
+            <image 
+              v-else-if="item.qualification_level === 'NOT_QUALIFIED'" 
+              :src="iconNotQualified" 
+              class="w-15 h-15" 
+            />
+            <!-- 兼容旧的is_qualified字段 -->
+            <image 
+              v-else-if="item.is_qualified == 'FAIL'" 
+              :src="iconNotQualified" 
+              class="w-15 h-15" 
+            />
+            <image 
+              v-else 
+              :src="iconQualified" 
+              class="w-15 h-15" 
+            />
           </view>
         </view>
 
@@ -141,11 +171,16 @@ import rame from '../../static/app/icons/Frame-001.png'
 import zfj from '../../static/app/icons/icon_zfj.png'
 import dw from '../../static/app/icons/icon_dw.png'
 import dh from '../../static/app/icons/icon_dh.png'
+// 导入新的面试状态图标
+import iconQualified from '../../static/app/icons/interview-status-new/suitable_2x.png'
+import iconNotQualified from '../../static/app/icons/interview-status-new/unqualified_2x.png'
+import iconVeryQualified from '../../static/app/icons/interview-status-new/very_suitable_2x.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { navigateBack } from '@/utils/platformUtils'
 import { handleToken } from "@/utils/useAuth"
 import { useNavBar } from '@/utils/useNavBar'
 import { ref, watch, onMounted } from 'vue'
+import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useUserStore } from '@/store'
 const toast = useToast()
@@ -179,6 +214,20 @@ onMounted(() => {
     console.log('- 新值长度:', newVal?.length || 0)
     console.log('- 新值内容:', JSON.stringify(newVal, null, 2))
   }, { deep: true })
+})
+
+// 页面显示时刷新数据
+onShow(() => {
+  console.log('record-simulate.vue - onShow触发，刷新列表')
+  my_test_interviews()
+})
+
+// 添加下拉刷新
+onPullDownRefresh(() => {
+  console.log('record-simulate.vue - 下拉刷新触发')
+  my_test_interviews().finally(() => {
+    uni.stopPullDownRefresh()
+  })
 })
 
 const my_test_interviews = async (keyword = '') => {
