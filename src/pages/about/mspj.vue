@@ -139,6 +139,8 @@
                 class="w-14 h-18" 
                 :src="getVideoThumbnail(item.question_id, index)" 
                 mode="aspectFill"
+                @error="onImageError($event, index)"
+                @load="onImageLoad($event, index)"
               ></image>
               
               <!-- 显示异常标记（如果有风险分析数据且有异常） -->
@@ -733,6 +735,15 @@ const fetchInterviewReport = async (interviewId: number) => {
       }
 
       interviewReport.value = responseData.report_data
+      // 调试：输出报告数据查看thumbnail_url
+      console.log('报告数据:', responseData.report_data)
+      responseData.report_data.forEach((item, index) => {
+        console.log(`报告项${index + 1}:`, {
+          video_url: item.video_url,
+          thumbnail_url: item.thumbnail_url,
+          has_thumbnail: !!item.thumbnail_url
+        })
+      })
       mszw.value = responseData.info.position_name
       msrName.value = responseData.info.user_name
       totalDuration.value = responseData.info.total_duration
@@ -931,6 +942,20 @@ const hasQuestionAnomaly = (questionId: number) => {
   }
   const sample = frameAnalysis.value.samples.find(s => s.question_id === questionId)
   return sample && sample.has_anomaly === true
+}
+
+// 图片加载成功
+const onImageLoad = (event: any, index: number) => {
+  console.log(`缩略图${index + 1}加载成功:`, event.detail)
+}
+
+// 图片加载失败
+const onImageError = (event: any, index: number) => {
+  console.error(`缩略图${index + 1}加载失败:`, event.detail)
+  const item = interviewReport.value[index]
+  if (item) {
+    console.error(`失败的URL: ${getVideoThumbnail(item.question_id, index)}`)
+  }
 }
 </script>
 
