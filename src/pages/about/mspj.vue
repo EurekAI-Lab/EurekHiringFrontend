@@ -920,12 +920,13 @@ const getVideoThumbnail = (questionId: number, index: number) => {
     }
     
     // 如果后端没有返回缩略图，前端尝试生成
-    if (reportItem.video_url && reportItem.video_url.includes('.webm')) {
+    if (reportItem.video_url && (reportItem.video_url.includes('.webm') || reportItem.video_url.includes('.mp4'))) {
       // 如果是转换后的域名，需要还原成原始COS域名
       let originalUrl = reportItem.video_url
       if (originalUrl.includes('interview-cos.ycjp-work.com')) {
         // 将自定义域名替换回原始COS域名，因为数据万象只支持原始域名
-        originalUrl = originalUrl.replace('interview-cos.ycjp-work.com', 'interview-system-1325886122.cos.ap-nanjing.myqcloud.com')
+        // 注意：URL路径是区分大小写的，需要保持原样
+        originalUrl = originalUrl.replace('https://interview-cos.ycjp-work.com/', 'https://interview-system-1325886122.cos.ap-nanjing.myqcloud.com/')
         console.log(`转换域名: ${reportItem.video_url} -> ${originalUrl}`)
       }
       
@@ -962,7 +963,17 @@ const onImageError = (event: any, index: number) => {
   console.error(`缩略图${index + 1}加载失败:`, event.detail)
   const item = interviewReport.value[index]
   if (item) {
-    console.error(`失败的URL: ${getVideoThumbnail(item.question_id, index)}`)
+    const failedUrl = getVideoThumbnail(item.question_id, index)
+    console.error(`失败的URL: ${failedUrl}`)
+    
+    // 如果是COS数据万象的404错误，提示可能的原因
+    if (failedUrl.includes('ci-process=snapshot')) {
+      console.warn('提示：视频截帧失败可能是因为：')
+      console.warn('1. COS bucket未开启数据万象功能')
+      console.warn('2. 视频文件不存在或路径错误')
+      console.warn('3. 视频格式不被支持')
+      console.warn('请在腾讯云控制台检查COS bucket的数据万象配置')
+    }
   }
 }
 </script>
