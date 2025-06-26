@@ -292,17 +292,20 @@
               :src="showVideo" 
               controls 
               show-center-play-btn
-              :show-fullscreen-btn="false"
+              show-fullscreen-btn
               show-play-btn
               show-progress
               autoplay
               object-fit="contain"
-              preload="metadata" 
+              preload="metadata"
+              :page-gesture="false"
+              :enable-progress-gesture="false"
               @error="handleVideoError"
               @play="onVideoPlay"
               @pause="onVideoPause"
               @ended="onVideoEnded"
               @timeupdate="onVideoTimeUpdate"
+              @fullscreenchange="onFullscreenChange"
               style="width: 100%; height: 100%;"
             ></video>
             <view v-else class="video-error">
@@ -378,6 +381,7 @@ interface InterviewReportItem {
   interview_id: number
   question_id: number
   video_url: string
+  thumbnail_url?: string  // 视频缩略图URL
   duration_sec: number
   score: number
   answer: string
@@ -469,6 +473,15 @@ const onVideoEnded = () => {
 
 const onVideoTimeUpdate = (e: any) => {
   // 可以在这里更新播放进度
+}
+
+// 处理全屏变化
+const onFullscreenChange = (e: any) => {
+  console.log('全屏状态变化:', e.detail.fullScreen)
+  // 如果退出全屏且视频已结束，可能需要关闭弹窗
+  if (!e.detail.fullScreen && e.detail.direction === 'vertical') {
+    // 处理垂直全屏退出
+  }
 }
 
 // 面试报告数据
@@ -885,18 +898,10 @@ const getVideoThumbnail = (questionId: number, index: number) => {
     }
   }
   
-  // 如果没有风险分析数据，尝试从视频URL生成缩略图
+  // 检查是否有后端返回的缩略图URL
   const reportItem = interviewReport.value[index]
-  if (reportItem && reportItem.video_url) {
-    // 对于腾讯云COS视频，可以使用视频处理参数获取缩略图
-    // 确保URL没有其他参数
-    const baseUrl = reportItem.video_url.split('?')[0]
-    if (baseUrl.includes('.myqcloud.com')) {
-      // 使用视频截帧功能，time=1表示第1秒的画面
-      return `${baseUrl}?ci-process=snapshot&time=1&format=jpg`
-    }
-    // 对于其他视频源，返回默认图片
-    return icon001
+  if (reportItem && reportItem.thumbnail_url) {
+    return reportItem.thumbnail_url
   }
   
   // 返回默认缩略图
