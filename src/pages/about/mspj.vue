@@ -900,8 +900,24 @@ const getVideoThumbnail = (questionId: number, index: number) => {
   
   // 检查是否有后端返回的缩略图URL
   const reportItem = interviewReport.value[index]
-  if (reportItem && reportItem.thumbnail_url) {
-    return reportItem.thumbnail_url
+  if (reportItem) {
+    // 添加调试日志
+    console.log(`题目${index + 1} - video_url: ${reportItem.video_url}, thumbnail_url: ${reportItem.thumbnail_url}`)
+    
+    if (reportItem.thumbnail_url) {
+      return reportItem.thumbnail_url
+    }
+    
+    // 如果后端没有返回缩略图，前端尝试生成
+    if (reportItem.video_url && 
+        (reportItem.video_url.includes('.myqcloud.com') || reportItem.video_url.includes('interview-cos.ycjp-work.com')) && 
+        (reportItem.video_url.includes('.mp4') || reportItem.video_url.includes('.webm'))) {
+      const baseUrl = reportItem.video_url.split('?')[0]
+      // 添加width、height和format参数，与后端保持一致
+      const thumbnailUrl = `${baseUrl}?ci-process=snapshot&time=1&width=224&height=288&format=jpg`
+      console.log(`前端生成缩略图URL: ${thumbnailUrl}`)
+      return thumbnailUrl
+    }
   }
   
   // 返回默认缩略图
