@@ -326,6 +326,10 @@ import iconzdsc from '@/static/app/icons/icon_zdsc.png'
 import iconframe from '@/static/app/icons/icon-frame.png'
 import iconhg from '@/static/app/icons/icon_hg.png'
 import iconbhg from '@/static/app/icons/icon_bhg.png'
+// 导入新的面试状态图标
+import iconQualified from '@/static/app/icons/interview-status-new/suitable_2x.png'
+import iconNotQualified from '@/static/app/icons/interview-status-new/unqualified_2x.png'
+import iconVeryQualified from '@/static/app/icons/interview-status-new/very_suitable_2x.png'
 import iconpjbg from '@/static/app/icons/icon-pjbg.png'
 import iconpj from '@/static/app/icons/icon-pj.png'
 import iconfxbg from '@/static/app/icons/icon-fxbg.png'
@@ -825,11 +829,11 @@ const formatDateTime = (dateTimeStr: string) => {
 // 根据分数返回对应的图标
 const getScoreIcon = () => {
   if (score.value >= 80) {
-    return iconfchs // 非常合适
+    return iconVeryQualified // 非常合适
   } else if (score.value >= 60) {
-    return iconhg // 合适
+    return iconQualified // 合适
   } else {
-    return iconbhg // 不合适
+    return iconNotQualified // 不合适
   }
 }
 
