@@ -1,0 +1,25 @@
+### 测试用户登录
+POST https://interview.ycjp-work.com/test/api/users/register_or_login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123",
+  "user_type": "JOBSEEKER"
+}
+
+### 获取用户信息
+GET https://interview.ycjp-work.com/test/api/users/me
+Authorization: Bearer {{token}}
+
+### 获取AI面试记录（C端用户）
+GET https://interview.ycjp-work.com/test/api/interviews/my_ai_interviews/
+Authorization: Bearer {{token}}
+
+### 获取AI面试记录（带关键词）
+GET https://interview.ycjp-work.com/test/api/interviews/my_ai_interviews/?keyword=前端
+Authorization: Bearer {{token}}
+
+### 获取企业AI面试记录（B端用户）
+GET https://interview.ycjp-work.com/test/api/interviews/enterprise_ai_interviews/
+Authorization: Bearer {{token}}

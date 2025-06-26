@@ -68,36 +68,61 @@
             </view>
           </view>
 
-          <!-- 审核中状态 -->
-          <image
-            v-if="item.interview_type === 'real' && item.audit_status === 'PENDING'"
-            :src="iconReviewing"
-            class="w-15 h-15 absolute right-5 mt-1"
-          />
-          <!-- 审核未通过状态 -->
-          <image
-            v-else-if="item.interview_type === 'real' && item.audit_status === 'REJECTED'"
-            :src="iconReviewFailed"
-            class="w-15 h-15 absolute right-5 mt-1"
-          />
-          <!-- 非常合格状态 -->
-          <image
-            v-else-if="item.qualification_level === 'VERY_QUALIFIED'"
-            :src="iconVeryQualified"
-            class="w-15 h-15 absolute right-5 mt-1"
-          />
-          <!-- 合格状态 -->
-          <image
-            v-else-if="item.qualification_level === 'QUALIFIED'"
-            :src="iconQualified"
-            class="w-15 h-15 absolute right-5 mt-1"
-          />
-          <!-- 不合格状态 -->
-          <image
-            v-else-if="item.qualification_level === 'NOT_QUALIFIED'"
-            :src="iconNotQualified"
-            class="w-15 h-15 absolute right-5 mt-1"
-          />
+          <!-- C端用户：显示审核状态 -->
+          <template v-if="!isEnterpriseUser">
+            <!-- 审核中状态 -->
+            <image
+              v-if="item.interview_type === 'real' && item.audit_status === 'PENDING'"
+              :src="iconReviewing"
+              class="w-15 h-15 absolute right-5 mt-1"
+            />
+            <!-- 审核未通过状态 -->
+            <image
+              v-else-if="item.interview_type === 'real' && item.audit_status === 'REJECTED'"
+              :src="iconReviewFailed"
+              class="w-15 h-15 absolute right-5 mt-1"
+            />
+            <!-- 非常合格状态 -->
+            <image
+              v-else-if="item.qualification_level === 'VERY_QUALIFIED'"
+              :src="iconVeryQualified"
+              class="w-15 h-15 absolute right-5 mt-1"
+            />
+            <!-- 合格状态 -->
+            <image
+              v-else-if="item.qualification_level === 'QUALIFIED'"
+              :src="iconQualified"
+              class="w-15 h-15 absolute right-5 mt-1"
+            />
+            <!-- 不合格状态 -->
+            <image
+              v-else-if="item.qualification_level === 'NOT_QUALIFIED'"
+              :src="iconNotQualified"
+              class="w-15 h-15 absolute right-5 mt-1"
+            />
+          </template>
+          
+          <!-- B端用户：只显示合格状态 -->
+          <template v-else>
+            <!-- 非常合格状态 -->
+            <image
+              v-if="item.qualification_level === 'VERY_QUALIFIED'"
+              :src="iconVeryQualified"
+              class="w-15 h-15 absolute right-5 mt-1"
+            />
+            <!-- 合格状态 -->
+            <image
+              v-else-if="item.qualification_level === 'QUALIFIED'"
+              :src="iconQualified"
+              class="w-15 h-15 absolute right-5 mt-1"
+            />
+            <!-- 不合格状态 -->
+            <image
+              v-else-if="item.qualification_level === 'NOT_QUALIFIED'"
+              :src="iconNotQualified"
+              class="w-15 h-15 absolute right-5 mt-1"
+            />
+          </template>
         </view>
         <view class="flex justify-center items-center pt-3">
           <view class="w-[94.5%] bg-gray-100 h-0.3 items-center justify-center"></view>
@@ -223,7 +248,13 @@ function formatCompletionTime(isoString) {
 }
 onMounted(async () => {
   // 检测用户类型
+  console.log('=== 面试记录页面加载 ===')
+  console.log('token:', uni.getStorageSync('token'))
+  console.log('userStore.userInfo:', useUserStore().userInfo)
+  
   await checkUserType()
+  console.log('用户类型检测完成，是否为企业用户:', isEnterpriseUser.value)
+  
   await getInterviewList()
 })
 function handleClickLeft() {
@@ -247,14 +278,28 @@ const formatTimeToMinSec = (seconds: number) => {
 // 检测用户类型
 async function checkUserType() {
   try {
+    // 确保带上完整路径和认证头
+    const token = uni.getStorageSync('token')
+    if (!token) {
+      console.error('未找到token，无法检测用户类型')
+      isEnterpriseUser.value = false
+      return
+    }
+    
     const response = await uni.request({
       url: `/users/me`,
-      method: 'GET',
+      method: 'GET'
     })
     
     if (response.statusCode === 200) {
       const userData = response.data
       console.log('用户信息：', userData)
+      console.log('用户详细信息:', {
+        id: userData.id,
+        email: userData.email,
+        user_type: userData.user_type,
+        phone: userData.phone
+      })
       // 根据user_type判断用户类型
       isEnterpriseUser.value = userData.user_type === 'ENTERPRISE'
       console.log('用户类型：', isEnterpriseUser.value ? '企业用户' : 'C端用户(求职者)')
@@ -280,22 +325,50 @@ async function getInterviewList(keyword = '') {
     const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
     // 根据用户类型调用不同的API
     const apiPath = isEnterpriseUser.value ? API_ENDPOINTS.interviews.enterpriseAiInterviews : API_ENDPOINTS.interviews.myAiInterviews
-    // 重要：与main分支保持一致，添加尾部斜杠
+    // 添加尾部斜杠以匹配后端路由
     const url = `${apiPath}/${queryParams}`
     console.log('请求URL：', url)
 
     loading.value = true
     
+    // 确保请求带上认证信息
+    const token = uni.getStorageSync('token')
+    if (!token) {
+      console.error('未找到token，无法获取面试记录')
+      uni.showToast({
+        title: '请先登录',
+        icon: 'none'
+      })
+      loading.value = false
+      return
+    }
+    
     const response = await uni.request({
       url: url,
-      method: 'GET',
+      method: 'GET'
     })
     console.log('API响应：', response)
     if (response.statusCode === 200) {
       // 检查响应数据结构
       const responseData = response.data
       console.log('响应数据结构：', responseData)
-      originalInterviewResults.value = responseData.data || [] // 保存原始数据
+      console.log('响应数据类型:', typeof responseData)
+      console.log('响应数据字段:', Object.keys(responseData))
+      
+      // 处理不同的响应格式
+      if (responseData && typeof responseData === 'object') {
+        if (Array.isArray(responseData.data)) {
+          originalInterviewResults.value = responseData.data
+        } else if (Array.isArray(responseData)) {
+          originalInterviewResults.value = responseData
+        } else {
+          console.warn('未知的响应格式:', responseData)
+          originalInterviewResults.value = []
+        }
+      } else {
+        originalInterviewResults.value = []
+      }
+      
       interviewResults.value = originalInterviewResults.value // 初始显示所有数据
       console.log('获取到面试记录数量：', interviewResults.value.length)
       console.log('面试记录数据：', interviewResults.value)
