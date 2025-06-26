@@ -166,6 +166,20 @@ const pollInterviewReport = () => {
             }, 2000)
           }
         }
+      } else if (response.statusCode === 202) {
+        // 202 表示报告还在生成中，继续轮询
+        console.log('报告正在生成中，继续等待...')
+        if (retryCount >= maxRetries) {
+          clearAllIntervals()
+          uni.showToast({
+            title: '报告生成超时，请稍后重试',
+            icon: 'none',
+            duration: 2000,
+          })
+          setTimeout(() => {
+            navigateBack()
+          }, 2000)
+        }
       } else if (response.statusCode === 404 || response.statusCode === 400) {
         console.log('报告不存在，继续等待...')
         if (retryCount >= maxRetries) {
@@ -299,6 +313,9 @@ onMounted(async () => {
             }, 1000)
             return // 如果成功就不需要启动轮询
           }
+        } else if (response.statusCode === 202) {
+          // 202 表示报告还在生成中
+          console.log('报告正在生成中，开始轮询...')
         }
       }
 

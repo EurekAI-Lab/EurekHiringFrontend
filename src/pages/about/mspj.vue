@@ -235,7 +235,7 @@
                 {{ item.answer }}
               </text>
               <text v-else-if="!item.answer || item.answer.trim() === ''" class="text-gray-500">
-                [用户无回答]
+                未回答
               </text>
               <text v-else>{{ filiterNum(item.answer) }}</text>
             </view>
@@ -517,9 +517,27 @@ function numberToChinese(num) {
   return chinese
 }
 
-// 去掉字符串中的数字
+// 清理ASR转译结果中的特殊标记
 function filiterNum(str) {
-  return str.replace(/\d+/g, '')
+  if (!str) return ''
+  
+  // 清理腾讯云ASR的特殊标记
+  // 包括：[:.,.:]、[:,:] 等标点符号标记
+  // 以及 [用户无回答] 等占位符
+  let cleaned = str
+    // 移除ASR标点符号标记，如 [:.,.:]、[:,:] 等
+    .replace(/\[:[^:\]]*:\]/g, '')
+    // 移除单独的标点符号标记
+    .replace(/\[[,，.。!！?？;；:：、]\]/g, '')
+    // 处理用户无回答的情况
+    .replace(/\[用户无回答\]/g, '未回答')
+    // 移除其他可能的方括号标记
+    .replace(/\[[^\]]*\]/g, '')
+    // 清理多余的空格
+    .replace(/\s+/g, ' ')
+    .trim()
+  
+  return cleaned || '未回答'
 }
 const type = ref('')
 
