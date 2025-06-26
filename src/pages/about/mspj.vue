@@ -913,9 +913,15 @@ const getVideoThumbnail = (questionId: number, index: number) => {
   const reportItem = interviewReport.value[index]
   if (reportItem) {
     // 添加调试日志
-    console.log(`题目${index + 1} - video_url: ${reportItem.video_url}, thumbnail_url: ${reportItem.thumbnail_url}`)
+    console.log(`题目${index + 1} - video_url: ${reportItem.video_url}, thumbnail_url: ${reportItem.thumbnail_url ? '有缩略图' : '无缩略图'}`)
     
     if (reportItem.thumbnail_url) {
+      // 如果是base64格式（以data:image开头），直接返回
+      if (reportItem.thumbnail_url.startsWith('data:image')) {
+        console.log(`题目${index + 1} - 使用Redis缓存的base64缩略图`)
+        return reportItem.thumbnail_url
+      }
+      // 如果是URL格式，也直接返回
       return reportItem.thumbnail_url
     }
     
@@ -941,6 +947,7 @@ const getVideoThumbnail = (questionId: number, index: number) => {
   }
   
   // 返回默认缩略图
+  console.log(`题目${index + 1} - 使用默认图片`)
   return icon001
 }
 
@@ -964,10 +971,16 @@ const onImageError = (event: any, index: number) => {
   const item = interviewReport.value[index]
   if (item) {
     const failedUrl = getVideoThumbnail(item.question_id, index)
-    console.error(`失败的URL: ${failedUrl}`)
+    
+    // 如果是base64格式失败，不打印完整URL（太长）
+    if (failedUrl && failedUrl.startsWith('data:image')) {
+      console.error(`失败的URL: base64格式图片`)
+    } else {
+      console.error(`失败的URL: ${failedUrl}`)
+    }
     
     // 如果是COS数据万象的404错误，提示可能的原因
-    if (failedUrl.includes('ci-process=snapshot')) {
+    if (failedUrl && failedUrl.includes('ci-process=snapshot')) {
       console.warn('提示：视频截帧失败可能是因为：')
       console.warn('1. COS bucket未开启数据万象功能')
       console.warn('2. 视频文件不存在或路径错误')
