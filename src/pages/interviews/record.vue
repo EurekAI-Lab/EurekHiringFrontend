@@ -74,7 +74,7 @@
             <image
               v-if="item.interview_type === 'real' && item.audit_status === 'PENDING'"
               :src="iconReviewing"
-              class="w-15 h-15 absolute right-5 mt-1"
+              class="w-12 h-12 absolute right-5 mt-2"
             />
             <!-- 审核未通过状态 -->
             <image
@@ -325,8 +325,8 @@ async function getInterviewList(keyword = '') {
     const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
     // 根据用户类型调用不同的API
     const apiPath = isEnterpriseUser.value ? API_ENDPOINTS.interviews.enterpriseAiInterviews : API_ENDPOINTS.interviews.myAiInterviews
-    // 添加尾部斜杠以匹配后端路由
-    const url = `${apiPath}/${queryParams}`
+    // 构建URL，注意apiPath已经有尾部斜杠了
+    const url = apiPath + queryParams
     console.log('请求URL：', url)
 
     loading.value = true
@@ -409,23 +409,11 @@ const jumpInterviewResult = (item) => {
   uni.setStorageSync('interviewId', item.interviews_id)
   uni.setStorageSync('from', 'h5')
   
-  // 根据不同状态跳转到不同页面
-  if (item.interview_type === 'real' && item.audit_status === 'PENDING') {
-    // 审核中状态跳转到加载页面
-    uni.navigateTo({
-      url: `/pages/about/mspj-loading?interviewId=${item.interviews_id}&type=1`,
-    })
-  } else if (item.interview_type === 'real' && item.audit_status === 'REJECTED') {
-    // 审核未通过也可以查看报告
-    uni.navigateTo({
-      url: '/pages/about/mspj',
-    })
-  } else {
-    // 其他情况（模拟面试或审核通过）直接跳转到报告页面
-    uni.navigateTo({
-      url: '/pages/about/mspj',
-    })
-  }
+  // 所有情况都直接跳转到报告页面
+  // 注：B端用户通过API已经过滤了审核中的记录，不会看到；C端用户可以查看自己的所有记录
+  uni.navigateTo({
+    url: '/pages/about/mspj',
+  })
 }
 </script>
 
