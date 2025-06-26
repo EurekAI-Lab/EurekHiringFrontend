@@ -234,6 +234,9 @@
               <text v-if="item.answer && item.answer.includes('[录制失败]')" class="text-red-500">
                 {{ item.answer }}
               </text>
+              <text v-else-if="!item.answer || item.answer.trim() === ''" class="text-gray-500">
+                [用户无回答]
+              </text>
               <text v-else>{{ filiterNum(item.answer) }}</text>
             </view>
           </view>

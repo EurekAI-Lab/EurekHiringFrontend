@@ -593,11 +593,21 @@ const submitSingleQuestion = async (questionData: any) => {
 
     if (response.statusCode === 200) {
       console.log(`题目${questionData.question_id}提交成功`)
+      // 显示成功提示
+      // 找出当前题目在题目列表中的索引
+      const questionIndex = interviewDetails.value.data.questions?.findIndex(q => q.id === questionData.question_id) ?? -1
+      const currentQuestionNum = questionIndex >= 0 ? questionIndex + 1 : currentQuestionIndex.value + 1
+      const totalQuestions = interviewDetails.value.data.questions?.length || 0
+      toast.success(`第${currentQuestionNum}题已提交 (${currentQuestionNum}/${totalQuestions})`)
     } else {
       console.error(`题目${questionData.question_id}提交失败:`, response)
+      // 显示失败提示
+      toast.error(`第${currentQuestionIndex.value + 1}题提交失败，请重试`)
     }
   } catch (error) {
     console.error('提交单题视频失败:', error)
+    // 显示网络错误提示
+    toast.error('网络错误，题目提交失败')
   }
 }
 
@@ -1885,10 +1895,6 @@ const handleExit = async () => {
       .catch(() => {})
   } else {
     isExiting.value = true
-    uni.showLoading({
-      title: '正在生成面试报告',
-      mask: true
-    })
     if (isInterviewStarted.value) {
       try {
         // 更新面试状态
@@ -1935,59 +1941,12 @@ const handleExit = async () => {
         console.log('面试结束app函数报错', error)
       }
 
-      // 等待ASR处理完成和评估生成
-      console.log('等待ASR处理和评估生成...')
-      const maxWaitTime = 60000 // 最多等待60秒
-      const checkInterval = 3000 // 每3秒检查一次
-      const startTime = Date.now()
+      // 不再等待评估完成，让评估加载页面处理轮询
+      console.log('提交面试数据，评估将在后台进行')
       
-      // 轮询检查评估是否完成
-      let evaluationComplete = false
-      while (!evaluationComplete && (Date.now() - startTime) < maxWaitTime) {
-        try {
-          // 检查面试评估状态（通过notify接口的返回来判断）
-          const checkResponse = await uni.request({
-            url: baseUrl + `/interviews/get_interview_detail/${interviewId.value}`,
-            method: 'GET',
-            header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-          })
-          
-          // 检查是否有interview_results数据
-          if (checkResponse.data && checkResponse.data.interview_results && checkResponse.data.interview_results.length > 0) {
-            const results = checkResponse.data.interview_results[0]
-            // 检查是否有综合评价和建议
-            if (results.summary && results.improvement_suggestions) {
-              console.log('评估已完成，包含综合评价和建议')
-              evaluationComplete = true
-              break
-            }
-          }
-        } catch (error) {
-          console.log('检查评估状态时出错:', error)
-        }
-        
-        if (!evaluationComplete) {
-          const waitedSeconds = Math.floor((Date.now() - startTime) / 1000)
-          console.log(`等待评估完成... 已等待 ${waitedSeconds} 秒`)
-          // 更新loading提示
-          uni.showLoading({
-            title: `正在生成报告(${waitedSeconds}s)`,
-            mask: true
-          })
-          await new Promise((resolve) => setTimeout(resolve, checkInterval))
-        }
-      }
+      // 不需要等待评估，后端会在最后一题ASR完成时自动触发
+      console.log('面试数据已提交，后端将自动处理评估')
       
-      if (!evaluationComplete) {
-        console.warn('评估等待超时，继续提交')
-      }
-      
-      // 通知面试结果
-      await uni.request({
-        url: baseUrl + API_ENDPOINTS.interviews.notifyResult(interviewId.value),
-        method: 'POST',
-        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-      })
       // 检查是否所有视频都已上传完成
       console.log('检查视频上传状态，当前已上传:', fileFrom.fileUrls.length, '条记录')
 
@@ -2012,22 +1971,8 @@ const handleExit = async () => {
         }
       }
 
-      // 等待一段时间，确保所有上传请求都已完成
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // 提交面试数据
-      try {
-        await saveInterview()
-      } catch (error) {
-        console.error('saveInterview失败:', error)
-        uni.hideLoading() // 确保关闭loading
-        toast.error('面试数据提交失败，请重试')
-        isRequesting.value = false
-        return
-      }
-
-      // 提交成功后关闭loading
-      uni.hideLoading()
+      // 实时架构下，各题已经单独提交，不需要再调用saveInterview
+      console.log('所有题目已通过submit_single_question单独提交')
 
       // 显示确认对话框
       message
