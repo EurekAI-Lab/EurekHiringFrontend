@@ -267,6 +267,7 @@
         custom-style="background-color: transparent; width: 90vw; max-width: 600px;"
         position="center"
         close-on-click-modal
+        @close="closeVideoModal"
       >
         <view class="video-player-container">
           <!-- 关闭按钮 -->
@@ -274,23 +275,28 @@
             <text class="i-carbon-close text-2xl text-white"></text>
           </view>
           
-          <!-- 视频标题 -->
-          <view class="video-title" v-if="currentVideoTitle">
-            {{ currentVideoTitle }}
+          <!-- 视频标题和时长 -->
+          <view class="video-header" v-if="currentVideoTitle">
+            <view class="video-title">{{ currentVideoTitle }}</view>
+            <view class="video-duration" v-if="currentVideoDuration">
+              时长：{{ formatTimeToMinSec(currentVideoDuration) }}
+            </view>
           </view>
           
           <!-- 视频播放器 -->
           <view class="video-wrapper">
             <video 
-              v-if="showVideo" 
+              v-if="showVideo"
+              :id="'video-player-' + currentVideoIndex"
               class="interview-video mirror" 
               :src="showVideo" 
               controls 
               show-center-play-btn
-              show-fullscreen-btn
+              :show-fullscreen-btn="false"
               show-play-btn
               show-progress
               autoplay
+              object-fit="contain"
               preload="metadata" 
               @error="handleVideoError"
               @play="onVideoPlay"
@@ -303,11 +309,6 @@
               <text class="i-carbon-warning text-4xl text-gray-400"></text>
               <text class="text-gray-500 mt-2">视频加载失败</text>
             </view>
-          </view>
-          
-          <!-- 视频信息 -->
-          <view class="video-info" v-if="currentVideoDuration">
-            <text class="text-xs text-gray-400">时长：{{ formatTimeToMinSec(currentVideoDuration) }}</text>
           </view>
         </view>
       </wd-popup>
@@ -436,6 +437,16 @@ const showVideoModal = (videoUrl: string, questionIndex?: number) => {
 
 // 关闭视频弹窗
 const closeVideoModal = () => {
+  // 先停止视频播放
+  if (currentVideoIndex.value !== -1) {
+    const videoId = `video-player-${currentVideoIndex.value}`
+    const videoContext = uni.createVideoContext(videoId)
+    if (videoContext) {
+      videoContext.stop()
+    }
+  }
+  
+  // 清理状态
   isModalVisible.value = false
   showVideo.value = ''
   currentVideoTitle.value = ''
@@ -878,12 +889,14 @@ const getVideoThumbnail = (questionId: number, index: number) => {
   const reportItem = interviewReport.value[index]
   if (reportItem && reportItem.video_url) {
     // 对于腾讯云COS视频，可以使用视频处理参数获取缩略图
-    // 格式：?ci-process=snapshot&time=0&format=jpg
-    if (reportItem.video_url.includes('.myqcloud.com')) {
-      return `${reportItem.video_url}?ci-process=snapshot&time=0&format=jpg&width=112&height=144`
+    // 确保URL没有其他参数
+    const baseUrl = reportItem.video_url.split('?')[0]
+    if (baseUrl.includes('.myqcloud.com')) {
+      // 使用视频截帧功能，time=1表示第1秒的画面
+      return `${baseUrl}?ci-process=snapshot&time=1&format=jpg`
     }
-    // 对于其他视频源，返回视频URL让浏览器尝试生成缩略图
-    return reportItem.video_url
+    // 对于其他视频源，返回默认图片
+    return icon001
   }
   
   // 返回默认缩略图
@@ -979,16 +992,26 @@ uni-page-body,
   background: rgba(0, 0, 0, 0.8);
 }
 
-.video-title {
+.video-header {
   position: absolute;
   top: 10px;
   left: 10px;
   z-index: 10;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.video-title {
   color: white;
   font-size: 14px;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 6px 12px;
-  border-radius: 6px;
+  font-weight: 500;
+}
+
+.video-duration {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  margin-top: 2px;
 }
 
 .video-wrapper {
@@ -1014,14 +1037,4 @@ uni-page-body,
   color: #666;
 }
 
-.video-info {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  z-index: 10;
-  color: white;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 4px 8px;
-  border-radius: 4px;
-}
 </style>
