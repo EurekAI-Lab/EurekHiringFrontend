@@ -133,6 +133,8 @@ const getPostionInfo = async () => {
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })
     if (response.statusCode === 200) {
+      // 清空items数组以避免重复
+      items.value = []
       response.data?.forEach((element) => {
         let salaryStr = ''
         if (element.expected_salary_min == '待议' && element.expected_salary_max == '待议') {

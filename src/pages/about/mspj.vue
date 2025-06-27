@@ -539,11 +539,11 @@ onMounted(() => {
   })
 
   fetchInterviewReport(interviewId.value)
-  // 获取面试信息
+  // 获取面试信息 - 如果使用URL token，跳过此调用
   // fetchInterviewInfo;
-  if (interviewId.value) {
+  if (interviewId.value && !urlToken.value) {
     fetchInterviewInfo(interviewId.value)
-  } else {
+  } else if (!interviewId.value) {
     console.error('未找到 interviews_id')
   }
 })
@@ -585,7 +585,9 @@ onBackPress(() => {
 onPullDownRefresh(() => {
   console.log('下拉刷新')
   fetchInterviewReport(interviewId.value)
-  fetchInterviewInfo(interviewId.value)
+  if (!urlToken.value) {
+    fetchInterviewInfo(interviewId.value)
+  }
   setTimeout(function () {
     uni.stopPullDownRefresh() // 停止下拉刷新动画
   }, 1000)
@@ -638,6 +640,7 @@ function filiterNum(str) {
   return cleaned || '未回答'
 }
 const type = ref('')
+const urlToken = ref('')
 
 onLoad((options) => {
   // const storedToken = uni.getStorageSync('token')
@@ -654,6 +657,10 @@ onLoad((options) => {
   // }
 
   handleToken(options)
+  // Store the URL token if present
+  if (options.token) {
+    urlToken.value = options.token
+  }
   const storedInterviewId = uni.getStorageSync('interviewId')
   if (options.interviewId && !isNaN(options.interviewId)) {
     interviewId.value = parseInt(options.interviewId, 10)
@@ -676,11 +683,22 @@ defineOptions({ name: 'Home' })
 const fetchInterviewReport = async (interviewId: number) => {
   isLoading.value = true
   try {
-    const response = await uni.request({
+    let requestConfig: any = {
       url: API_ENDPOINTS.interviews.report(interviewId),
       method: 'GET',
-      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-    })
+    }
+    
+    // If we have a URL token, add it as a query parameter
+    if (urlToken.value) {
+      requestConfig.url += `?token=${urlToken.value}`
+      console.log('使用URL token访问报告:', requestConfig.url)
+    } else {
+      // Otherwise use the standard Bearer token
+      requestConfig.header = { Authorization: `Bearer ${uni.getStorageSync('token')}` }
+      console.log('使用Bearer token访问报告')
+    }
+    
+    const response = await uni.request(requestConfig)
 
     if (response.statusCode === 200) {
       // 处理响应数据类型
@@ -833,7 +851,8 @@ function handleClickLeft() {
   if (type.value === '1') {
     uni.navigateBack()
   } else if (type.value === '2') {
-    uni.navigateTo({
+    // 使用 reLaunch 确保页面重新加载并刷新数据
+    uni.reLaunch({
       url: '/pages/interviews/record-simulate?token=' + uni.getStorageSync('token'),
     })
   } else {
