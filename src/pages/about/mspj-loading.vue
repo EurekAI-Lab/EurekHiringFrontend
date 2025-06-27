@@ -10,7 +10,13 @@
 }
 </route>
 <template>
-  <view class="page-container">
+  <!-- 初始检查期间显示空白页面 -->
+  <view class="page-container" v-if="!isInitialCheckDone">
+    <!-- 可以选择显示一个极简的加载指示器，或者完全空白 -->
+  </view>
+  
+  <!-- 初始检查完成后显示正常页面 -->
+  <view class="page-container" v-else>
     <!-- 自定义导航栏 -->
     <view class="navbar fixed top-0 left-0 right-0 z-10 bg-white" :style="{ height: topBarHeight + 'px' }">
       <view class="navbar-content" :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }">
@@ -26,7 +32,7 @@
     </view>
     
     <!-- 主内容区域 -->
-    <view class="content-area" :style="{ paddingTop: topBarHeight + 'px' }" v-if="isInitialCheckDone">
+    <view class="content-area" :style="{ paddingTop: topBarHeight + 'px' }">
       <!-- 报告生成图标 -->
        <div class="content-area-zw"></div>
       <image 
@@ -41,7 +47,7 @@
     </view>
     
     <!-- 底部返回按钮 -->
-    <view class="bottom-area" v-if="isInitialCheckDone">
+    <view class="bottom-area">
       <view class="return-button" @click="handleExit">
         返回
       </view>
