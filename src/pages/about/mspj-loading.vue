@@ -26,7 +26,7 @@
     </view>
     
     <!-- 主内容区域 -->
-    <view class="content-area" :style="{ paddingTop: topBarHeight + 'px' }">
+    <view class="content-area" :style="{ paddingTop: topBarHeight + 'px' }" v-if="isInitialCheckDone">
       <!-- 报告生成图标 -->
        <div class="content-area-zw"></div>
       <image 
@@ -41,7 +41,7 @@
     </view>
     
     <!-- 底部返回按钮 -->
-    <view class="bottom-area">
+    <view class="bottom-area" v-if="isInitialCheckDone">
       <view class="return-button" @click="handleExit">
         返回
       </view>
@@ -62,6 +62,7 @@ const subText = ref('请耐心等待，这可能需要几分钟时间')
 const progress = ref(0)
 const timer = ref<number | null>(null)
 const pollInterval = ref<number | null>(null)
+const isInitialCheckDone = ref(false)  // 标记初始检查是否完成
 
 // 获取系统信息
 const systemInfo = uni.getSystemInfoSync()
@@ -224,7 +225,7 @@ const pollInterviewReport = () => {
 }
 
 // 跳转到面试报告页面
-const navigateToReportPage = () => {
+const navigateToReportPage = (skipToast = false) => {
   const targetUrl = `/pages/about/mspj?interviewId=${interviewId.value}&type=${type.value}`
   console.log('➡️ 跳转到报告页面:', targetUrl)
   
@@ -232,11 +233,14 @@ const navigateToReportPage = () => {
   uni.redirectTo({
     url: targetUrl,
     success: () => {
-      uni.showToast({
-        title: '报告生成成功',
-        icon: 'success',
-        duration: 1500
-      })
+      // 如果是立即跳转（报告已存在），不显示成功提示
+      if (!skipToast) {
+        uni.showToast({
+          title: '报告生成成功',
+          icon: 'success',
+          duration: 1500
+        })
+      }
     },
     fail: (error) => {
       console.error('跳转失败:', error)
@@ -316,15 +320,19 @@ onMounted(async () => {
         
         if (responseData && responseData.report_data && Array.isArray(responseData.report_data) && responseData.report_data.length > 0) {
           console.log('✅ 报告已生成，直接跳转到报告页面')
-          // 立即跳转，无需延迟
-          navigateToReportPage()
+          // 立即跳转，无需延迟，跳过成功提示
+          navigateToReportPage(true)
           return // 如果成功就不需要启动轮询
         } else {
           console.log('❌ 报告数据不完整，启动轮询')
+          // 设置初始检查完成，显示loading页面
+          isInitialCheckDone.value = true
         }
       } else if (response.statusCode === 202) {
         // 202 表示报告还在生成中
         console.log('报告正在生成中，开始轮询...')
+        // 设置初始检查完成，显示loading页面
+        isInitialCheckDone.value = true
       } else if (response.statusCode === 403) {
         // 403 表示没有权限（企业用户查看未审核的报告）
         console.log('没有权限查看报告')
@@ -337,15 +345,21 @@ onMounted(async () => {
           navigateBack()
         }, 2000)
         return
+      } else {
+        // 其他状态码
+        isInitialCheckDone.value = true
       }
 
-      // 如果第一次查询不成功，启动轮询
-      console.log('首次查询未获取到报告，开始轮询...')
-      startProgressSimulation() // 启动进度模拟
-      pollInterviewReport() // 启动轮询
+      // 如果第一次查询不成功且需要显示loading，启动轮询
+      if (isInitialCheckDone.value) {
+        console.log('首次查询未获取到报告，开始轮询...')
+        startProgressSimulation() // 启动进度模拟
+        pollInterviewReport() // 启动轮询
+      }
     } catch (error) {
       console.error('首次查询失败:', error)
       // 发生错误时也启动轮询
+      isInitialCheckDone.value = true
       startProgressSimulation()
       pollInterviewReport()
     }
