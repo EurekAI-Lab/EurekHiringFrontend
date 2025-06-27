@@ -37,7 +37,7 @@
       
       <!-- 提示文字 -->
       <text class="loading-text">报告生成中，请稍等...</text>
-      <text class="sub-text">大概需要2-5分钟时间，请耐心等待</text>
+      <text class="sub-text">大概需要10-30秒时间，请耐心等待</text>
     </view>
     
     <!-- 底部返回按钮 -->
@@ -180,6 +180,18 @@ const pollInterviewReport = () => {
             navigateBack()
           }, 2000)
         }
+      } else if (response.statusCode === 403) {
+        // 403 表示没有权限（企业用户查看未审核的报告）
+        clearAllIntervals()
+        console.log('没有权限查看报告')
+        uni.showToast({
+          title: '报告尚未审核通过',
+          icon: 'none',
+          duration: 2000,
+        })
+        setTimeout(() => {
+          navigateBack()
+        }, 2000)
       } else if (response.statusCode === 404 || response.statusCode === 400) {
         console.log('报告不存在，继续等待...')
         if (retryCount >= maxRetries) {
@@ -293,30 +305,40 @@ onMounted(async () => {
 
     // 先立即查询一次
     try {
-      if (interviewType.value !== 1) {
-        const response = await uni.request({
-          url: API_ENDPOINTS.interviews.report(interviewId.value),
-          method: 'GET',
-          header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-        })
+      const response = await uni.request({
+        url: API_ENDPOINTS.interviews.report(interviewId.value),
+        method: 'GET',
+        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+      })
 
-        // 如果第一次查询就成功且有数据
-        if (response.statusCode === 200) {
-          const responseData = response.data as any
-          if (responseData && responseData.report_data && Array.isArray(responseData.report_data) && responseData.report_data.length > 0) {
-            console.log('首次查询成功，直接跳转')
-            // 设置进度为100%
-            progress.value = 100
-            // 延迟跳转，让用户看到100%的进度
-            setTimeout(() => {
-              navigateToReportPage()
-            }, 1000)
-            return // 如果成功就不需要启动轮询
-          }
-        } else if (response.statusCode === 202) {
-          // 202 表示报告还在生成中
-          console.log('报告正在生成中，开始轮询...')
+      // 如果第一次查询就成功且有数据
+      if (response.statusCode === 200) {
+        const responseData = response.data as any
+        if (responseData && responseData.report_data && Array.isArray(responseData.report_data) && responseData.report_data.length > 0) {
+          console.log('首次查询成功，直接跳转')
+          // 设置进度为100%
+          progress.value = 100
+          // 延迟跳转，让用户看到100%的进度
+          setTimeout(() => {
+            navigateToReportPage()
+          }, 1000)
+          return // 如果成功就不需要启动轮询
         }
+      } else if (response.statusCode === 202) {
+        // 202 表示报告还在生成中
+        console.log('报告正在生成中，开始轮询...')
+      } else if (response.statusCode === 403) {
+        // 403 表示没有权限（企业用户查看未审核的报告）
+        console.log('没有权限查看报告')
+        uni.showToast({
+          title: '报告尚未审核通过',
+          icon: 'none',
+          duration: 2000,
+        })
+        setTimeout(() => {
+          navigateBack()
+        }, 2000)
+        return
       }
 
       // 如果第一次查询不成功，启动轮询

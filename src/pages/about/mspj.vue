@@ -776,6 +776,12 @@ const fetchInterviewReport = async (interviewId: number) => {
       } else {
         console.log('没有帧分析数据')
       }
+    } else if (response.statusCode === 202) {
+      // 202 表示报告还在生成中，跳转到loading页面
+      console.log('报告还在生成中，跳转到loading页面')
+      uni.redirectTo({
+        url: `/pages/about/mspj-loading?interviewId=${interviewId}&type=${type.value}`
+      })
     } else {
       console.error('获取面试报告失败:', response.data)
       uni.showToast({ title: '获取面试报告失败', icon: 'none' })
