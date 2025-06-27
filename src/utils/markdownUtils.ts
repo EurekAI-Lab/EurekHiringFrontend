@@ -138,15 +138,25 @@ export function cleanMarkdownCodeBlocks(text: string): string {
 export function formatImprovementSuggestions(text: string): string {
   if (!text) return ''
   
-  // 先进行基本清理
-  let cleaned = cleanMarkdownCodeBlocks(text)
+  // 先处理转义的换行符
+  let cleaned = text.replace(/\\n/g, '\n')
   
-  // 分割成行
-  const lines = cleaned.split(/\n+/).filter(line => line.trim())
+  // 再进行基本清理
+  cleaned = cleanMarkdownCodeBlocks(cleaned)
+  
+  // 分割成行，处理以 - 开头的列表项
+  const lines = cleaned.split('\n').filter(line => line.trim())
   
   // 处理每一行
   const formattedLines = lines.map((line, index) => {
     let processedLine = line.trim()
+    
+    // 如果以 - 开头，移除 - 并添加数字编号
+    if (processedLine.startsWith('- ')) {
+      processedLine = processedLine.substring(2).trim()
+    } else if (processedLine.startsWith('-')) {
+      processedLine = processedLine.substring(1).trim()
+    }
     
     // 移除行首的数字编号（如果有）
     processedLine = processedLine.replace(/^\d+\.\s*/, '')
