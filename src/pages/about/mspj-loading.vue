@@ -143,15 +143,13 @@ const pollInterviewReport = () => {
 
       if (response.statusCode === 200) {
         const responseData = response.data as any
+        console.log('轮询收到200响应，report_data长度:', responseData?.report_data?.length || 0)
+        
         if (responseData && responseData.report_data && Array.isArray(responseData.report_data) && responseData.report_data.length > 0) {
           // 停止轮询和进度模拟
           clearAllIntervals()
-          // 设置进度为100%
-          progress.value = 100
-          // 延迟跳转，让用户看到100%的进度
-          setTimeout(() => {
-            navigateToReportPage()
-          }, 1000)
+          // 立即跳转
+          navigateToReportPage()
         } else {
           console.log('报告数据不完整，继续等待...')
           if (retryCount >= maxRetries) {
@@ -227,13 +225,13 @@ const pollInterviewReport = () => {
 
 // 跳转到面试报告页面
 const navigateToReportPage = () => {
-  console.info('传递的面试ID' + interviewId.value)
+  const targetUrl = `/pages/about/mspj?interviewId=${interviewId.value}&type=${type.value}`
+  console.log('➡️ 跳转到报告页面:', targetUrl)
   
   // 所有类型的面试都跳转到报告页面
   uni.redirectTo({
-    url: `/pages/about/mspj?interviewId=${interviewId.value}&type=${type.value}`,
+    url: targetUrl,
     success: () => {
-      console.log('成功跳转到面试报告页面')
       uni.showToast({
         title: '报告生成成功',
         icon: 'success',
@@ -241,7 +239,7 @@ const navigateToReportPage = () => {
       })
     },
     fail: (error) => {
-      console.error('跳转到面试报告页面失败:', error)
+      console.error('跳转失败:', error)
       uni.showToast({
         title: '跳转失败，请手动返回重试',
         icon: 'none',
@@ -284,7 +282,7 @@ const handleExit = () => {
   })
 }
 const interviewType = ref()
-const type = ref()
+const type = ref('0')  // 默认值为'0'，表示真实面试
 
 onLoad((options) => {
   console.info('options', options)
@@ -314,15 +312,15 @@ onMounted(async () => {
       // 如果第一次查询就成功且有数据
       if (response.statusCode === 200) {
         const responseData = response.data as any
+        console.log('首次查询收到200响应，report_data长度:', responseData?.report_data?.length || 0)
+        
         if (responseData && responseData.report_data && Array.isArray(responseData.report_data) && responseData.report_data.length > 0) {
-          console.log('首次查询成功，直接跳转')
-          // 设置进度为100%
-          progress.value = 100
-          // 延迟跳转，让用户看到100%的进度
-          setTimeout(() => {
-            navigateToReportPage()
-          }, 1000)
+          console.log('✅ 报告已生成，直接跳转到报告页面')
+          // 立即跳转，无需延迟
+          navigateToReportPage()
           return // 如果成功就不需要启动轮询
+        } else {
+          console.log('❌ 报告数据不完整，启动轮询')
         }
       } else if (response.statusCode === 202) {
         // 202 表示报告还在生成中

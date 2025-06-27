@@ -1917,7 +1917,9 @@ const handleExit = async () => {
     }
 
     try {
-      // 获取重定向URL
+      // 移除等待，让loading页面处理轮询
+      // 这样用户体验更好，不会在黑屏等待
+      console.log('开始获取重定向URL...')
       const res1 = await uni.request({
         url: API_ENDPOINTS.interviews.redirectUrl,
         method: 'GET',
