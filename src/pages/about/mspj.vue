@@ -266,42 +266,63 @@
       <!-- 优化的视频播放弹窗 -->
       <wd-popup 
         v-model="isModalVisible" 
-        custom-style="background-color: transparent; width: 90vw; max-width: 600px;"
+        custom-style="background-color: rgba(0, 0, 0, 0.95); width: 100vw; height: 100vh; max-width: none;"
         position="center"
-        close-on-click-modal
+        :close-on-click-modal="false"
         @close="closeVideoModal"
       >
-        <view class="video-player-container">
-          <!-- 关闭按钮 -->
-          <view class="close-btn" @click="closeVideoModal">
-            <text class="i-carbon-close text-2xl text-white"></text>
-          </view>
-          
-          <!-- 视频标题和时长 -->
-          <view class="video-header" v-if="currentVideoTitle">
-            <view class="video-title">{{ currentVideoTitle }}</view>
-            <view class="video-duration" v-if="currentVideoDuration">
-              时长：{{ formatTimeToMinSec(currentVideoDuration) }}
+        <view class="video-player-container" @click.stop :style="`--safe-area-top: ${safeAreaTop.value}px`">
+          <!-- 顶部操作栏 -->
+          <view class="video-top-bar">
+            <!-- 关闭按钮 -->
+            <view class="close-btn" @click.stop="closeVideoModal">
+              <view class="close-btn-inner">
+                <text class="close-icon">×</text>
+              </view>
             </view>
           </view>
           
+          
           <!-- 视频播放器 -->
           <view class="video-wrapper">
+            <!-- 加载中状态 -->
+            <view v-if="isVideoLoading && !videoError" class="video-loading">
+              <view class="loading-spinner"></view>
+              <text class="loading-text">视频加载中...</text>
+            </view>
+            
+            <!-- 错误状态 -->
+            <view v-if="videoError" class="video-error">
+              <text class="i-carbon-warning text-4xl text-gray-400 mb-2"></text>
+              <text class="text-gray-400">视频加载失败</text>
+              <view class="retry-btn" @click="retryLoadVideo">
+                <text class="text-white">重试</text>
+              </view>
+            </view>
+            
+            <!-- 视频播放器 -->
             <video 
-              v-if="showVideo"
+              v-show="showVideo && !videoError"
               :id="'video-player-' + currentVideoIndex"
-              class="interview-video mirror" 
+              class="interview-video" 
               :src="showVideo" 
               controls 
               show-center-play-btn
-              show-fullscreen-btn
+              :show-fullscreen-btn="false"
               show-play-btn
               show-progress
-              autoplay
+              :autoplay="true"
               object-fit="contain"
-              preload="metadata"
-              :page-gesture="false"
-              :enable-progress-gesture="false"
+              preload="auto"
+              :page-gesture="true"
+              :enable-progress-gesture="true"
+              :show-mute-btn="true"
+              :enable-play-gesture="true"
+              :initial-time="0"
+              @loadstart="onVideoLoadStart"
+              @loadeddata="onVideoLoadedData"
+              @loadedmetadata="onVideoLoadedMetadata"
+              @canplay="onVideoCanPlay"
               @error="handleVideoError"
               @play="onVideoPlay"
               @pause="onVideoPause"
@@ -310,10 +331,8 @@
               @fullscreenchange="onFullscreenChange"
               style="width: 100%; height: 100%;"
             ></video>
-            <view v-else class="video-error">
-              <text class="i-carbon-warning text-4xl text-gray-400"></text>
-              <text class="text-gray-500 mt-2">视频加载失败</text>
-            </view>
+            
+            <!-- 移除自定义全屏按钮 -->
           </view>
         </view>
       </wd-popup>
@@ -349,6 +368,7 @@ import { navigateBack } from '@/utils/platformUtils'
 import { handleToken } from "@/utils/useAuth"
 import { renderMarkdownText, cleanMarkdownCodeBlocks, formatImprovementSuggestions } from '@/utils/markdownUtils'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
+import { nextTick, computed } from 'vue'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 console.log('env', import.meta.env.MODE)
@@ -418,9 +438,24 @@ interface FrameAnalysis {
 }
 
 const isModalVisible = ref(false)
-const showVideo = ref()
+const showVideo = ref('')
+
+// 确保这些变量在showVideoModal之前声明
+const currentVideoTitle = ref('')
+const currentVideoDuration = ref(0)
+const currentVideoIndex = ref(-1)
+const videoContext = ref<any>(null)
+const isVideoLoading = ref(false)
+const videoError = ref(false)
+
 const showVideoModal = (videoUrl: string, questionIndex?: number) => {
-  console.log('showVideoModal called with URL:', videoUrl)
+  console.log('showVideoModal called with URL:', videoUrl, 'questionIndex:', questionIndex)
+  
+  // 打印当前面试报告数据
+  if (questionIndex !== undefined) {
+    console.log('当前题目数据:', interviewReport.value[questionIndex])
+  }
+  
   if (!videoUrl) {
     uni.showToast({
       title: '视频地址不可用',
@@ -430,39 +465,81 @@ const showVideoModal = (videoUrl: string, questionIndex?: number) => {
     return
   }
   
-  // 设置视频信息
-  showVideo.value = videoUrl
+  // 重置视频状态
+  showVideo.value = ''
+  videoError.value = false
+  
+  // 立即设置视频信息（如果有的话）
   if (questionIndex !== undefined && interviewReport.value[questionIndex]) {
+    const item = interviewReport.value[questionIndex]
     currentVideoTitle.value = `第${numberToChinese(questionIndex + 1)}题录屏`
-    currentVideoDuration.value = interviewReport.value[questionIndex].duration_sec || 0
+    
+    // 先设置报告中的时长作为初始值
+    const reportDuration = item.duration_sec || item.duration || 0
+    console.log('报告中的时长数据:', {
+      duration_sec: item.duration_sec,
+      duration: item.duration,
+      使用的时长: reportDuration
+    })
+    
+    // 立即设置时长，不管是否为0
+    currentVideoDuration.value = reportDuration
     currentVideoIndex.value = questionIndex
+    
+    // 如果有时长，不显示加载中；如果没有时长，才显示加载中
+    isVideoLoading.value = reportDuration === 0
+  } else {
+    // 没有找到对应数据，默认显示加载中
+    currentVideoDuration.value = 0
+    isVideoLoading.value = true
   }
   
+  // 显示弹窗
   isModalVisible.value = true
+  
+  // 使用 nextTick 设置视频URL
+  nextTick(() => {
+    showVideo.value = videoUrl
+  })
 }
 
 // 关闭视频弹窗
 const closeVideoModal = () => {
-  // 先停止视频播放
-  if (currentVideoIndex.value !== -1) {
-    const videoId = `video-player-${currentVideoIndex.value}`
-    const videoContext = uni.createVideoContext(videoId)
-    if (videoContext) {
-      videoContext.stop()
+  console.log('关闭视频弹窗')
+  
+  // 立即关闭弹窗，防止后续的错误处理
+  isModalVisible.value = false
+  
+  // 停止视频播放
+  try {
+    if (currentVideoIndex.value !== -1) {
+      const videoId = `video-player-${currentVideoIndex.value}`
+      const context = uni.createVideoContext(videoId)
+      if (context) {
+        context.pause()
+        context.seek(0)
+        context.stop()
+      }
     }
+  } catch (error) {
+    console.error('停止视频时出错:', error)
   }
   
-  // 清理状态
-  isModalVisible.value = false
-  showVideo.value = ''
-  currentVideoTitle.value = ''
-  currentVideoDuration.value = 0
-  currentVideoIndex.value = -1
+  // 使用 setTimeout 延迟清理状态，确保视频组件已销毁
+  setTimeout(() => {
+    showVideo.value = ''
+    currentVideoTitle.value = ''
+    currentVideoDuration.value = 0
+    currentVideoIndex.value = -1
+    videoError.value = false
+    isVideoLoading.value = false
+  }, 100)
 }
 
 // 视频播放事件处理
 const onVideoPlay = () => {
   console.log('视频开始播放')
+  videoError.value = false
 }
 
 const onVideoPause = () => {
@@ -479,10 +556,115 @@ const onVideoTimeUpdate = (e: any) => {
 
 // 处理全屏变化
 const onFullscreenChange = (e: any) => {
-  console.log('全屏状态变化:', e.detail.fullScreen)
-  // 如果退出全屏且视频已结束，可能需要关闭弹窗
-  if (!e.detail.fullScreen && e.detail.direction === 'vertical') {
-    // 处理垂直全屏退出
+  console.log('全屏状态变化:', e.detail)
+  // 处理全屏状态变化
+  if (!e.detail.fullScreen || !e.detail.fullscreen) {
+    // 退出全屏时的处理
+    console.log('退出全屏')
+  }
+}
+
+// 手动触发全屏
+const requestFullscreen = () => {
+  if (currentVideoIndex.value !== -1) {
+    const videoId = `video-player-${currentVideoIndex.value}`
+    const context = uni.createVideoContext(videoId)
+    if (context) {
+      context.requestFullScreen({ direction: 0 }) // 0为正常竖屏, 90为横屏
+    }
+  }
+}
+
+// 处理视频加载错误
+const handleVideoError = (e: any) => {
+  console.error('视频加载错误:', e)
+  // 只有在弹窗打开时才显示错误
+  if (isModalVisible.value) {
+    videoError.value = true
+    isVideoLoading.value = false
+    uni.showToast({
+      title: '视频加载失败',
+      icon: 'none',
+      duration: 2000
+    })
+  }
+}
+
+// 视频加载开始
+const onVideoLoadStart = () => {
+  console.log('视频开始加载')
+  isVideoLoading.value = true
+  videoError.value = false
+}
+
+// 视频数据加载完成
+const onVideoLoadedData = (e: any) => {
+  console.log('视频数据加载完成', e)
+  // 尝试获取时长
+  if (e.detail && e.detail.duration && isFinite(e.detail.duration) && currentVideoDuration.value === 0) {
+    const duration = Math.round(e.detail.duration)
+    if (duration > 0) {
+      currentVideoDuration.value = duration
+      console.log('从loadeddata获取时长:', duration)
+    }
+  }
+}
+
+// 视频可以播放
+const onVideoCanPlay = (e: any) => {
+  console.log('视频可以播放', e)
+  isVideoLoading.value = false
+  // 再次尝试获取时长
+  if (e.detail && e.detail.duration && isFinite(e.detail.duration) && currentVideoDuration.value === 0) {
+    const duration = Math.round(e.detail.duration)
+    if (duration > 0) {
+      currentVideoDuration.value = duration
+      console.log('从canplay获取时长:', duration)
+    }
+  }
+}
+
+// 视频元数据加载完成
+const onVideoLoadedMetadata = (e: any) => {
+  console.log('视频元数据加载完成', e)
+  
+  // 获取视频实际时长
+  if (e.detail && e.detail.duration && isFinite(e.detail.duration)) {
+    const actualDuration = Math.round(e.detail.duration)
+    console.log('从metadata获取视频实际时长:', actualDuration, '秒，当前显示时长:', currentVideoDuration.value)
+    
+    // 如果视频时长有效且与当前时长差异较大，则更新
+    if (actualDuration > 0 && (currentVideoDuration.value === 0 || Math.abs(actualDuration - currentVideoDuration.value) > 2)) {
+      currentVideoDuration.value = actualDuration
+    }
+  } else {
+    console.log('视频时长无效或为Infinity，保持使用报告中的时长')
+  }
+  
+  // 元数据加载完成后，标记加载完成
+  isVideoLoading.value = false
+  
+  // 如果有 videoContext，也可以通过它获取时长
+  if (currentVideoIndex.value !== -1) {
+    const videoId = `video-player-${currentVideoIndex.value}`
+    const context = uni.createVideoContext(videoId)
+    if (context) {
+      videoContext.value = context
+    }
+  }
+}
+
+// 重试加载视频
+const retryLoadVideo = () => {
+  if (showVideo.value) {
+    videoError.value = false
+    isVideoLoading.value = true
+    // 重新设置视频源以触发重新加载
+    const tempUrl = showVideo.value
+    showVideo.value = ''
+    nextTick(() => {
+      showVideo.value = tempUrl
+    })
   }
 }
 
@@ -491,18 +673,51 @@ const interviewReport = ref<InterviewReportItem[]>([])
 const isLoading = ref(true)
 const totalDuration = ref(0)
 
+// 计算属性：格式化的视频时长显示
+const formattedVideoDuration = computed(() => {
+  if (isVideoLoading.value && currentVideoDuration.value === 0) {
+    return '加载中...'
+  }
+  return formatTimeToMinSec(currentVideoDuration.value)
+})
+
 // 帧分析数据
 const frameAnalysis = ref<FrameAnalysis>({
   summary: { total_frames: 0, abnormal_frames: 0, abnormal_rate: 0, abnormal_type_stats: {} },
   samples: [],
 })
+
+// 获取系统信息，用于安全区域适配
+const systemInfo = uni.getSystemInfoSync()
+const statusBarHeight = ref(0)
+const safeAreaTop = ref(0)
+
+// 计算实际的顶部安全高度
+if (systemInfo) {
+  statusBarHeight.value = systemInfo.statusBarHeight || 0
+  
+  // H5 平台通常没有 safeAreaInsets，使用 statusBarHeight
+  if (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top) {
+    safeAreaTop.value = systemInfo.safeAreaInsets.top
+  } else {
+    // 对于刘海屏，需要确保有足够的高度
+    // iOS 刘海屏通常是 44px，Android 通常是状态栏高度
+    safeAreaTop.value = Math.max(statusBarHeight.value, 44)
+  }
+  
+  console.log('系统信息详情:', {
+    platform: systemInfo.platform,
+    statusBarHeight: statusBarHeight.value,
+    safeAreaInsets: systemInfo.safeAreaInsets,
+    计算的安全高度: safeAreaTop.value
+  })
+}
+
 // 组件挂载时获取面试信息
 onMounted(() => {
-  // 处理视频播放器操作栏和封面元素的水平翻转
+  // 移除视频镜像处理 - 不再需要镜像效果
+  /*
   const handleVideoElementsMirror = () => {
-    // console.log('检查视频播放器元素...')
-
-    // 处理操作栏
     const videoBar = document.querySelector('.uni-video-bar') as HTMLElement
     if (videoBar) {
       videoBar.style.transform = 'scaleX(-1)'
@@ -515,28 +730,26 @@ onMounted(() => {
       videoBarFull.style.webkitTransform = 'scaleX(-1)'
     }
 
-    // 处理封面元素
     const cover = document.querySelector('.uni-video-cover') as HTMLElement
     if (cover) {
       cover.style.transform = 'scaleX(-1)'
       cover.style.webkitTransform = 'scaleX(-1)'
     }
   }
-
-  // 立即执行一次
   handleVideoElementsMirror()
+  */
 
-  // 使用 MutationObserver 监听 DOM 变化
+  // 移除 MutationObserver - 不再需要监听视频镜像处理
+  /*
   const observer = new MutationObserver((mutations) => {
-    // console.log('DOM发生变化，检查视频播放器元素...')
     handleVideoElementsMirror()
   })
 
-  // 开始观察 DOM 变化
   observer.observe(document.body, {
     childList: true,
     subtree: true,
   })
+  */
 
   fetchInterviewReport(interviewId.value)
   // 获取面试信息 - 如果使用URL token，跳过此调用
@@ -842,11 +1055,6 @@ const overallSummary = ref('')
 const improvementSuggestions = ref('')
 const score = ref(0)
 
-// 视频播放器相关状态
-const currentVideoTitle = ref('')
-const currentVideoDuration = ref(0)
-const currentVideoIndex = ref(-1)
-
 function handleClickLeft() {
   if (type.value === '1') {
     uni.navigateBack()
@@ -862,9 +1070,9 @@ function handleClickLeft() {
 
 // 将秒数转换为"xx分钟xx秒"格式
 const formatTimeToMinSec = (seconds: number) => {
-  if (!seconds || seconds <= 0) return '0秒'
+  if (!seconds || seconds <= 0 || !isFinite(seconds)) return '0秒'
   const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
+  const remainingSeconds = Math.round(seconds % 60)
 
   if (minutes === 0) {
     return `${remainingSeconds}秒`
@@ -895,17 +1103,6 @@ const getScoreIcon = () => {
   } else {
     return iconNotQualified // 不合适
   }
-}
-
-// 处理视频加载错误
-const handleVideoError = (error: any) => {
-  console.error('视频加载错误:', error)
-  uni.showToast({
-    title: '视频加载失败',
-    icon: 'none',
-    duration: 2000
-  })
-  isModalVisible.value = false
 }
 
 // 检查是否有异常
@@ -1038,12 +1235,11 @@ uni-page-body,
   background-color: rgba($color: #000000, $alpha: 0.4);
 }
 
-.mirror {
+/* 注释掉全局mirror类，避免视频镜像 */
+/* .mirror {
   transform: scaleX(-1);
-  /* 实现镜像效果 */
   -webkit-transform: scaleX(-1);
-  /* Safari 支持 */
-}
+} */
 
 .pjbg,
 .fxbg {
@@ -1130,6 +1326,9 @@ uni-page-body,
   width: 100%;
   height: 100%;
   object-fit: contain;
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
 }
 
 .video-error {
@@ -1138,6 +1337,179 @@ uni-page-body,
   align-items: center;
   justify-content: center;
   color: #666;
+  height: 100%;
 }
+
+/* 视频播放器容器样式 */
+.video-player-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+  padding-top: env(safe-area-inset-top);
+}
+
+/* 顶部操作栏 */
+.video-top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 20px;
+  padding-top: calc(30px + env(safe-area-inset-top) + var(--safe-area-top, 0px));
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
+  z-index: 100;
+  min-height: 60px;
+}
+
+
+/* 关闭按钮样式 - 增大点击区域 */
+.close-btn {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 10px;
+  margin: -10px;
+  position: relative;
+}
+
+.close-btn-inner {
+  width: 44px;
+  height: 44px;
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.close-btn:hover .close-btn-inner {
+  background-color: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.close-btn:active .close-btn-inner {
+  background-color: rgba(0, 0, 0, 0.9);
+  transform: scale(0.9);
+}
+
+/* 关闭图标样式 */
+.close-icon {
+  color: white;
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+  display: block;
+}
+
+.video-title {
+  font-size: 16px;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* 视频包装器 */
+.video-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-top: calc(80px + var(--safe-area-top, 0px));
+  margin-left: 20px;
+  margin-right: 20px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  background-color: #000;
+}
+
+/* 自定义全屏按钮 - 已移除 */
+
+/* 加载中状态 */
+.video-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 10;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #145eff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+.loading-text {
+  color: white;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 重试按钮 */
+.retry-btn {
+  margin-top: 20px;
+  padding: 12px 24px;
+  background-color: #145eff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.retry-btn:active {
+  background-color: #0d4fcc;
+  transform: scale(0.98);
+}
+
+/* 错误状态优化 */
+.video-error {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  padding: 20px;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 10;
+}
+
+/* 移除镜像效果 - 已注释 */
+/* .interview-video.mirror {
+  transform: scaleX(-1);
+} */
 
 </style>

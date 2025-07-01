@@ -120,12 +120,11 @@
         <view class="pt-2">
           <view class="relative">
             <view class="absolute top-1 text-xl font-normal w-80 h-10 left-3 ellipsis">
-              {{ item.jobseeker.name }}
+              {{ item.jobseeker.name || '未知用户' }}
             </view>
             <view class="absolute top-9.5 w-80 text-xs text-#616366 left-3">
-              {{ item.jobseeker.age }}岁 | {{ item.jobseeker.work_experience_years }}年经验 |
-              {{ item.jobseeker.education_level }} | {{ item.jobseeker.currently_employed
-              }}{{ item.jobseeker.availability_time }}
+              {{ item.jobseeker.age || '未知' }}岁 | {{ item.jobseeker.work_experience_years || 0 }}年经验 |
+              {{ item.jobseeker.education_level || '未知' }} | {{ item.jobseeker.availability_time || '未知' }}
             </view>
             <!-- 头像 -->
 
@@ -141,7 +140,7 @@
             </view>
             <view class="absolute top-15.5 left-9.5 overflow-hidden text-xs">
               <view class="w-60 h-5 ellipsis">
-                意向：{{ item.position.location }}·{{ item.position.title }}
+                意向：{{ item.jobseeker_position?.location || item.position?.location }}·{{ item.jobseeker_position?.title || item.position?.title }}
               </view>
             </view>
 
@@ -177,7 +176,7 @@
 
               <view class="overflow-hidden flex flex-row text-xs absolute w-30 top-1 left-55">
                 <image class="w-5 h-5" :src="jobIcon"></image>
-                <view class="absolute left-6">{{ item.position.title }}</view>
+                <view class="absolute left-6">{{ item.jobseeker_position?.title || item.position.title }}</view>
               </view>
             </view>
             <!-- 按钮 -->
@@ -314,6 +313,11 @@
     user_id: number | null
     name: string | null
     gender: string | null
+    age: number | string | null
+    work_experience_years: number | null
+    education_level: string | null
+    availability_time: string | null
+    avatar_url: string | null
   }
 
   // 定义最终的返回结果对象结构
@@ -321,6 +325,7 @@
     interview_result: InterviewResult
     interview: Interview
     position: Position
+    jobseeker_position?: Position  // 求职者的职位意向
     recruiter: Recruiter
     jobseeker: Jobseeker
   }
@@ -439,6 +444,12 @@
     // 更新状态
     changeShowData()
     console.log('interviewResults', resData)
+    // 打印第一条数据的详细信息
+    if (resData && resData.length > 0) {
+      console.log('第一条数据详情:', resData[0])
+      console.log('jobseeker_position:', resData[0].jobseeker_position)
+      console.log('position:', resData[0].position)
+    }
   }
   const jumpInterviewResult = (interviewId: number) => {
     // 存储参数
