@@ -19,33 +19,28 @@
       <view class="absolute left-2/5">Ai面试记录</view>
     </view>
     <!-- 背景图 -->
-    <view class="">
+    <view class="relative">
       <image :src="aiInterviewHeader" class="w-full h-50"></image>
-    </view>
-
-    <wd-sticky :offset-top="-45">
-      <view class="h-15">
-        <!-- 搜索框 -->
-        <view class="flex flex-row justify-center h-10 px-3 pt-2">
-          <view
-            class="w-full h-12 bg-white rounded-3xl flex flex-row items-center shadow-#D0D7E5 shadow"
-          >
-            <view class="i-carbon-search pl-8 h-5" />
-            <view class="-pl-2 w-75">
-              <input
-                type="text"
-                v-model="searchValue"
-                placeholder="搜索关键词"
-                @blur="getInterviewList(searchValue)"
-              />
-            </view>
+      <!-- 搜索框压在图片上 -->
+      <view class="absolute bottom-0 w-full transform translate-y-1/2 px-3">
+        <view
+          class="w-full h-12 bg-white rounded-3xl flex flex-row items-center shadow-#D0D7E5 shadow"
+        >
+          <view class="i-carbon-search pl-8 h-5" />
+          <view class="-pl-2 w-75">
+            <input
+              type="text"
+              v-model="searchValue"
+              placeholder="搜索关键词"
+              @blur="getInterviewList(searchValue)"
+            />
           </view>
         </view>
       </view>
-    </wd-sticky>
+    </view>
 
     <view
-      class="w-full flex items-center justify-center pb-5"
+      class="w-full flex items-center justify-center pb-5 pt-10"
       @click="jumpInterviewResult(item)"
       v-for="item in interviewResults"
       :key="item"

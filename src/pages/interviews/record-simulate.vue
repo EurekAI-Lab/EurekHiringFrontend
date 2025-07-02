@@ -59,7 +59,7 @@
               <view></view>
             </view>
           </view>
-          <view class="absolute top-12 right-4">
+          <view class="absolute top-12 right-5">
             <!-- 根据qualification_level显示不同图标 -->
             <image 
               v-if="item.qualification_level === 'VERY_QUALIFIED'" 

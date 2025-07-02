@@ -57,7 +57,7 @@
         v-if="overallSummary">
         <view class="pjbg"></view>
         <view class="flex items-center justify-center mt-2">
-          <image class="w-5 h-5 ml-2 mt-2" :src="iconpj"></image>
+          <image class="w-5 h-5 ml-2 mt-2" :src="iconComprehensive"></image>
           <view class="ml-3 mt-2 text-xs text-#1f2937 font-bold" style="font-size: 18px">
             综合评价
           </view>
@@ -356,7 +356,8 @@ import iconQualified from '@/static/app/icons/interview-status-new/suitable_2x.p
 import iconNotQualified from '@/static/app/icons/interview-status-new/unqualified_2x.png'
 import iconVeryQualified from '@/static/app/icons/interview-status-new/very_suitable_2x.png'
 import iconpjbg from '@/static/app/icons/icon-pjbg.png'
-import iconpj from '@/static/app/icons/icon_comprehensive_evaluation_2x.png'
+import iconpj from '@/static/app/icons/icon-pj.png'
+import iconComprehensive from '@/static/app/icons/icon_comprehensive_evaluation_2x.png'
 import iconfxbg from '@/static/app/icons/icon-fxbg.png'
 import iconfx from '@/static/app/icons/icon-fx.png'
 
