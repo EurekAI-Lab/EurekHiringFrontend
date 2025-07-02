@@ -52,10 +52,8 @@
           <view class="text-sm pl-1.5 pt-0.4 text-white font-bold">使用帮助</view>
         </view>
         <!-- </view> -->
-        <view class="text-sm p-4 text-gray-700 w-91% tracking-wider -mt-5">
-          系统会依据企业所发布的职位信息自动生成 A面试题目。平台上的求职者在受邀后，能够进行线上
-          A视频面试。面试完成后，企业的
-          Hr可以依据生成的面试报告，来判断是否与该候选人进一步进行沟通，或者邀约其进行线下面试。
+        <view class="text-sm p-4 text-gray-700 w-91% tracking-wider -mt-5 no-text-transform">
+          系统会依据企业所发布的职位信息自动生成AI面试题目。平台上的求职者在受邀后，能够进行线上AI视频面试。面试完成后，企业的HR可以依据生成的面试报告，来判断是否与该候选人进一步进行沟通，或者邀约其进行线下面试。
         </view>
         <image :src="processSimulation" class="w-90% h-full rounded-2xl -translate-x-1" />
       </view>
@@ -211,4 +209,13 @@ onMounted(() => {
 })
 </script>
 
-<style scoped></style>
+<style scoped>
+/* 防止文本转换的样式 */
+.no-text-transform,
+.no-text-transform * {
+  text-transform: none !important;
+  font-variant: normal !important;
+  -webkit-text-transform: none !important;
+  text-rendering: auto !important;
+}
+</style>
