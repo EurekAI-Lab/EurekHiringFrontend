@@ -18,7 +18,7 @@
         @click="handleClickLeft"
         :style="{ color: headerOpacity > 0.5 ? '#333' : '#f4f4f4' }"
       ></view>
-      <text class="absolute left-1.8/5 top-[52px]">个人&#65;&#73;模拟面试</text>
+      <text class="absolute left-1.8/5 top-[52px]">{{ titleText }}</text>
     </view>
     <view>
       <image :src="aibg10" class="w-full h-70"></image>
@@ -51,7 +51,7 @@
           </view>
           <view class="text-sm pl-1.5 pt-0.4 text-white font-bold">使用帮助</view>
         </view>
-        <text class="p-4 w-91% -mt-5 block" style="font-size: 14px; line-height: 1.6; color: #374151;">系统会依据企业所发布的职位信息自动生成&#65;&#73;面试题目。平台上的求职者在受邀后，能够进行线上&#65;&#73;视频面试。面试完成后，企业的&#72;&#82;可以依据生成的面试报告，来判断是否与该候选人进一步进行沟通，或者邀约其进行线下面试。</text>
+        <text class="p-4 w-91% -mt-5 block" style="font-size: 14px; line-height: 1.6; color: #374151;">{{ helpText }}</text>
         <image :src="processSimulation" class="w-90% h-full rounded-2xl -translate-x-1" />
       </view>
     </view>
@@ -66,7 +66,7 @@
     <view>
       <wd-action-sheet v-model="showSheet" title="选择职位" @close="close">
         <view class="w-full h-auto flex justify-center items-center pb-5">
-          <text class="w-[90%] text-gray-500 block">请选择您想进行模拟面试的求职意向信息，我们将以该求职意向为您生成&#65;&#73;模拟面试题目</text>
+          <text class="w-[90%] text-gray-500 block">{{ bottomSheetText }}</text>
         </view>
         <view
           class="flex w-full min-h-16 justify-center items-center py-1"
@@ -131,6 +131,24 @@ import { navigateBack } from '@/utils/platformUtils'
 const toast = useToast()
 const showSheet = ref(false)
 const items = ref([])
+
+// 定义文本变量，使用不同方法尝试避免文本转换问题
+const titleText = ref('')
+const helpText = ref('')
+const bottomSheetText = ref('')
+
+// 在组件挂载后设置文本
+onMounted(() => {
+  // 直接使用字符串字面量，避免 Weex/Android runtime bug
+  const AI = 'AI'
+  const HR = 'HR'
+  
+  titleText.value = `个人${AI}模拟面试`
+  helpText.value = `系统会依据企业所发布的职位信息自动生成${AI}面试题目。平台上的求职者在受邀后，能够进行线上${AI}视频面试。面试完成后，企业的${HR}可以依据生成的面试报告，来判断是否与该候选人进一步进行沟通，或者邀约其进行线下面试。`
+  bottomSheetText.value = `请选择您想进行模拟面试的求职意向信息，我们将以该求职意向为您生成${AI}模拟面试题目`
+  
+  getPostionInfo()
+})
 onLoad((options) => {
   // const storedToken = uni.getStorageSync('token')
   // if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
@@ -236,10 +254,6 @@ function handleClickLeft() {
   uni.navigateTo({ url: '/pages/interviews/record-simulate?token=' + uni.getStorageSync('token') })
 }
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-onMounted(() => {
-  getPostionInfo()
-  //   my_test_interviews()
-})
 </script>
 
 <style scoped>
