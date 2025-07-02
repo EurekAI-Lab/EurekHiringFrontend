@@ -52,7 +52,7 @@
           <view class="text-sm pl-1.5 pt-0.4 text-white font-bold">使用帮助</view>
         </view>
         <view class="text-sm p-4 text-gray-700 w-91% tracking-wider -mt-5">
-          求职者通过AI模拟面试，可精准打磨自己的应变力，精准突破求职瓶颈。建议在模拟面试之前先进行人才测评，技能图谱指引成长方向。我们针对求职者的求职意向信息自动生成模拟面试题，并根据面试表现生成个性化诊断报告，AI深度解析你的面试表现,帮你挖掘潜在天赋。
+          求职者通过AI模拟面试，可精准打磨自己的应变力，精准突破求职瓶颈。建议在模拟面试之前先进行人才测评，技能图谱指引成长方向。我们针对求职者的求职意向信息自动生成模拟面试题，并根据面试表现生成个性化诊断报告，AI深度解析你的面试表现，帮你挖掘潜在天赋。
         </view>
         <image :src="processSimulation" class="w-90% h-full rounded-2xl -translate-x-1" />
       </view>
@@ -91,9 +91,9 @@
             >
               <image :src="zfj" class="w-5 h-5" />
             </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-20">
-              <view class="">{{ item.title }}</view>
-              <view class="text-gray-400">{{ item.description }}</view>
+            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-24">
+              <view class="truncate">{{ item.title }}</view>
+              <view class="text-gray-400 truncate">{{ item.description }}</view>
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
               <view class="text-#1778ff" style="text-align: center">{{ item.salary }}</view>

@@ -35,20 +35,20 @@
       </view>
       <view class="relative z-1 bg-#fafafa h-22 w-82 rounded-lg mt-2 shadow-md">
         <wd-row>
-          <wd-col :span="5">
-            <image class="w-12 h-18 ml-6 mt-2 rounded" :src="userAvatar || icon001" mode="aspectFit"></image>
+          <wd-col :span="4">
+            <image class="w-12 h-18 ml-4 mt-2 rounded" :src="userAvatar || icon001" mode="aspectFit"></image>
           </wd-col>
-          <wd-col :span="13">
-            <view class="ml-2 mt-3 font-bold text-sm">{{ msrName }}</view>
-            <view class="ml-2 mt-1 text-xs text-#374151">
+          <wd-col :span="16">
+            <view class="ml-5 mt-3 font-bold text-sm">{{ msrName }}</view>
+            <view class="ml-5 mt-1 text-xs text-#374151">
               做题时长：{{ formatTimeToMinSec(totalDuration) }}
             </view>
-            <view class="ml-2 mt-1 text-xs text-#374151">
+            <view class="ml-5 mt-1 text-xs text-#374151">
               报告生成时间：{{ formatDateTime(bgscTime) }}
             </view>
           </wd-col>
-          <wd-col :span="6">
-            <image class="w-14 h-14 mt-3 ml-2" :src="getScoreIcon()"></image>
+          <wd-col :span="4">
+            <image class="w-14 h-14 mt-3 ml-0" :src="getScoreIcon()"></image>
           </wd-col>
         </wd-row>
       </view>

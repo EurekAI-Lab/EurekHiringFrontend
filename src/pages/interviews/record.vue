@@ -55,10 +55,7 @@
       <view class="w-[92%] rounded-xl bg-white h-47 overflow-hidden flex flex-col">
         <view class="flex flex-row relative">
           <image :src="aimn" class="w-full h-7.5" />
-          <view class="text-white text-sm absolute left-12% top-16.5% flex items-center">
-            <image :src="aiRobot" class="w-5 h-5 mr-1" />
-            <text>AI面试</text>
-          </view>
+          <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
         </view>
         <view class="flex flex-row">
           <image :src="item.logo_url" class="ml-2.5 mt-2 w-12 h-12 rounded" />

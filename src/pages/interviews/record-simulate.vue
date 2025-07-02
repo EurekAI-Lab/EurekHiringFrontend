@@ -35,7 +35,7 @@
       <view
         v-for="item in interviewList"
         :key="item.interviews_id"
-        class="relative w-full flex items-center justify-center py-1"
+        class="relative w-full flex items-center justify-center pt-4 pb-1"
         @click="openInfo(item.interviews_id)"
       >
         <!--卡片 -->
@@ -43,10 +43,7 @@
         <view class="w-[92%] rounded-xl bg-white min-h-20 overflow-hidden flex flex-col">
           <view class="flex flex-row relative">
             <image :src="aimn" class="w-full h-7.5" />
-            <view class="text-white text-sm absolute left-12% top-16.5% flex items-center">
-              <image :src="aiRobot" class="w-5 h-5 mr-1" />
-              <text>AI面试</text>
-            </view>
+            <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
           </view>
           <view class="flex flex-col text-sm items-center pt-2 pb-2">
             <view class="flex flex-row w-[95%]">
@@ -62,7 +59,7 @@
               <view></view>
             </view>
           </view>
-          <view class="absolute top-10 right-2">
+          <view class="absolute top-12 right-4">
             <!-- 根据qualification_level显示不同图标 -->
             <image 
               v-if="item.qualification_level === 'VERY_QUALIFIED'" 
