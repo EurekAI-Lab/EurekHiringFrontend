@@ -42,8 +42,8 @@
         </view>
       </view>
     </view> -->
-    <view class="w-full h-380 -translate-y-30 mt-3 flex justify-center items-center">
-      <view class="w-90% h-full rounded-2xl flex flex-col justify-center items-center bg-white">
+    <view class="w-full h-380 -translate-y-30 mt-3 flex justify-center items-center" style="text-transform: none;">
+      <view class="w-90% h-full rounded-2xl flex flex-col justify-center items-center bg-white" style="text-transform: none;">
         <image :src="qzzsybz" class="w-full h-10" />
         <view class="-translate-y-7 -translate-x-30 flex flex-row">
           <view class="w-5 h-5 bg-white text-blue flex justify-center items-center rounded-full">
@@ -51,8 +51,8 @@
           </view>
           <view class="text-sm pl-1.5 pt-0.4 text-white font-bold">使用帮助</view>
         </view>
-        <view class="text-sm p-4 text-gray-700 w-91% tracking-wider -mt-5">
-          求职者通过AI模拟面试，可精准打磨自己的应变力，精准突破求职瓶颈。建议在模拟面试之前先进行人才测评，技能图谱指引成长方向。我们针对求职者的求职意向信息自动生成模拟面试题，并根据面试表现生成个性化诊断报告，AI深度解析你的面试表现，帮你挖掘潜在天赋。
+        <view class="text-sm p-4 text-gray-700 w-91% -mt-5">
+          <view>{{ helpText }}</view>
         </view>
         <image :src="processSimulation" class="w-90% h-full rounded-2xl -translate-x-1" />
       </view>
@@ -136,6 +136,7 @@ import { navigateBack } from '@/utils/platformUtils'
 const toast = useToast()
 const showSheet = ref(false)
 const items = ref([])
+const helpText = ref('系统会依据企业所发布的职位信息自动生成AI面试题目。平台上的求职者在受邀后，能够进行线上AI视频面试。面试完成后，企业的HR可以依据生成的面试报告，来判断是否与该候选人进一步进行沟通，或者邀约其进行线下面试。')
 onLoad((options) => {
   // const storedToken = uni.getStorageSync('token')
   // if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {

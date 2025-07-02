@@ -40,14 +40,15 @@
     </view>
 
     <view
-      class="w-full flex items-center justify-center pb-5 pt-10"
+      class="w-full flex items-center justify-center"
+      :class="{ 'pt-8': index === 0, 'pt-3': index !== 0 }"
       @click="jumpInterviewResult(item)"
-      v-for="item in interviewResults"
+      v-for="(item, index) in interviewResults"
       :key="item"
     >
       <!--卡片 -->
 
-      <view class="w-[92%] rounded-xl bg-white h-47 overflow-hidden flex flex-col">
+      <view class="w-[92%] rounded-xl bg-white overflow-hidden flex flex-col shadow-sm">
         <view class="flex flex-row relative">
           <image :src="aimn" class="w-full h-7.5" />
           <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
@@ -119,10 +120,10 @@
             />
           </template>
         </view>
-        <view class="flex justify-center items-center pt-3">
+        <view class="flex justify-center items-center pt-2">
           <view class="w-[94.5%] bg-gray-100 h-0.3 items-center justify-center"></view>
         </view>
-        <view class="flex flex-col text-sm items-center pt-2">
+        <view class="flex flex-col text-sm items-center pt-1.5 pb-2">
           <view class="flex flex-row w-[95%]">
             <view class="text-gray">面试职位：</view>
             <view>{{ item.position_title }}</view>
