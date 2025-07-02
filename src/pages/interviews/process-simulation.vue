@@ -18,7 +18,7 @@
         @click="handleClickLeft"
         :style="{ color: headerOpacity > 0.5 ? '#333' : '#f4f4f4' }"
       ></view>
-      <view class="absolute left-1.8/5 top-[52px]">个人AI模拟面试</view>
+      <text class="absolute left-1.8/5 top-[52px]">个人&#65;&#73;模拟面试</text>
     </view>
     <view>
       <image :src="aibg10" class="w-full h-70"></image>
@@ -42,8 +42,8 @@
         </view>
       </view>
     </view> -->
-    <view class="w-full h-380 -translate-y-30 mt-3 flex justify-center items-center" style="text-transform: none;">
-      <view class="w-90% h-full rounded-2xl flex flex-col justify-center items-center bg-white" style="text-transform: none;">
+    <view class="w-full h-380 -translate-y-30 mt-3 flex justify-center items-center">
+      <view class="w-90% h-full rounded-2xl flex flex-col justify-center items-center bg-white" style="text-transform: none !important;">
         <image :src="qzzsybz" class="w-full h-10" />
         <view class="-translate-y-7 -translate-x-30 flex flex-row">
           <view class="w-5 h-5 bg-white text-blue flex justify-center items-center rounded-full">
@@ -51,9 +51,7 @@
           </view>
           <view class="text-sm pl-1.5 pt-0.4 text-white font-bold">使用帮助</view>
         </view>
-        <view class="text-sm p-4 text-gray-700 w-91% -mt-5">
-          <view>{{ helpText }}</view>
-        </view>
+        <text class="p-4 w-91% -mt-5 block" style="font-size: 14px; line-height: 1.6; color: #374151;">系统会依据企业所发布的职位信息自动生成&#65;&#73;面试题目。平台上的求职者在受邀后，能够进行线上&#65;&#73;视频面试。面试完成后，企业的&#72;&#82;可以依据生成的面试报告，来判断是否与该候选人进一步进行沟通，或者邀约其进行线下面试。</text>
         <image :src="processSimulation" class="w-90% h-full rounded-2xl -translate-x-1" />
       </view>
     </view>
@@ -68,10 +66,7 @@
     <view>
       <wd-action-sheet v-model="showSheet" title="选择职位" @close="close">
         <view class="w-full h-auto flex justify-center items-center pb-5">
-          <view class="w-[90%] text-gray-500">
-            <!-- 请选择您需要测试Ai面试的意向职位信息，我们将以该意向信息为您制定Ai面试题 -->
-            请选择您想进行模拟面试的求职意向信息，我们将以该求职意向为您生成AI模拟面试题目
-          </view>
+          <text class="w-[90%] text-gray-500 block">请选择您想进行模拟面试的求职意向信息，我们将以该求职意向为您生成&#65;&#73;模拟面试题目</text>
         </view>
         <view
           class="flex w-full min-h-16 justify-center items-center py-1"
@@ -136,7 +131,6 @@ import { navigateBack } from '@/utils/platformUtils'
 const toast = useToast()
 const showSheet = ref(false)
 const items = ref([])
-const helpText = ref('系统会依据企业所发布的职位信息自动生成AI面试题目。平台上的求职者在受邀后，能够进行线上AI视频面试。面试完成后，企业的HR可以依据生成的面试报告，来判断是否与该候选人进一步进行沟通，或者邀约其进行线下面试。')
 onLoad((options) => {
   // const storedToken = uni.getStorageSync('token')
   // if (options.token && typeof options.token === 'string' && options.token.trim() !== '') {
@@ -248,4 +242,5 @@ onMounted(() => {
 })
 </script>
 
-<style scoped></style>
+<style scoped>
+</style>
