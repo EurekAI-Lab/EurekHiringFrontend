@@ -29,45 +29,45 @@
       <!-- 顶部背景 -->
       <view class="absolute w-100% h-50 z-0 top-22"
         style="background: linear-gradient(180deg, #145eff 0%, #0cd0ff 100%)"></view>
-      <view class="relative z-1 bg-#fafafa h-10 w-85 flex items-center rounded">
+      <view class="relative z-1 bg-#fafafa h-10 w-82 flex items-center rounded-lg">
         <image class="w-4 h-4 ml-4" :src="icon001"></image>
         <view class="pl-3 text-xs">面试职位：{{ mszw }}</view>
       </view>
-      <view class="relative z-1 bg-#fafafa h-22 w-85 rounded mt-2 shadow-md">
+      <view class="relative z-1 bg-#fafafa h-22 w-82 rounded-lg mt-2 shadow-md">
         <wd-row>
-          <wd-col :span="4">
-            <image class="w-12 h-18 ml-2 mt-2" :src="userAvatar || icon001" mode="aspectFit"></image>
+          <wd-col :span="5">
+            <image class="w-12 h-18 ml-6 mt-2 rounded" :src="userAvatar || icon001" mode="aspectFit"></image>
           </wd-col>
-          <wd-col :span="16">
-            <view class="ml-5 mt-3 font-bold text-sm">{{ msrName }}</view>
-            <view class="ml-5 mt-1 text-xs text-#374151">
+          <wd-col :span="13">
+            <view class="ml-2 mt-3 font-bold text-sm">{{ msrName }}</view>
+            <view class="ml-2 mt-1 text-xs text-#374151">
               做题时长：{{ formatTimeToMinSec(totalDuration) }}
             </view>
-            <view class="ml-5 mt-1 text-xs text-#374151">
+            <view class="ml-2 mt-1 text-xs text-#374151">
               报告生成时间：{{ formatDateTime(bgscTime) }}
             </view>
           </wd-col>
-          <wd-col :span="4">
-            <image class="w-14 h-14 mt-3 ml--1" :src="getScoreIcon()"></image>
+          <wd-col :span="6">
+            <image class="w-14 h-14 mt-3 ml-2" :src="getScoreIcon()"></image>
           </wd-col>
         </wd-row>
       </view>
       <!-- 综合评价 -->
-      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md" style="overflow: hidden;"
+      <view class="relative z-1 bg-white h-auto w-82 rounded-lg mt-3 shadow-md" style="overflow: hidden;"
         v-if="overallSummary">
         <view class="pjbg"></view>
         <view class="flex items-center justify-center mt-2">
           <image class="w-5 h-5 ml-2 mt-2" :src="iconpj"></image>
-          <view class="ml-3 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
+          <view class="ml-3 mt-2 text-xs text-#1f2937 font-bold" style="font-size: 18px">
             综合评价
           </view>
         </view>
-        <view class="m-3 text-xs mt-5 text-#a1a1aa whitespace-pre-wrap">
+        <view class="m-3 text-xs mt-5 text-#374151 whitespace-pre-wrap">
           {{ renderMarkdownText(cleanMarkdownCodeBlocks(overallSummary)) }}
         </view>
       </view>
       <!-- 能力提升建议 -->
-      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md" style="overflow: hidden;"
+      <view class="relative z-1 bg-white h-auto w-82 rounded-lg mt-3 shadow-md" style="overflow: hidden;"
         v-if="improvementSuggestions">
         <view class="pjbg"></view>
         <view class="flex items-center justify-center mt-2">
@@ -76,12 +76,12 @@
             能力提升建议
           </view>
         </view>
-        <view class="m-3 text-xs mt-5 text-#a1a1aa whitespace-pre-wrap">
+        <view class="m-3 text-xs mt-5 text-#374151 whitespace-pre-wrap">
           {{ formatImprovementSuggestions(improvementSuggestions) }}
         </view>
       </view>
       <!-- 风险评价 -->
-      <view class="relative z-1 bg-#fafafa h-auto w-85 rounded mt-3 shadow-md pb-2" style="overflow: hidden;">
+      <view class="relative z-1 bg-#fafafa h-auto w-82 rounded-lg mt-3 shadow-md pb-2" style="overflow: hidden;">
         <view class="fxbg"></view>
         <wd-row class="mt-2">
           <wd-col :span="4">
@@ -136,7 +136,7 @@
             <view class="relative w-14 h-18 ml-2 mt-2" v-for="(item, index) in interviewReport" :key="index">
               <!-- 如果有对应的风险分析数据，显示分析缩略图，否则显示默认图 -->
               <image 
-                class="w-14 h-18" 
+                class="w-14 h-18 rounded" 
                 :src="getVideoThumbnail(item.question_id, index)" 
                 mode="aspectFill"
                 @error="onImageError($event, index)"
@@ -171,15 +171,15 @@
             <view class="w-full flex flex-col items-center justify-center py-4">
               <view class="text-gray-500 text-sm mb-2">视频加载中，请稍候...</view>
               <view class="flex gap-2">
-                <image class="w-14 h-18" :src="icon001"></image>
-                <image class="w-14 h-18" :src="icon001"></image>
-                <image class="w-14 h-18" :src="icon001"></image>
+                <image class="w-14 h-18 rounded-1" :src="icon001"></image>
+                <image class="w-14 h-18 rounded-1" :src="icon001"></image>
+                <image class="w-14 h-18 rounded-1" :src="icon001"></image>
               </view>
             </view>
           </template>
         </view>
       </view>
-      <view class="relative z-1 bg-#fafafa h-auto w-85 pb-5 rounded mt-3 shadow-md">
+      <view class="relative z-1 bg-#fafafa h-auto w-82 pb-5 rounded-lg mt-3 shadow-md">
         <view class="flex items-center justify-center mt-2">
           <image class="w-4 h-4 ml-2 mt-2" :src="iconjt"></image>
           <view class="ml-5 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
@@ -187,7 +187,7 @@
             <text class="text-xs text-gray-500 ml-2" v-if="!isLoading">({{ interviewReport.length }}题)</text>
           </view>
         </view>
-        <view class="text-sm ml-2 font-bold">问答题</view>
+        <view class="text-sm ml-6 mr-6 font-bold">问答题</view>
         <view v-if="isLoading" class="flex justify-center items-center p-10">
           <view class="text-center text-gray-500">面试内容正在处理，请稍后再试</view>
         </view>
@@ -200,14 +200,14 @@
             <text>提示：本次面试仅完成 {{ interviewReport.length }} 道题，部分题目数据可能正在处理中。</text>
           </view>
           <view v-for="(item, index) in interviewReport" :key="index">
-          <view class="flex ml-2 pt-5" style="justify-content: space-between">
+          <view class="flex ml-6 mr-6 pt-5" style="justify-content: space-between">
             <view class="flex">
               <view class="">第{{ numberToChinese(index + 1) }}题</view>
               <view class="text-xs mt-1 ml-5 text-#a1a1aa">
                 答题时长：{{ formatTimeToMinSec(item.duration_sec) }}
               </view>
             </view>
-            <view class="flex justify-right mr-2">
+            <view class="flex justify-right">
               <image 
                 v-if="item.video_url" 
                 class="w-5 h-5 ml-2" 
@@ -223,13 +223,13 @@
             </view>
           </view>
           <view class="flex justify-center mt-2">
-            <view class="text-sm ml-2 mr-2 font-bold">
+            <view class="text-sm ml-6 mr-6 font-bold">
               {{ item.original_question }}
             </view>
           </view>
-          <view class="mt-2 w-92% ml-4% rounded" style="background-color: #f4f5f7">
-            <view class="pt-3 pl-3 text-xs">面试人回答：</view>
-            <view class="pt-3 pr-3 pl-3 text-xs text-#a1a1aa">
+          <view class="mt-2 w-92% ml-4% rounded" style="background-color: #ffffff">
+            <view class="pt-3 pl-6 text-xs">面试人回答：</view>
+            <view class="pt-2 pb-3 pr-6 pl-6 text-xs text-#a1a1aa">
               <text v-if="item.answer && item.answer.includes('[录制失败]')" class="text-red-500">
                 {{ item.answer }}
               </text>
@@ -240,17 +240,17 @@
             </view>
           </view>
           <view class="mt-2 w-92% ml-4% rounded" style="background-color: #f2f7ff">
-            <view class="flex pt-3 pr-3 pl-3">
+            <view class="flex pt-3 pr-6 pl-6">
               <view class="text-xs w-30" style="word-break: keep-all">整体分析：</view>
               <view class="text-xs text-#a1a1aa">{{ item.reason }}</view>
             </view>
-            <view class="flex pt-1 pr-3 pl-3">
+            <view class="flex pt-1 pr-6 pl-6 pb-3">
               <view class="" style="font-size: 12px; word-break: keep-all">打分：</view>
               <view v-if="item.answer && item.answer.includes('[录制失败]')">
                 <view class="text-red-500 font-bold">录制失败</view>
               </view>
-              <view v-else>
-                <wd-progress :percentage="item.score * 10" hide-text style="width: 220px"></wd-progress>
+              <view v-else class="flex items-center">
+                <wd-progress :percentage="item.score * 10" hide-text style="width: 200px"></wd-progress>
                 <view class="font-bold ml-3">{{ item.score * 10 }}</view>
               </view>
             </view>
@@ -258,7 +258,7 @@
           </view>
         </view>
       </view>
-      <view class="w-85 h-5"></view>
+      <view class="w-82 h-5"></view>
       <!-- <aizdsc class="mt-10" />
             <aimn class="mt-10" />
             <xzzw class="my-10" />
@@ -356,7 +356,7 @@ import iconQualified from '@/static/app/icons/interview-status-new/suitable_2x.p
 import iconNotQualified from '@/static/app/icons/interview-status-new/unqualified_2x.png'
 import iconVeryQualified from '@/static/app/icons/interview-status-new/very_suitable_2x.png'
 import iconpjbg from '@/static/app/icons/icon-pjbg.png'
-import iconpj from '@/static/app/icons/icon-pj.png'
+import iconpj from '@/static/app/icons/icon_comprehensive_evaluation_2x.png'
 import iconfxbg from '@/static/app/icons/icon-fxbg.png'
 import iconfx from '@/static/app/icons/icon-fx.png'
 

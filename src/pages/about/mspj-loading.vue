@@ -20,12 +20,7 @@
     <!-- 自定义导航栏 -->
     <view class="navbar fixed top-0 left-0 right-0 z-10 bg-white" :style="{ height: topBarHeight + 'px' }">
       <view class="navbar-content" :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }">
-        <image 
-          class="back-icon" 
-          :src="backIcon"
-          @click="handleExit"
-          mode="aspectFit"
-        />
+        <view class="navbar-left"></view>
         <text class="navbar-title">AI面试</text>
         <view class="navbar-right"></view>
       </view>
@@ -44,10 +39,8 @@
       <!-- 提示文字 -->
       <text class="loading-text">报告生成中，请稍等...</text>
       <text class="sub-text">大概需要10-30秒时间，请耐心等待</text>
-    </view>
-    
-    <!-- 底部返回按钮 -->
-    <view class="bottom-area">
+      
+      <!-- 返回按钮 -->
       <view class="return-button" @click="handleExit">
         返回
       </view>
@@ -390,7 +383,7 @@ onBeforeUnmount(() => {
 .page-container {
   width: 100%;
   height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #ffffff;
   display: flex;
   flex-direction: column;
 }
@@ -421,6 +414,10 @@ onBeforeUnmount(() => {
   font-size: 17px;
   font-weight: 500;
   color: #333333;
+}
+
+.navbar-left {
+  width: 24px;
 }
 
 .navbar-right {
@@ -456,13 +453,8 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 
-/* 底部区域 */
-.bottom-area {
-  padding: 20px 40px 40px;
-}
-
 .return-button {
-  width: 100%;
+  width: 295px;
   height: 48px;
   background-color: #1890ff;
   border-radius: 24px;
@@ -472,6 +464,7 @@ onBeforeUnmount(() => {
   font-size: 16px;
   color: #ffffff;
   font-weight: 500;
+  margin-top: 40px;
 }
 
 .return-button:active {

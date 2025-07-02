@@ -43,7 +43,10 @@
         <view class="w-[92%] rounded-xl bg-white min-h-20 overflow-hidden flex flex-col">
           <view class="flex flex-row relative">
             <image :src="aimn" class="w-full h-7.5" />
-            <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
+            <view class="text-white text-sm absolute left-12% top-16.5% flex items-center">
+              <image :src="aiRobot" class="w-5 h-5 mr-1" />
+              <text>AI面试</text>
+            </view>
           </view>
           <view class="flex flex-col text-sm items-center pt-2 pb-2">
             <view class="flex flex-row w-[95%]">
@@ -146,9 +149,6 @@
                 <image :src="dw" class="w-5 h-5" />
                 <view class="text-gray-400">{{ item.expected_city }}</view>
               </view>
-              <view v-if="item.availability_time" class="text-gray-400 text-xs text-right">
-                {{ formatAvailabilityTime(item.availability_time) }}
-              </view>
             </view>
           </view>
         </view>
@@ -168,6 +168,7 @@
 <script lang="ts" setup>
 import aibg07 from '../../static/images/ai-bg-07.png'
 import aimn from '../../static/app/icons/icon_aimn.png'
+import aiRobot from '../../static/app/icons/icon_ai_interview_robot_2x.png'
 import hg from '../../static/app/icons/icon_hg.png'
 import bhg from '../../static/app/icons/icon_bhg.png'
 import rame from '../../static/app/icons/Frame-001.png'
@@ -355,8 +356,6 @@ const getPostionInfo = async () => {
           position_id: element.position_id,
           expected_city: element.expected_city,
           id: element.id,
-          availability_time: element.availability_time,
-          industry: element.industry
         }
         
         items.value.push(itemData)
@@ -439,18 +438,6 @@ const formatTimeToMinSec = (seconds: number) => {
   } else {
     return `${minutes}分钟${remainingSeconds}秒`
   }
-}
-
-// 格式化到岗时间
-const formatAvailabilityTime = (availability: string) => {
-  const availabilityMap = {
-    'immediately': '随时到岗',
-    'within_week': '一周内到岗',
-    'within_month': '一个月内到岗',
-    'within_three_months': '三个月内到岗',
-    'negotiable': '到岗时间面议'
-  }
-  return availabilityMap[availability] || availability
 }
 
 const openInfo = (id) => {

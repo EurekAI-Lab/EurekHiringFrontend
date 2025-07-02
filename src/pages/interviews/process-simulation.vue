@@ -91,9 +91,9 @@
             >
               <image :src="zfj" class="w-5 h-5" />
             </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5">
-              <view class="w-75%">{{ item.title }}</view>
-              <view class="text-gray-400 w-80%">{{ item.description }}</view>
+            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-20">
+              <view class="">{{ item.title }}</view>
+              <view class="text-gray-400">{{ item.description }}</view>
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
               <view class="text-#1778ff" style="text-align: center">{{ item.salary }}</view>
