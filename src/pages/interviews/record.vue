@@ -20,7 +20,7 @@
     </view>
     <!-- 背景图 -->
     <view class="">
-      <image :src="aibg06" class="w-full h-50"></image>
+      <image :src="aiInterviewHeader" class="w-full h-50"></image>
     </view>
 
     <wd-sticky :offset-top="-45">
@@ -75,13 +75,13 @@
           <template v-if="!isEnterpriseUser">
             <!-- 审核中状态 -->
             <image
-              v-if="item.interview_type === 'real' && item.audit_status === 'PENDING'"
+              v-if="item.interview_type !== 'test' && item.audit_status === 'PENDING'"
               :src="iconReviewing"
               class="w-12 h-12 absolute right-5 mt-2"
             />
             <!-- 审核未通过状态 -->
             <image
-              v-else-if="item.interview_type === 'real' && item.audit_status === 'REJECTED'"
+              v-else-if="item.interview_type !== 'test' && item.audit_status === 'REJECTED'"
               :src="iconReviewFailed"
               class="w-15 h-15 absolute right-5 mt-1"
             />
@@ -183,6 +183,7 @@ import iconReviewFailed from '../../static/app/icons/interview-status-new/review
 import iconQualified from '../../static/app/icons/interview-status-new/suitable_2x.png'
 import iconNotQualified from '../../static/app/icons/interview-status-new/unqualified_2x.png'
 import iconVeryQualified from '../../static/app/icons/interview-status-new/very_suitable_2x.png'
+import aiInterviewHeader from '../../static/app/icons/interview-status-new/AI_interview_record_header_2x.jpg'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import wxSdk from 'weixin-js-sdk'
 import { navigateBack } from '@/utils/platformUtils'
@@ -382,6 +383,18 @@ async function getInterviewList(keyword = '') {
           audit_status: interviewResults.value[0].audit_status,
           qualification_level: interviewResults.value[0].qualification_level,
           is_qualified: interviewResults.value[0].is_qualified
+        })
+        // 添加更详细的调试信息
+        console.log('=== 调试：面试列表数据详情 ===')
+        interviewResults.value.forEach((item, index) => {
+          console.log(`记录${index + 1}:`, {
+            interviews_id: item.interviews_id,
+            interview_type: item.interview_type,
+            audit_status: item.audit_status,
+            qualification_level: item.qualification_level,
+            isEnterpriseUser: isEnterpriseUser.value,
+            shouldShowAuditIcon: item.interview_type !== 'test' && (item.audit_status === 'PENDING' || item.audit_status === 'REJECTED')
+          })
         })
       }
     } else {

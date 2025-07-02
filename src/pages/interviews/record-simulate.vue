@@ -149,6 +149,9 @@
                 <image :src="dw" class="w-5 h-5" />
                 <view class="text-gray-400">{{ item.expected_city }}</view>
               </view>
+              <view v-if="item.availability_time" class="text-gray-400 text-xs text-right">
+                {{ formatAvailabilityTime(item.availability_time) }}
+              </view>
             </view>
           </view>
         </view>
@@ -356,6 +359,8 @@ const getPostionInfo = async () => {
           position_id: element.position_id,
           expected_city: element.expected_city,
           id: element.id,
+          availability_time: element.availability_time,
+          industry: element.industry
         }
         
         items.value.push(itemData)
@@ -438,6 +443,18 @@ const formatTimeToMinSec = (seconds: number) => {
   } else {
     return `${minutes}分钟${remainingSeconds}秒`
   }
+}
+
+// 格式化到岗时间
+const formatAvailabilityTime = (availability: string) => {
+  const availabilityMap = {
+    'immediately': '随时到岗',
+    'within_week': '一周内到岗',
+    'within_month': '一个月内到岗',
+    'within_three_months': '三个月内到岗',
+    'negotiable': '到岗时间面议'
+  }
+  return availabilityMap[availability] || availability
 }
 
 const openInfo = (id) => {
