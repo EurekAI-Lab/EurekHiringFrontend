@@ -1442,16 +1442,34 @@ const triggerAnotherMethod = () => {
   }
 }
 const handleStart = () => {
-  // 在答题期间，每道题目将为您提供10秒的审题时间，这段时间不计入您的回答时长内。审题时间结束后，
-  message
-    .confirm({
-      msg: '您即将步入AI面试环节，请针对大模型所生成的题目进行作答。系统将自动启动录制您的回答。请确认是否进入面试',
-      title: '面试确认',
-    })
-    .then(async () => {
-      try {
-        // 更新面试状态
-        const response = await uni.request({
+  // 首先显示权限使用说明
+  uni.showModal({
+    title: '权限使用说明',
+    content: '为了保证AI视频面试正常进行，本应用需要使用摄像头权限录制您的面试视频表现，以及麦克风权限记录您的语音回答。\n\n我们承诺仅在面试过程中使用上述权限，不会在后台调用。',
+    confirmText: '我已了解',
+    showCancel: false,
+    success: async (permissionRes) => {
+      if (permissionRes.confirm) {
+        // 权限说明确认后，先启动摄像头
+        uni.showLoading({
+          title: '正在启动摄像头...',
+          mask: true
+        })
+        
+        try {
+          await startCamera()
+          uni.hideLoading()
+          
+          // 摄像头启动成功后，显示面试确认
+          message
+            .confirm({
+              msg: '您即将步入AI面试环节，请针对大模型所生成的题目进行作答。系统将自动启动录制您的回答。请确认是否进入面试',
+              title: '面试确认',
+            })
+            .then(async () => {
+            try {
+              // 更新面试状态
+              const response = await uni.request({
           url: baseUrl + `/interviews/update_status/${interviewId.value}?status=1`,
           method: 'POST',
           header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
@@ -1491,14 +1509,37 @@ const handleStart = () => {
           console.error('响应数据:', response.data)
           toast.error('更新面试状态失败，请重试')
         }
-      } catch (error) {
-        console.error('更新面试状态失败:', error)
-        toast.error('网络错误，请检查网络连接')
+            } catch (error) {
+              console.error('更新面试状态失败:', error)
+              toast.error('网络错误，请检查网络连接')
+            }
+          })
+          .catch((error) => {
+            console.log('用户取消面试确认')
+          })
+        } catch (cameraError) {
+          uni.hideLoading()
+          console.error('摄像头启动失败:', cameraError)
+          
+          // 根据错误类型显示不同的提示
+          let errorMessage = '摄像头启动失败，请检查权限设置'
+          if (cameraError.name === 'NotAllowedError') {
+            errorMessage = '您拒绝了摄像头权限，请在浏览器设置中允许摄像头访问'
+          } else if (cameraError.name === 'NotFoundError') {
+            errorMessage = '未检测到摄像头设备'
+          } else if (cameraError.name === 'NotReadableError') {
+            errorMessage = '摄像头正在被其他应用使用'
+          }
+          
+          uni.showToast({
+            title: errorMessage,
+            icon: 'none',
+            duration: 3000
+          })
+        }
       }
-    })
-    .catch((error) => {
-      console.log('用户取消面试确认')
-    })
+    }
+  })
 }
 // 关闭摄像头
 const stopCamera = () => {
@@ -1816,7 +1857,8 @@ const fetchInterviewInfo = async (interviewId: number) => {
   loading.value = false
   showVideoMask.value = false
 
-  startCamera()
+  // 移除自动启动摄像头，改为在用户确认权限说明后启动
+  // startCamera()
 }
 // 对更多字符编码的 url encode 格式
 const camSafeUrlEncode = (str: string) => {
