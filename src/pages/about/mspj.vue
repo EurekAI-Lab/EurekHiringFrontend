@@ -784,14 +784,45 @@ const fetchInterviewInfo = async (interviewId: number) => {
 
 // 处理返回事件
 onBackPress(() => {
-  // 如果是模拟面试（type=2），返回到模拟面试列表页
+  console.log('onBackPress - type:', type.value, 'from:', from.value)
+  
+  // 根据type和from决定返回目标
+  let targetUrl = ''
+  
   if (type.value === '2') {
+    // 模拟面试，返回到模拟面试列表
+    targetUrl = '/pages/interviews/record-simulate'
+  } else if (type.value === '1') {
+    // 正式面试
+    if (from.value === 'h5') {
+      // 从H5列表进入，返回到历史记录列表
+      targetUrl = '/pages/interviews/record'
+    } else if (from.value === 'app') {
+      // 从原生App进入，使用默认返回
+      return false
+    } else {
+      // 默认返回到历史记录列表
+      targetUrl = '/pages/interviews/record'
+    }
+  } else {
+    // type未定义，根据from判断
+    if (from.value === 'h5') {
+      targetUrl = '/pages/interviews/record'
+    } else {
+      // 使用默认返回
+      return false
+    }
+  }
+  
+  // 执行跳转
+  if (targetUrl) {
+    console.log('onBackPress - 跳转到:', targetUrl)
     uni.reLaunch({
-      url: '/pages/interviews/record-simulate'
+      url: targetUrl + '?token=' + uni.getStorageSync('token')
     })
     return true // 阻止默认返回行为
   }
-  // 其他情况使用默认返回行为
+  
   return false
 })
 
@@ -855,6 +886,7 @@ function filiterNum(str) {
 }
 const type = ref('')
 const urlToken = ref('')
+const from = ref('') // 记录来源页面
 
 onLoad((options) => {
   // const storedToken = uni.getStorageSync('token')
@@ -889,6 +921,22 @@ onLoad((options) => {
   }
   if (options.type) {
     type.value = options.type
+    console.log('onLoad - 设置type:', type.value, 'options.type:', options.type)
+  } else {
+    console.log('onLoad - 没有type参数')
+  }
+  
+  // 获取from参数，用于确定返回目标
+  if (options.from) {
+    from.value = options.from
+    console.log('onLoad - 设置from:', from.value)
+  } else {
+    // 从storage中获取from值
+    const storedFrom = uni.getStorageSync('from')
+    if (storedFrom) {
+      from.value = storedFrom
+      console.log('onLoad - 从storage获取from:', from.value)
+    }
   }
 })
 const interviewId = ref()
@@ -1057,15 +1105,49 @@ const improvementSuggestions = ref('')
 const score = ref(0)
 
 function handleClickLeft() {
-  if (type.value === '1') {
-    uni.navigateBack()
-  } else if (type.value === '2') {
-    // 使用 reLaunch 确保页面重新加载并刷新数据
-    uni.reLaunch({
-      url: '/pages/interviews/record-simulate?token=' + uni.getStorageSync('token'),
-    })
+  console.log('handleClickLeft - type:', type.value, 'from:', from.value)
+  
+  // 根据type和from决定返回目标
+  let targetUrl = ''
+  
+  if (type.value === '2') {
+    // 模拟面试，返回到模拟面试列表
+    targetUrl = '/pages/interviews/record-simulate'
+    console.log('返回到模拟面试列表')
+  } else if (type.value === '1') {
+    // 正式面试
+    if (from.value === 'h5') {
+      // 从H5列表进入，返回到历史记录列表
+      targetUrl = '/pages/interviews/record'
+      console.log('返回到历史记录列表')
+    } else if (from.value === 'app') {
+      // 从原生App进入，尝试返回到原生App
+      console.log('尝试返回到原生App')
+      uni.navigateBack()
+      return
+    } else {
+      // 默认返回到历史记录列表
+      targetUrl = '/pages/interviews/record'
+      console.log('默认返回到历史记录列表')
+    }
   } else {
-    navigateBack()
+    // type未定义，根据from判断
+    if (from.value === 'h5') {
+      targetUrl = '/pages/interviews/record'
+      console.log('根据from返回到历史记录列表')
+    } else {
+      // 默认使用navigateBack
+      console.log('默认使用navigateBack')
+      uni.navigateBack()
+      return
+    }
+  }
+  
+  // 执行跳转
+  if (targetUrl) {
+    uni.reLaunch({
+      url: targetUrl + '?token=' + uni.getStorageSync('token')
+    })
   }
 }
 

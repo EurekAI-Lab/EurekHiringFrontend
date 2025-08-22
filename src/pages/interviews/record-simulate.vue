@@ -136,15 +136,15 @@
             >
               <image :src="zfj" class="w-5 h-5" />
             </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-20">
+            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1">
               <view class="font-medium">{{ item.industry || '行业不限' }}</view>
               <view class="text-gray-600">{{ item.position_name || item.title }}</view>
             </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
-              <view class="text-#1778ff" style="text-align: center">{{ item.salary }}</view>
-              <view class="text-gray-400 flex flex-row items-center justify-end">
-                <image :src="dw" class="w-5 h-5" />
-                <view class="text-gray-400">{{ item.expected_city }}</view>
+            <view class="flex flex-col text-sm space-y-1 pt-2 pr-2.5 ml-auto">
+              <view class="text-#1778ff text-right">{{ item.salary }}</view>
+              <view class="text-gray-400 flex flex-row items-center justify-end gap-0.5">
+                <image :src="dw" class="w-4 h-4" />
+                <view class="text-gray-400 text-xs">{{ item.expected_city || '全国' }}</view>
               </view>
               <view v-if="item.availability_time" class="text-gray-400 text-xs text-right">
                 {{ formatAvailabilityTime(item.availability_time) }}
@@ -243,10 +243,10 @@ const my_test_interviews = async (keyword = '') => {
     console.log('search')
   }
   loading.value = true
-  // 将url定义移到try块外部，这样catch块也能访问
+  // 使用配置的API端点
   const trimmedKeyword = keyword.trim()
   const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
-  const url = `/interviews/my_test_interviews${queryParams}`
+  const url = API_ENDPOINTS.interviews.myTestInterviews + queryParams
   
   try {
     const response = await uni.request({
@@ -255,10 +255,12 @@ const my_test_interviews = async (keyword = '') => {
     })
     console.log('my_test_interviews - 响应状态码:', response.statusCode)
     console.log('my_test_interviews - 响应数据:', response.data)
+    console.log('my_test_interviews - 模拟面试列表API完整响应:', JSON.stringify(response.data, null, 2))
     if (response.statusCode === 200) {
       interviewList.value = response.data.data
       console.log('my_test_interviews - interviewList已更新，长度:', interviewList.value.length)
       console.log('my_test_interviews - interviewList内容:', JSON.stringify(interviewList.value, null, 2))
+      console.log('my_test_interviews - 获取到的模拟面试数量:', interviewList.value.length)
       // 检查每个item的interviews_id
       interviewList.value.forEach((item, index) => {
         console.log(`面试记录[${index}] - interviews_id:`, item.interviews_id, '完整数据:', item)
@@ -490,7 +492,10 @@ const submitTestInerview = async () => {
         success: (res: any) => {
           console.log('submitTestInerview - 成功响应:', res)
           if (res.statusCode === 200 && res.data && res.data.data && res.data.data.redirect_url) {
-            window.location.href = res.data.data.redirect_url
+            // 添加test=true参数，标识这是模拟面试
+            const redirectUrl = res.data.data.redirect_url
+            const separator = redirectUrl.includes('?') ? '&' : '?'
+            window.location.href = redirectUrl + separator + 'test=true'
           } else {
             console.error('响应格式错误:', res)
             toast.error('创建面试失败，请稍后重试')

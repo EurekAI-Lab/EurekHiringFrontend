@@ -138,8 +138,8 @@
             <view class="absolute top-14.5 left-3.5">
               <image class="w-4 h-4" :src="clock"></image>
             </view>
-            <view class="absolute top-15.5 left-9.5 overflow-hidden text-xs">
-              <view class="w-60 h-5 ellipsis">
+            <view class="absolute top-15.5 left-9.5 text-xs">
+              <view class="w-60 max-h-20 overflow-hidden" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;">
                 意向：{{ item.jobseeker_position?.location || item.position?.location }}·{{ item.jobseeker_position?.title || item.position?.title }}
               </view>
             </view>
@@ -168,15 +168,15 @@
             <view class="absolute left-3 top-40 w-80 h-0.2 bg-gray-200"></view>
 
             <!-- hr信息 -->
-            <view class="absolute top-43 left-3 flex flex-row">
+            <view class="absolute top-43 left-3 flex flex-row items-center w-80">
               <image class="w-6 h-6 rounded-full" :src="item.recruiter.avatar_url"></image>
-              <view class="overflow-hidden text-xs absolute w-30 top-1 left-8">
+              <view class="text-xs ml-2 flex-shrink-0">
                 招聘者：{{ item.recruiter.user_name }}
               </view>
-
-              <view class="overflow-hidden flex flex-row text-xs absolute w-30 top-1 left-55">
-                <image class="w-5 h-5" :src="jobIcon"></image>
-                <view class="absolute left-6">{{ item.jobseeker_position?.title || item.position.title }}</view>
+              
+              <view class="flex flex-row items-center text-xs ml-auto">
+                <image class="w-4 h-4" :src="jobIcon"></image>
+                <view class="ml-1 text-gray-600">{{ item.jobseeker_position?.title || item.position.title }}</view>
               </view>
             </view>
             <!-- 按钮 -->

@@ -418,10 +418,10 @@ const jumpInterviewResult = (item) => {
   uni.setStorageSync('interviewId', item.interviews_id)
   uni.setStorageSync('from', 'h5')
   
-  // 所有情况都直接跳转到报告页面
+  // 所有情况都直接跳转到报告页面，添加type=1参数标识来源于历史记录列表
   // 注：B端用户通过API已经过滤了审核中的记录，不会看到；C端用户可以查看自己的所有记录
   uni.navigateTo({
-    url: '/pages/about/mspj',
+    url: '/pages/about/mspj?type=1',
   })
 }
 </script>

@@ -151,7 +151,22 @@ import { navigateBack, interviewOver, getPlatformType, PlatformType } from '@/ut
 const message = useMessage()
 
 const toast = useToast()
-const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+// 获取基础URL，根据实际部署环境调整
+let baseUrl = import.meta.env.VITE_SERVER_BASEURL
+
+// H5环境下检查是否需要添加test前缀
+// #ifdef H5
+if (window?.location?.href?.includes('test') && !baseUrl.includes('/test/')) {
+  baseUrl = baseUrl.replace('/api', '/test/api')
+}
+// #endif
+
+// 如果环境变量中已经包含了test，直接使用
+if (import.meta.env.MODE === 'test' && !baseUrl.includes('/test/')) {
+  baseUrl = baseUrl.replace('/api', '/test/api')
+}
+
+console.log('Camera页面使用的baseUrl:', baseUrl, 'MODE:', import.meta.env.MODE)
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 
 // 控制视频黑色遮罩层显示/隐藏
@@ -577,7 +592,7 @@ const startRecording = async () => {
 // 提交单题视频到后端
 const submitSingleQuestion = async (questionData: any) => {
   try {
-    console.log(`提交单题视频 - 题目${questionData.question_id}`)
+    console.log(`提交单题视频 - 题目${questionData.question_id}, 是否为模拟面试: ${test.value}`)
     const response = await uni.request({
       url: baseUrl + '/interviews/submit_single_question',
       method: 'POST',
@@ -587,7 +602,8 @@ const submitSingleQuestion = async (questionData: any) => {
         position_id: interviewDetails.value.data.position.id,
         question_id: questionData.question_id,
         video_url: questionData.video_url,
-        video_duration: questionData.video_duration
+        video_duration: questionData.video_duration,
+        is_test: test.value  // 添加模拟面试标识
       }
     })
 
@@ -674,8 +690,8 @@ const stopRecordingAndSave = async () => {
 
               play()
             } else {
-              console.log('已完成所有题目，退出面试')
-              handleExit()
+              console.log('已完成所有题目，保存面试数据')
+              saveInterview()
             }
           } catch (error) {
             console.error(`题目 ${currentIndex} 上传视频失败:`, error)
@@ -701,8 +717,8 @@ const stopRecordingAndSave = async () => {
 
               play()
             } else {
-              console.log('已完成所有题目，退出面试')
-              handleExit()
+              console.log('已完成所有题目，保存面试数据')
+              saveInterview()
             }
           }
         } else {
@@ -749,8 +765,8 @@ const stopRecordingAndSave = async () => {
 
             play()
           } else {
-            console.log('已完成所有题目，退出面试')
-            handleExit()
+            console.log('已完成所有题目，保存面试数据')
+            saveInterview()
           }
         }
       }
@@ -780,8 +796,8 @@ const stopRecordingAndSave = async () => {
 
         play()
       } else {
-        console.log('已完成所有题目，退出面试')
-        handleExit()
+        console.log('已完成所有题目，保存面试数据')
+        saveInterview()
       }
     }
   } else {
@@ -815,6 +831,23 @@ const saveInterview = async () => {
   isExiting.value = true
 
   console.log('开始提交面试数据，fileUrls:', fileFrom.fileUrls)
+  
+  // 确保面试状态被更新为完成(2)
+  try {
+    const updateUrl = API_ENDPOINTS.interviews.updateStatus(interviewId.value, 2)
+    console.log('面试完成，更新状态到2，相对路径:', updateUrl)
+    const statusResponse = await uni.request({
+      url: updateUrl,
+      method: 'POST',
+      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+    })
+    console.log('完成状态更新响应:', statusResponse.statusCode, statusResponse.data)
+    if (statusResponse.statusCode !== 200) {
+      console.error('更新面试完成状态失败，但继续处理:', statusResponse)
+    }
+  } catch (error) {
+    console.error('更新面试完成状态异常，但继续处理:', error)
+  }
 
   // 检查是否所有题目都有对应的视频数据
   const totalQuestions = interviewDetails.value.data.questions?.length || 0
@@ -889,18 +922,53 @@ const saveInterview = async () => {
 
     // 实时处理架构：每题已经通过submit_single_question提交
     // 这里只需要通知后端面试已完成，触发最终分析
-    console.log('所有题目已单独提交，通知后端进行最终分析')
+    console.log('所有题目已单独提交，通知后端进行最终分析，是否为模拟面试:', test.value)
+
+    // 调用完成通知接口，确保后端知道面试已完成
+    // 注意：如果后端没有实现此接口，这个调用会失败，但不影响面试流程
+    try {
+      const completeUrl = API_ENDPOINTS.interviews.complete(interviewId.value)
+      console.log('调用面试完成接口（相对路径）:', completeUrl)
+      const response = await uni.request({
+        url: completeUrl,
+        method: 'POST',
+        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+        data: {
+          is_test: test.value  // 标识是否为模拟面试
+        }
+      })
+      console.log('面试完成接口响应:', response.statusCode, response.data)
+    } catch (error) {
+      console.error('调用面试完成接口失败（可能后端未实现）:', error)
+      // 不阻止流程继续，因为单题已经提交，且状态已在上面更新
+    }
 
     // 直接标记成功，因为各题已经单独提交
     toast.success('面试数据已提交')
     uni.hideLoading()
 
-    // 可选：调用一个轻量级的完成通知接口
-    // const response = await uni.request({
-    //   url: baseUrl + `/interviews/complete/${interviewId.value}`,
-    //   method: 'POST',
-    //   header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-    // })
+    // 通知原生App面试已结束
+    const platform = getPlatformType()
+    if (platform !== PlatformType.OTHER) {
+      // 构建报告页面URL（使用相对路径，原生App会处理）
+      const reportUrl = `/pages/about/mspj-loading?interviewId=${interviewId.value}${test.value ? '&type=2' : '&type=1'}`
+      const companyName = interviewDetails.value.data.position.enterprise_name || ''
+      const jobName = interviewDetails.value.data.position.title || ''
+      
+      // 调用原生方法通知面试结束
+      interviewOver(reportUrl, companyName, jobName)
+      console.log('已通知原生App面试结束', { reportUrl, companyName, jobName })
+    }
+
+    // 跳转前先清理摄像头资源，避免返回时页面卡死
+    console.log('清理摄像头资源')
+    stopCamera()
+    
+    // 跳转到loading页面等待报告生成，使用redirectTo替换当前页面避免返回到camera
+    console.log('跳转到mspj-loading页面，interviewId:', interviewId.value, 'test:', test.value)
+    uni.redirectTo({ 
+      url: '/pages/about/mspj-loading?interviewId=' + interviewId.value + (test.value ? '&type=2' : '&type=1')
+    })
 
   } catch (error) {
     console.error('处理面试数据失败:', error)
@@ -913,6 +981,25 @@ const saveInterview = async () => {
       // 提交失败时也要关闭loading并重置状态
       uni.hideLoading()
       isRequesting.value = false
+      // 即使失败也通知原生App面试已结束
+      const platform = getPlatformType()
+      if (platform !== PlatformType.OTHER) {
+        const reportUrl = `/pages/about/mspj-loading?interviewId=${interviewId.value}${test.value ? '&type=2' : '&type=1'}`
+        const companyName = interviewDetails.value.data.position.enterprise_name || ''
+        const jobName = interviewDetails.value.data.position.title || ''
+        interviewOver(reportUrl, companyName, jobName)
+        console.log('处理失败但仍通知原生App面试结束', { reportUrl, companyName, jobName })
+      }
+      
+      // 即使失败也要清理资源
+      console.log('处理失败，清理摄像头资源')
+      stopCamera()
+      
+      // 即使失败也尝试跳转到loading页面，让用户看到处理结果，使用redirectTo避免返回到camera
+      console.log('虽然处理失败，但仍跳转到mspj-loading页面，test:', test.value)
+      uni.redirectTo({ 
+        url: '/pages/about/mspj-loading?interviewId=' + interviewId.value + (test.value ? '&type=2' : '&type=1')
+      })
     }
 }
 
@@ -1468,13 +1555,16 @@ const handleStart = () => {
             })
             .then(async () => {
             try {
-              // 更新面试状态
+              // 更新面试状态，使用相对路径让拦截器处理
+              const updateUrl = API_ENDPOINTS.interviews.updateStatus(interviewId.value, 1)
+              console.log('正在更新面试状态到1，相对路径:', updateUrl, '实际URL将由拦截器处理')
               const response = await uni.request({
-          url: baseUrl + `/interviews/update_status/${interviewId.value}?status=1`,
+          url: updateUrl,
           method: 'POST',
           header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         })
 
+        console.log('更新状态响应:', response.statusCode, response.data)
         if (response.statusCode === 200) {
           console.log('面试状态更新成功，开始播放语音')
           // 移除视频遮罩
@@ -1787,6 +1877,7 @@ onBeforeUnmount(() => {
 })
 const test = ref(false)
 onLoad((options) => {
+  console.log('camera onLoad - 所有参数:', options)
   if (options.token) {
     uni.setStorageSync('token', options.token)
   }
@@ -1795,7 +1886,9 @@ onLoad((options) => {
   }
   if (options.test === 'true') {
     test.value = true
+    console.log('camera - 设置test为true')
   }
+  console.log('camera - test值:', test.value)
 })
 // 通过 interviews_id 获取面试岗位以及试题信息
 const fetchInterviewInfo = async (interviewId: number) => {
@@ -1811,6 +1904,28 @@ const fetchInterviewInfo = async (interviewId: number) => {
       // 添加类型断言
       const responseData = response.data as any
       interviewDetails.value = responseData
+      
+      // 检查面试状态，如果是未开始状态(0)，自动初始化为进行中(1)
+      if (responseData?.data?.status === 0) {
+        console.log('面试状态为0，自动初始化为1')
+        try {
+          const updateUrl = API_ENDPOINTS.interviews.updateStatus(interviewId, 1)
+          console.log('自动初始化面试状态，相对路径:', updateUrl)
+          const statusResponse = await uni.request({
+            url: updateUrl,
+            method: 'POST',
+            header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+          })
+          console.log('状态初始化响应:', statusResponse.statusCode, statusResponse.data)
+          if (statusResponse.statusCode === 200) {
+            console.log('面试状态自动初始化成功')
+            // 不设置 isInterviewStarted，等用户点击开始按钮
+          }
+        } catch (error) {
+          console.error('自动初始化面试状态失败:', error)
+          // 不阻止流程，继续面试
+        }
+      }
 
       // 静默检查音频可用性，不显示错误提示
       const hasAudioIssues = interviewDetails.value.data.questions.some(
@@ -1910,17 +2025,22 @@ const handleExit = async () => {
 
             if (isInterviewStarted.value) {
               // 如果面试已开始，更新面试状态
+              const updateUrl = API_ENDPOINTS.interviews.updateStatus(interviewId.value, 2)
+              console.log('正在更新面试状态到2（完成），相对路径:', updateUrl)
               const response = await uni.request({
-                url: baseUrl + `/interviews/update_status/${interviewId.value}?status=2`,
+                url: updateUrl,
                 method: 'POST',
                 header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
               })
+              console.log('更新状态2响应:', response.statusCode, response.data)
               if (response.statusCode !== 200) {
+                console.error('更新面试状态失败:', response)
                 toast.error('更新面试状态失败')
                 return
               }
 
-              saveInterview()
+              // 提前退出不需要保存面试数据或生成报告
+              // saveInterview()
             }
             isRequesting.value = false
             navigateBack()
@@ -1940,11 +2060,14 @@ const handleExit = async () => {
     if (isInterviewStarted.value) {
       try {
         // 更新面试状态
+        const updateUrl = API_ENDPOINTS.interviews.updateStatus(interviewId.value, 2)
+        console.log('正在更新面试状态到2（完成），相对路径:', updateUrl)
         const statusResponse = await uni.request({
-          url: baseUrl + `/interviews/update_status/${interviewId.value}?status=2`,
+          url: updateUrl,
           method: 'POST',
           header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         })
+        console.log('更新状态2响应:', statusResponse.statusCode, statusResponse.data)
         if (statusResponse.statusCode !== 200) {
           uni.hideLoading() // 关闭loading
           toast.error('更新面试状态失败')
@@ -1958,118 +2081,9 @@ const handleExit = async () => {
       }
     }
 
-    try {
-      // 移除等待，让loading页面处理轮询
-      // 这样用户体验更好，不会在黑屏等待
-      console.log('开始获取重定向URL...')
-      const res1 = await uni.request({
-        url: API_ENDPOINTS.interviews.redirectUrl,
-        method: 'GET',
-        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-        data: { status: 3, interview_id: interviewId.value },
-      })
-      console.log('res1.data')
-      // 添加类型断言
-      const res1Data = res1.data as any
-      console.log(res1Data.data.redirect_url)
-
-      try {
-        // 只调用一次interviewOver方法
-        console.log('调用interviewOver方法')
-        interviewOver(
-          res1Data.data.redirect_url,
-          interviewDetails.value.data.position.enterprise_name,
-          interviewDetails.value.data.position.title,
-        )
-      } catch (error) {
-        console.log('面试结束app函数报错', error)
-      }
-
-      // 不再等待评估完成，让评估加载页面处理轮询
-      console.log('提交面试数据，评估将在后台进行')
-      
-      // 不需要等待评估，后端会在最后一题ASR完成时自动触发
-      console.log('面试数据已提交，后端将自动处理评估')
-      
-      // 检查是否所有视频都已上传完成
-      console.log('检查视频上传状态，当前已上传:', fileFrom.fileUrls.length, '条记录')
-
-      // 检查是否所有题目都有对应的视频数据
-      const totalQuestions = interviewDetails.value.data.questions?.length || 0
-      console.log(`总题目数: ${totalQuestions}, 已上传视频数: ${fileFrom.fileUrls.length}`)
-
-      // 检查最后一题是否已上传
-      const lastQuestion = interviewDetails.value.data.questions?.[currentQuestionIndex.value - 1]
-      const lastQuestionUploaded = lastQuestion ? fileFrom.fileUrls.some(
-        (item) => item.question_id === lastQuestion.id,
-      ) : false
-
-      if (!lastQuestionUploaded) {
-        console.warn(`最后一题(索引 ${currentQuestionIndex.value})未上传，尝试再次上传`)
-
-        // 如果有录制数据但未上传，尝试再次上传
-        if (blobData.value && blobData.value.size > 0) {
-          await getUploadInfo()
-          // 等待上传完成
-          await new Promise((resolve) => setTimeout(resolve, 2000))
-        }
-      }
-
-      // 实时架构下，各题已经单独提交，不需要再调用saveInterview
-      console.log('所有题目已通过submit_single_question单独提交')
-
-      // 显示确认对话框
-      message
-        .confirm({
-          msg: '您已完成' + interviewDetails.value.data.position.title + '岗位的AI面试',
-          title: '提示',
-          closeOnClickModal: false,
-          beforeConfirm: async ({ resolve }) => {
-            try {
-              // 跳转到报告生成页面
-              if (test.value) {
-                // 模拟面试
-                uni.redirectTo({
-                  url:
-                    '/pages/about/mspj-loading?interviewId=' +
-                    interviewId.value +
-                    '&interviewType=1&type=2',
-                })
-              } else {
-                // 正式面试
-                uni.redirectTo({
-                  url:
-                    '/pages/about/mspj-loading?interviewId=' +
-                    interviewId.value +
-                    '&interviewType=1',
-                })
-              }
-              isRequesting.value = false
-              resolve() // 关闭对话框
-            } catch (error) {
-              console.log('跳转失败', error)
-              toast.error('跳转失败')
-              isRequesting.value = false
-              resolve() // 即使失败也关闭对话框
-            }
-          },
-        })
-        .then(() => {
-          // 确认后的处理已经在 beforeConfirm 中完成
-        })
-        .catch(() => {
-          // 用户取消，不做任何操作
-        })
-    } catch (error) {
-      console.error('获取重定向URL失败:', error)
-      uni.hideLoading() // 关闭loading
-      toast.error('获取重定向URL失败')
-
-      // 即使获取URL失败，也尝试提交面试数据
-      // saveInterview()
-      uni.navigateBack()
-    }
-    isRequesting.value = false
+    // 提前退出不生成报告，直接返回
+    console.log('用户提前退出面试，不生成报告')
+    navigateBack()
   }
 }
 

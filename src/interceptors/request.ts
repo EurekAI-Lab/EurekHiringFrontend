@@ -12,7 +12,15 @@ export type CustomRequestOptions = UniApp.RequestOptions & {
 } & IUniUploadFileOptions // 添加uni.uploadFile参数类型
 
 // 请求基准地址
-const baseUrl = getEnvBaseUrl()
+let baseUrl = getEnvBaseUrl()
+
+// 检查是否为测试环境，如果 URL 中包含 test 则使用测试环境的 baseUrl
+// #ifdef H5
+if (typeof window !== 'undefined' && window?.location?.href?.includes('test') && !baseUrl.includes('/test/')) {
+  baseUrl = baseUrl.replace('/api', '/test/api')
+  console.log('拦截器检测到测试环境，使用baseUrl:', baseUrl)
+}
+// #endif
 
 // 拦截器配置
 const httpInterceptor = {

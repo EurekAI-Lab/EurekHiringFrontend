@@ -216,7 +216,7 @@ import icon003 from '../../static/app/icons/Frame-003.png'
 import icoTs from '../../static/app/icons/icon_ts.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { usePublicStore } from '@/store'
-import { navigateBack, aiInterviewSaved } from '@/utils/platformUtils'
+import { navigateBack, aiInterviewSaved, getPlatformType, PlatformType } from '@/utils/platformUtils'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { FULL_API_URLS } from '@/utils/apiHelper'
 
@@ -789,9 +789,13 @@ const saveQusetion = async () => {
 
           if (res.statusCode === 200) {
             try {
-              // 只有当有题目时才调用返回APP的函数
+              // 通知原生面试题保存成功
               aiInterviewSaved()
-              navigateBack()
+              
+              // Android平台需要调用navigateBack，iOS不需要
+              if (getPlatformType() === PlatformType.ANDROID) {
+                navigateBack()
+              }
             } catch (error) {
               console.log('返回app函数报错', error)
             }

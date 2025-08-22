@@ -15,12 +15,15 @@ export const API_ENDPOINTS = {
     reportStream: (id: number | string) => `/interviews/interview_report_stream/${id}`,
     myAiInterviews: '/interviews/my_ai_interviews/',
     enterpriseAiInterviews: '/interviews/enterprise_ai_interviews/',
+    myTestInterviews: '/interviews/my_test_interviews', // 模拟面试列表
     submitSingleQuestion: '/interviews/submit_single_question',
     submitInterview: '/interviews/submit_interview',
     asrCallback: '/interviews/asr_callback',
     evaluateStream: (id: number | string) => `/interviews/evaluate_interview_stream/${id}`,
     interviewDetails: (id: number | string) => `/interviews/interview_details/${id}`,
     notifyResult: (id: number | string) => `/interviews/notify_interview_result/${id}`,
+    updateStatus: (id: number | string, status: number) => `/interviews/update_status/${id}?status=${status}`,
+    complete: (id: number | string) => `/interviews/complete/${id}`,
   },
 
   // 面试问题相关
