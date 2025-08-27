@@ -33,13 +33,12 @@
       <!-- Loading 状态 -->
       <view v-if="isLoading" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-20">
         <view class="bg-white rounded-lg p-5 flex flex-col items-center">
-          <wd-loading />
-          <view class="mt-3 text-gray-600">加载报告中...</view>
+          <view class="text-gray-600">加载报告中...</view>
         </view>
       </view>
       
       <!-- 正常内容显示 -->
-      <template v-if="!isLoading">
+      <view v-if="!isLoading">
       <view class="relative z-1 bg-#fafafa h-10 w-82 flex items-center rounded-lg">
         <image class="w-4 h-4 ml-4" :src="icon001"></image>
         <view class="pl-3 text-xs">面试职位：{{ mszw }}</view>
@@ -348,7 +347,7 @@
         </view>
       </wd-popup>
     </view>
-    </template>
+    </view>
   </view>
 </template>
 
