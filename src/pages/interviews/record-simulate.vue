@@ -136,9 +136,13 @@
             >
               <image :src="zfj" class="w-5 h-5" />
             </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1">
-              <view class="font-medium">{{ item.industry || '行业不限' }}</view>
-              <view class="text-gray-600">{{ item.position_name || item.title }}</view>
+            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-4">
+              <view class="font-medium" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ item.position_name || item.title }}
+              </view>
+              <view class="text-gray-600" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ item.industry || '行业不限' }}
+              </view>
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 pr-2.5 ml-auto">
               <view class="text-#1778ff text-right">{{ item.salary }}</view>
@@ -281,6 +285,29 @@ const my_test_interviews = async (keyword = '') => {
   }
 }
 
+// 分隔符集合
+const splitByDelimiters = (text: string) => String(text).split(/[·•\-—\/\|:：]/)
+
+// 清洗行业字段，避免与职能重复
+const cleanupIndustry = (raw: any, positionName: string) => {
+  if (!raw || String(raw).trim() === '') return '行业不限'
+  const str = String(raw)
+  const left = splitByDelimiters(str)[0]?.trim() || ''
+  const removed = left.replace(positionName || '', '').trim()
+  return removed || '行业不限'
+}
+
+// 清洗岗位名称，去掉被拼接的行业等
+const cleanupPositionName = (raw: any, industry: string) => {
+  if (!raw) return ''
+  const str = String(raw)
+  const parts = splitByDelimiters(str).map((s) => s.trim()).filter(Boolean)
+  let name = parts.length > 1 ? parts[parts.length - 1] : str.trim()
+  if (industry) name = name.replace(String(industry), '').trim()
+  name = name.replace(/^行业不限/, '').replace(/^[·•\-—\/\|:：]/, '').trim()
+  return name
+}
+
 const getPostionInfo = async () => {
   // 记录函数开始执行
   console.log('=== getPostionInfo 开始执行 ===')
@@ -349,17 +376,22 @@ const getPostionInfo = async () => {
           salaryStr = element.expected_salary_min + '-' + element.expected_salary_max
         }
         
+        const industry = cleanupIndustry(element.industry, element.position_name)
+        const positionName = cleanupPositionName(element.position_name, industry)
         const itemData = {
-          title: element.position_name,
-          description: element.position_name,
+          // 统一字段
+          position_name: positionName,
+          industry,
           salary: salaryStr,
-          location: element.expected_city,
+          expected_city: element.expected_city,
+          availability_time: element.availability_time,
+          // 兼容旧字段
+          title: positionName,
+          description: positionName,
+          // 其他字段
           selected: false,
           position_id: element.position_id,
-          expected_city: element.expected_city,
           id: element.id,
-          availability_time: element.availability_time,
-          industry: element.industry
         }
         
         items.value.push(itemData)

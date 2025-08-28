@@ -147,6 +147,7 @@ import icon01 from '../../static/app/icons/Frame-001.png'
 import icon02 from '../../static/app/icons/Frame-002.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { navigateBack, interviewOver, getPlatformType, PlatformType } from '@/utils/platformUtils'
+import { buildAbsoluteH5Url } from '@/utils/url'
 
 const message = useMessage()
 
@@ -950,8 +951,9 @@ const saveInterview = async () => {
     // 通知原生App面试已结束
     const platform = getPlatformType()
     if (platform !== PlatformType.OTHER) {
-      // 构建报告页面URL（使用相对路径，原生App会处理）
-      const reportUrl = `/pages/about/mspj-loading?interviewId=${interviewId.value}${test.value ? '&type=2' : '&type=1'}`
+      // 构建报告页面URL（原生App使用绝对地址）
+      const relative = `/pages/about/mspj-loading?interviewId=${interviewId.value}${test.value ? '&type=2' : '&type=1'}`
+      const reportUrl = buildAbsoluteH5Url(relative)
       const companyName = interviewDetails.value.data.position.enterprise_name || ''
       const jobName = interviewDetails.value.data.position.title || ''
       
@@ -984,7 +986,8 @@ const saveInterview = async () => {
       // 即使失败也通知原生App面试已结束
       const platform = getPlatformType()
       if (platform !== PlatformType.OTHER) {
-        const reportUrl = `/pages/about/mspj-loading?interviewId=${interviewId.value}${test.value ? '&type=2' : '&type=1'}`
+        const relative = `/pages/about/mspj-loading?interviewId=${interviewId.value}${test.value ? '&type=2' : '&type=1'}`
+        const reportUrl = buildAbsoluteH5Url(relative)
         const companyName = interviewDetails.value.data.position.enterprise_name || ''
         const jobName = interviewDetails.value.data.position.title || ''
         interviewOver(reportUrl, companyName, jobName)

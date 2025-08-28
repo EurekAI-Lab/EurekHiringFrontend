@@ -91,9 +91,13 @@
             >
               <image :src="zfj" class="w-5 h-5" />
             </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5">
-              <view class="w-75%">{{ item.title }}</view>
-              <view class="text-gray-400 w-80%">{{ item.description }}</view>
+            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-4">
+              <view style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ item.position_name || item.title }}
+              </view>
+              <view class="text-gray-400" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ item.industry || '行业不限' }}
+              </view>
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
               <view class="text-#1778ff" style="text-align: center">{{ item.salary }}</view>
@@ -168,6 +172,33 @@ const selectItem = (index) => {
     item.selected = i === index // 只有当前索引的项会被选中
   })
 }
+// 分隔符集合：用于拆分“行业·岗位”等复合字段
+const splitByDelimiters = (text: string) => String(text).split(/[·•\-—\/\|:：]/)
+
+// 清洗行业字段，确保不与职能重复显示
+const cleanupIndustry = (raw: any, positionName: string) => {
+  if (!raw || String(raw).trim() === '') return '行业不限'
+  const str = String(raw)
+  const left = splitByDelimiters(str)[0]?.trim() || ''
+  const removed = left.replace(positionName || '', '').trim()
+  return removed || '行业不限'
+}
+
+// 清洗岗位名称：去掉前缀行业等，保证只显示纯岗位
+const cleanupPositionName = (raw: any, industry: string) => {
+  if (!raw) return ''
+  const str = String(raw)
+  // 若包含分隔符，优先取最后一段（通常为岗位名）
+  const parts = splitByDelimiters(str).map((s) => s.trim()).filter(Boolean)
+  let name = parts.length > 1 ? parts[parts.length - 1] : str.trim()
+  if (industry) {
+    name = name.replace(String(industry), '').trim()
+  }
+  // 去掉“行业不限”等前缀残留
+  name = name.replace(/^行业不限/, '').replace(/^[·•\-—\/\|:：]/, '').trim()
+  return name
+}
+
 const getPostionInfo = async () => {
   //   const storedToken = uni.getStorageSync('token')
 
@@ -192,14 +223,21 @@ const getPostionInfo = async () => {
         } else {
           salaryStr = element.expected_salary_min + '-' + element.expected_salary_max
         }
+        const industry = cleanupIndustry(element.industry, element.position_name)
+        const positionName = cleanupPositionName(element.position_name, industry)
+
         items.value.push({
-          title: element.position_name,
-          description: element.position_name,
+          // 统一字段
+          position_name: positionName,
+          industry,
           salary: salaryStr,
-          location: element.expected_city,
+          expected_city: element.expected_city,
+          // 保持兼容的旧字段
+          title: positionName,
+          description: positionName,
+          // 其它必要字段
           selected: false,
           position_id: element.position_id,
-          expected_city: element.expected_city,
           id: element.id,
         })
       })
