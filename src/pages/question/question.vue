@@ -605,7 +605,11 @@ const chatStreamSerial = () => {
     start(controller) {
       fetch(FULL_API_URLS.interviewQuestions.generateBatch(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // 与并行/基础流式保持一致：携带鉴权头，避免后端拦截
+          'Authorization': `Bearer ${uni.getStorageSync('token')}`,
+        },
         body: JSON.stringify(query.value),
       })
         .then((response) => {

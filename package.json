@@ -33,6 +33,7 @@
     "dev:custom": "uni -p",
     "dev": "uni",
     "dev:h5": "uni",
+    "dev:h5:test": "uni --mode test",
     "dev:h5:ssr": "uni --ssr",
     "dev:mp": "uni -p mp-weixin",
     "dev:mp-alipay": "uni -p mp-alipay",
