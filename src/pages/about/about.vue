@@ -176,7 +176,7 @@
               
               <view class="flex flex-row items-center text-xs ml-auto">
                 <image class="w-4 h-4" :src="jobIcon"></image>
-                <view class="ml-1 text-gray-600">{{ item.jobseeker_position?.title || item.position.title }}</view>
+                <view class="ml-1 text-gray-600">{{ (item.jobseeker_position?.title || item.position.title)?.split('·')?.pop() || (item.jobseeker_position?.title || item.position.title) }}</view>
               </view>
             </view>
             <!-- 按钮 -->
@@ -489,9 +489,9 @@
                   console.error('调用 APP 原生方法失败:', error)
                   toast.warning('无法打开简历，请确保在 APP 环境中运行')
                 }
+                // 邀约成功后保持在当前页面，方便用户继续操作其他记录
               } else {
-                getInterviewList()
-                isBigTabOneActive.value = false
+                // 弃用后切换到已处理页面查看结果
                 isBigTabOneActive.value = false
                 isSmallTabTwoActive.value = false
               }

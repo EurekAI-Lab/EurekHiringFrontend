@@ -825,12 +825,10 @@ onBackPress(() => {
     }
   }
   
-  // 执行跳转
+  // 执行跳转 - 使用navigateBack保持页面状态
   if (targetUrl) {
-    console.log('onBackPress - 跳转到:', targetUrl)
-    uni.reLaunch({
-      url: targetUrl + '?token=' + uni.getStorageSync('token')
-    })
+    console.log('onBackPress - 返回到:', targetUrl)
+    uni.navigateBack()
     return true // 阻止默认返回行为
   }
   
@@ -1169,11 +1167,9 @@ function handleClickLeft() {
     }
   }
   
-  // 执行跳转
+  // 执行跳转 - 使用navigateBack保持页面状态
   if (targetUrl) {
-    uni.reLaunch({
-      url: targetUrl + '?token=' + uni.getStorageSync('token')
-    })
+    uni.navigateBack()
   }
 }
 
