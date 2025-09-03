@@ -176,7 +176,7 @@
               
               <view class="flex flex-row items-center text-xs ml-auto">
                 <image class="w-4 h-4" :src="jobIcon"></image>
-                <view class="ml-1 text-gray-600">{{ (item.jobseeker_position?.title || item.position.title)?.split('·')?.pop() || (item.jobseeker_position?.title || item.position.title) }}</view>
+                <view class="ml-1 text-gray-600">{{ item.position.title?.split('·')?.pop() || item.position.title }}</view>
               </view>
             </view>
             <!-- 按钮 -->
@@ -454,9 +454,85 @@
   const jumpInterviewResult = (interviewId: number) => {
     // 存储参数
     uni.setStorageSync('interviewId', interviewId)
-    // uni.setStorageSync('from', 'h5')
-    uni.navigateTo({ url: '/pages/about/mspj?type=1' })
+    // 跳转到面试详情页，传递from参数表明来源是AI面试记录页面
+    uni.navigateTo({ url: '/pages/about/mspj?type=1&from=about' })
   }
+  // 全局变量存储当前待处理的邀约用户ID
+  let pendingInviteUserId = null
+
+  // 提取API调用逻辑为独立方法
+  const updateInterviewStatus = (resultId, nextStep) => {
+    return new Promise((resolve, reject) => {
+      loading.value = true
+      uni.request({
+        url: API_ENDPOINTS.interviewResults.evaluationWithScore(resultId),
+        method: 'PATCH',
+        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+        data: { result_id: resultId, next_step: nextStep },
+        success: (res) => {
+          if (res.statusCode === 200) {
+            toast.success('处理成功')
+            if (nextStep === 'DISCARD') {
+              // 弃用后切换到已处理页面查看结果
+              isBigTabOneActive.value = false
+              isSmallTabTwoActive.value = false
+            }
+            getInterviewList()
+            resolve(res)
+          } else {
+            toast.error('处理失败')
+            reject(new Error('API调用失败'))
+          }
+        },
+        fail: (err) => {
+          console.error('处理面试结果失败:', err)
+          toast.error('网络请求失败')
+          reject(err)
+        },
+        complete: () => {
+          loading.value = false
+        },
+      })
+    })
+  }
+
+  // 设置邀约回调监听
+  const setupInviteCallbacks = (resultId, userId) => {
+    // 清理之前的回调
+    cleanupInviteCallbacks()
+    
+    pendingInviteUserId = userId
+    
+    // 设置成功回调
+    window.onInviteSuccess = (callbackUserId) => {
+      console.log('收到邀约成功回调:', callbackUserId)
+      if (callbackUserId === userId) {
+        cleanupInviteCallbacks()
+        // 邀约成功，调用API更新状态
+        updateInterviewStatus(resultId, 'INVITE').catch(err => {
+          console.error('更新状态失败:', err)
+        })
+      }
+    }
+    
+    // 设置取消回调
+    window.onInviteCancel = (callbackUserId) => {
+      console.log('收到邀约取消回调:', callbackUserId)
+      if (callbackUserId === userId) {
+        cleanupInviteCallbacks()
+        // 邀约取消，显示提示但不更新状态
+        toast.info('已取消邀约')
+      }
+    }
+  }
+
+  // 清理邀约回调
+  const cleanupInviteCallbacks = () => {
+    window.onInviteSuccess = null
+    window.onInviteCancel = null
+    pendingInviteUserId = null
+  }
+
   // 邀约面试或弃用
   const handleInterviewResult = (resultId, userId, nextStep) => {
     // 验证 nextStep
@@ -470,46 +546,28 @@
         title: '确认',
       })
       .then(() => {
-        loading.value = true
-        // await inviteDiscardAPI(resultId,{ result_id: resultId, next_step: nextStep });
-        uni.request({
-          url: API_ENDPOINTS.interviewResults.evaluationWithScore(resultId),
-          method: 'PATCH',
-          header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-          data: { result_id: resultId, next_step: nextStep },
-          success: (res) => {
-            if (res.statusCode === 200) {
-              toast.success('处理成功')
-              if (nextStep !== 'DISCARD') {
-                try {
-                  // 调用 APP 原生方法，传入 userId
-                  inviteInterview(userId)
-                  console.log('调用 APP 原生方法成功，userId:', userId)
-                } catch (error) {
-                  console.error('调用 APP 原生方法失败:', error)
-                  toast.warning('无法打开简历，请确保在 APP 环境中运行')
-                }
-                // 邀约成功后保持在当前页面，方便用户继续操作其他记录
-              } else {
-                // 弃用后切换到已处理页面查看结果
-                isBigTabOneActive.value = false
-                isSmallTabTwoActive.value = false
-              }
-            } else {
-              toast.error('处理失败')
-            }
-            getInterviewList()
-          },
-          fail: (err) => {
-            console.error('处理面试结果失败:', err)
-          },
-          complete: () => {
-            loading.value = false
-          },
-        })
+        if (nextStep !== 'DISCARD') {
+          // 邀约面试：先调用原生方法，等待回调
+          try {
+            // 设置回调监听
+            setupInviteCallbacks(resultId, userId)
+            // 调用 APP 原生方法
+            inviteInterview(userId)
+            console.log('调用邀约原生方法，userId:', userId)
+          } catch (error) {
+            console.error('调用 APP 原生方法失败:', error)
+            cleanupInviteCallbacks()
+            toast.warning('无法打开邀约页面，请确保在 APP 环境中运行')
+          }
+        } else {
+          // 弃用：直接调用API
+          updateInterviewStatus(resultId, nextStep).catch(err => {
+            console.error('弃用操作失败:', err)
+          })
+        }
       })
       .catch(() => {
-        console.log('取消弃用')
+        console.log('用户取消操作')
       })
   }
   const enterpriseId = ref()

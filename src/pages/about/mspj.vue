@@ -795,35 +795,51 @@ const fetchInterviewInfo = async (interviewId: number) => {
 
 // 处理返回事件
 onBackPress(() => {
-  console.log('onBackPress - type:', type.value, 'from:', from.value)
+  console.log('=== onBackPress 系统返回按钮分析 START ===')
+  console.log('onBackPress - type:', type.value, '类型:', typeof type.value)
+  console.log('onBackPress - from:', from.value, '类型:', typeof from.value)
   
   // 根据type和from决定返回目标
   let targetUrl = ''
   
   if (type.value === '2') {
+    console.log('>>> 走type=2分支：模拟面试')
     // 模拟面试，返回到模拟面试列表
     targetUrl = '/pages/interviews/record-simulate'
+    console.log('>>> 设置targetUrl:', targetUrl)
   } else if (type.value === '1') {
+    console.log('>>> 走type=1分支：正式面试')
     // 正式面试
     if (from.value === 'about') {
+      console.log('>>> >>> 走from=about分支：使用默认系统返回')
       // 从AI面试记录页面进入，使用默认返回
-      console.log('onBackPress - 从AI面试记录页面进入，使用默认返回')
+      console.log('>>> >>> 返回false，使用系统默认返回')
       return false
     } else if (from.value === 'h5') {
+      console.log('>>> >>> 走from=h5分支：返回历史记录')
       // 从H5列表进入，返回到历史记录列表
       targetUrl = '/pages/interviews/record'
+      console.log('>>> >>> 设置targetUrl:', targetUrl)
     } else if (from.value === 'app') {
+      console.log('>>> >>> 走from=app分支：使用默认系统返回')
       // 从原生App进入，使用默认返回
+      console.log('>>> >>> 返回false，使用系统默认返回')
       return false
     } else {
-      // 默认返回到历史记录列表
-      targetUrl = '/pages/interviews/record'
+      console.log('>>> >>> 🎯 走默认分支：原生界面（聊天）系统返回')
+      console.log('>>> >>> 🎯 返回false，让系统处理返回到原生')
+      // 默认返回到原生界面（如聊天界面）
+      return false
     }
   } else {
+    console.log('>>> 走type未定义分支，type值:', type.value)
     // type未定义，根据from判断
     if (from.value === 'h5') {
       targetUrl = '/pages/interviews/record'
+      console.log('>>> >>> 根据from=h5设置targetUrl:', targetUrl)
     } else {
+      console.log('>>> >>> 🎯 type未定义默认分支：使用系统默认返回')
+      console.log('>>> >>> 🎯 返回false，让系统处理返回到原生')
       // 使用默认返回
       return false
     }
@@ -831,11 +847,16 @@ onBackPress(() => {
   
   // 执行跳转到指定页面
   if (targetUrl) {
-    console.log('onBackPress - 返回到:', targetUrl)
+    console.log('>>> 执行页面跳转到:', targetUrl)
+    console.log('>>> 返回true，阻止系统默认返回行为')
     uni.reLaunch({ url: targetUrl })
     return true // 阻止默认返回行为
+  } else {
+    console.log('>>> ⚠️  targetUrl为空，使用系统默认返回')
   }
   
+  console.log('>>> 最终返回false，使用系统默认返回行为')
+  console.log('=== onBackPress 系统返回按钮分析 END ===')
   return false
 })
 
@@ -940,17 +961,25 @@ onLoad((options) => {
   }
   
   // 获取from参数，用于确定返回目标
+  console.log('=== mspj onLoad 参数分析 START ===')
+  console.log('onLoad - 完整options:', JSON.stringify(options))
+  console.log('onLoad - URL参数from:', options.from)
+  const storedFrom = uni.getStorageSync('from')
+  console.log('onLoad - Storage中的from:', storedFrom)
+
   if (options.from) {
     from.value = options.from
-    console.log('onLoad - 设置from:', from.value)
+    console.log('onLoad - ✅ 使用URL参数from:', from.value)
+  } else if (storedFrom) {
+    from.value = storedFrom
+    console.log('onLoad - ⚠️  使用Storage中的from:', from.value)
   } else {
-    // 从storage中获取from值
-    const storedFrom = uni.getStorageSync('from')
-    if (storedFrom) {
-      from.value = storedFrom
-      console.log('onLoad - 从storage获取from:', from.value)
-    }
+    from.value = undefined
+    console.log('onLoad - ❓ from参数为空，将使用默认返回逻辑')
   }
+  
+  console.log('onLoad - 最终确定from值:', from.value, '类型:', typeof from.value)
+  console.log('=== mspj onLoad 参数分析 END ===')
 })
 const interviewId = ref()
 // 获取面试题目评价
@@ -1133,53 +1162,72 @@ const improvementSuggestions = ref('')
 const score = ref(0)
 
 function handleClickLeft() {
-  console.log('handleClickLeft - type:', type.value, 'from:', from.value)
+  console.log('=== handleClickLeft 返回按钮分析 START ===')
+  console.log('handleClickLeft - type:', type.value, '类型:', typeof type.value)
+  console.log('handleClickLeft - from:', from.value, '类型:', typeof from.value)
   
   // 根据type和from决定返回目标
   let targetUrl = ''
   
   if (type.value === '2') {
+    console.log('>>> 走type=2分支：模拟面试')
     // 模拟面试，返回到模拟面试列表
     targetUrl = '/pages/interviews/record-simulate'
-    console.log('返回到模拟面试列表')
+    console.log('>>> 设置targetUrl:', targetUrl)
   } else if (type.value === '1') {
+    console.log('>>> 走type=1分支：正式面试')
     // 正式面试
     if (from.value === 'about') {
+      console.log('>>> >>> 走from=about分支：返回AI面试记录')
       // 从AI面试记录页面进入，返回到AI面试记录页面
-      console.log('返回到AI面试记录页面')
+      console.log('>>> >>> 执行uni.navigateBack()')
       uni.navigateBack()
       return
     } else if (from.value === 'h5') {
+      console.log('>>> >>> 走from=h5分支：返回历史记录')
       // 从H5列表进入，返回到历史记录列表
       targetUrl = '/pages/interviews/record'
-      console.log('返回到历史记录列表')
+      console.log('>>> >>> 设置targetUrl:', targetUrl)
     } else if (from.value === 'app') {
+      console.log('>>> >>> 走from=app分支：返回原生App')
       // 从原生App进入，尝试返回到原生App
-      console.log('尝试返回到原生App')
+      console.log('>>> >>> 执行uni.navigateBack()')
       uni.navigateBack()
       return
     } else {
-      // 默认返回到历史记录列表
-      targetUrl = '/pages/interviews/record'
-      console.log('默认返回到历史记录列表')
+      console.log('>>> >>> 🎯 走默认分支：返回原生界面（聊天）')
+      console.log('>>> >>> 🎯 即将调用navigateBack()函数')
+      // 默认返回到原生界面（如聊天界面）
+      navigateBack()
+      console.log('>>> >>> 🎯 navigateBack()调用完成')
+      return
     }
   } else {
+    console.log('>>> 走type未定义分支，type值:', type.value)
     // type未定义，根据from判断
     if (from.value === 'h5') {
       targetUrl = '/pages/interviews/record'
-      console.log('根据from返回到历史记录列表')
+      console.log('>>> >>> 根据from=h5设置targetUrl:', targetUrl)
     } else {
+      console.log('>>> >>> 🎯 type未定义默认分支：使用navigateBack')
+      console.log('>>> >>> 🎯 即将调用uni.navigateBack()')
       // 默认使用navigateBack
-      console.log('默认使用navigateBack')
       uni.navigateBack()
+      console.log('>>> >>> 🎯 uni.navigateBack()调用完成')
       return
     }
   }
   
   // 执行跳转到指定页面
   if (targetUrl) {
+    console.log('>>> 执行页面跳转到:', targetUrl)
     uni.reLaunch({ url: targetUrl })
+    console.log('>>> 页面跳转命令已执行')
+  } else {
+    console.log('>>> ⚠️  targetUrl为空，没有执行跳转')
   }
+  
+  console.log('=== handleClickLeft 返回按钮分析 END ===')
 }
 
 // 将秒数转换为"xx分钟xx秒"格式
