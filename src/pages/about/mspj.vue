@@ -805,7 +805,11 @@ onBackPress(() => {
     targetUrl = '/pages/interviews/record-simulate'
   } else if (type.value === '1') {
     // 正式面试
-    if (from.value === 'h5') {
+    if (from.value === 'about') {
+      // 从AI面试记录页面进入，使用默认返回
+      console.log('onBackPress - 从AI面试记录页面进入，使用默认返回')
+      return false
+    } else if (from.value === 'h5') {
       // 从H5列表进入，返回到历史记录列表
       targetUrl = '/pages/interviews/record'
     } else if (from.value === 'app') {
@@ -825,10 +829,10 @@ onBackPress(() => {
     }
   }
   
-  // 执行跳转 - 使用navigateBack保持页面状态
+  // 执行跳转到指定页面
   if (targetUrl) {
     console.log('onBackPress - 返回到:', targetUrl)
-    uni.navigateBack()
+    uni.reLaunch({ url: targetUrl })
     return true // 阻止默认返回行为
   }
   
@@ -1140,7 +1144,12 @@ function handleClickLeft() {
     console.log('返回到模拟面试列表')
   } else if (type.value === '1') {
     // 正式面试
-    if (from.value === 'h5') {
+    if (from.value === 'about') {
+      // 从AI面试记录页面进入，返回到AI面试记录页面
+      console.log('返回到AI面试记录页面')
+      uni.navigateBack()
+      return
+    } else if (from.value === 'h5') {
       // 从H5列表进入，返回到历史记录列表
       targetUrl = '/pages/interviews/record'
       console.log('返回到历史记录列表')
@@ -1167,9 +1176,9 @@ function handleClickLeft() {
     }
   }
   
-  // 执行跳转 - 使用navigateBack保持页面状态
+  // 执行跳转到指定页面
   if (targetUrl) {
-    uni.navigateBack()
+    uni.reLaunch({ url: targetUrl })
   }
 }
 
