@@ -376,7 +376,15 @@ import Aizdsc from '@/pages/about/components/aizdsc.vue'
 import Aimn from '@/pages/about/components/aimn.vue'
 import Xzzw from '@/pages/about/components/xzzw.vue'
 import { onPullDownRefresh, onBackPress } from '@dcloudio/uni-app'
-import { navigateBack } from '@/utils/platformUtils'
+import { hasNativeBridge } from '@/utils/platformUtils'
+import {
+  registerMspjEntry,
+  getMspjEntry,
+  navigateBackByMspjEntry,
+  isMspjEntryKey,
+  getMspjEntryState,
+  type MspjEntryKey,
+} from '@/utils/mspjNavigation'
 import { handleToken } from "@/utils/useAuth"
 import { renderMarkdownText, cleanMarkdownCodeBlocks, formatImprovementSuggestions } from '@/utils/markdownUtils'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
@@ -796,68 +804,15 @@ const fetchInterviewInfo = async (interviewId: number) => {
 // 处理返回事件
 onBackPress(() => {
   console.log('=== onBackPress 系统返回按钮分析 START ===')
-  console.log('onBackPress - type:', type.value, '类型:', typeof type.value)
-  console.log('onBackPress - from:', from.value, '类型:', typeof from.value)
-  
-  // 根据type和from决定返回目标
-  let targetUrl = ''
-  
-  if (type.value === '2') {
-    console.log('>>> 走type=2分支：模拟面试')
-    // 模拟面试，返回到模拟面试列表
-    targetUrl = '/pages/interviews/record-simulate'
-    console.log('>>> 设置targetUrl:', targetUrl)
-  } else if (type.value === '1') {
-    console.log('>>> 走type=1分支：正式面试')
-    // 正式面试
-    if (from.value === 'about') {
-      console.log('>>> >>> 走from=about分支：使用默认系统返回')
-      // 从AI面试记录页面进入，使用默认返回
-      console.log('>>> >>> 返回false，使用系统默认返回')
-      return false
-    } else if (from.value === 'h5') {
-      console.log('>>> >>> 走from=h5分支：返回历史记录')
-      // 从H5列表进入，返回到历史记录列表
-      targetUrl = '/pages/interviews/record'
-      console.log('>>> >>> 设置targetUrl:', targetUrl)
-    } else if (from.value === 'app') {
-      console.log('>>> >>> 走from=app分支：使用默认系统返回')
-      // 从原生App进入，使用默认返回
-      console.log('>>> >>> 返回false，使用系统默认返回')
-      return false
-    } else {
-      console.log('>>> >>> 🎯 走默认分支：原生界面（聊天）系统返回')
-      console.log('>>> >>> 🎯 返回false，让系统处理返回到原生')
-      // 默认返回到原生界面（如聊天界面）
-      return false
+  console.log('onBackPress - type:', type.value, 'from:', from.value, 'entryKey:', entryKey.value)
+  navigateBackByMspjEntry().then((handled) => {
+    console.log('=== onBackPress 系统返回按钮分析 END，handled:', handled, '===')
+    if (!handled) {
+      const fallbackUrl = type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
+      uni.reLaunch({ url: fallbackUrl })
     }
-  } else {
-    console.log('>>> 走type未定义分支，type值:', type.value)
-    // type未定义，根据from判断
-    if (from.value === 'h5') {
-      targetUrl = '/pages/interviews/record'
-      console.log('>>> >>> 根据from=h5设置targetUrl:', targetUrl)
-    } else {
-      console.log('>>> >>> 🎯 type未定义默认分支：使用系统默认返回')
-      console.log('>>> >>> 🎯 返回false，让系统处理返回到原生')
-      // 使用默认返回
-      return false
-    }
-  }
-  
-  // 执行跳转到指定页面
-  if (targetUrl) {
-    console.log('>>> 执行页面跳转到:', targetUrl)
-    console.log('>>> 返回true，阻止系统默认返回行为')
-    uni.reLaunch({ url: targetUrl })
-    return true // 阻止默认返回行为
-  } else {
-    console.log('>>> ⚠️  targetUrl为空，使用系统默认返回')
-  }
-  
-  console.log('>>> 最终返回false，使用系统默认返回行为')
-  console.log('=== onBackPress 系统返回按钮分析 END ===')
-  return false
+  })
+  return true
 })
 
 // 下拉刷新
@@ -921,6 +876,36 @@ function filiterNum(str) {
 const type = ref('')
 const urlToken = ref('')
 const from = ref('') // 记录来源页面
+const entryKey = ref<MspjEntryKey | null>(null)
+
+const resolveEntryKey = (options: Record<string, any>): MspjEntryKey => {
+  if (options.entry && isMspjEntryKey(options.entry)) {
+    return options.entry
+  }
+  if (options.token) {
+    return 'native-chat'
+  }
+  if (options.from === 'about') {
+    return 'enterprise-record'
+  }
+  if (options.from === 'h5') {
+    return options.type === '2' ? 'simulate-record' : 'recruiter-record'
+  }
+  if (options.from === 'app') {
+    return 'native-chat'
+  }
+  const stored = getMspjEntry()
+  if (stored) {
+    return stored
+  }
+  if (hasNativeBridge()) {
+    return 'native-chat'
+  }
+  if (options.type === '2') {
+    return 'simulate-record'
+  }
+  return 'recruiter-record'
+}
 
 onLoad((options) => {
   // const storedToken = uni.getStorageSync('token')
@@ -979,6 +964,21 @@ onLoad((options) => {
   }
   
   console.log('onLoad - 最终确定from值:', from.value, '类型:', typeof from.value)
+  const resolvedEntry = resolveEntryKey({ ...options, type: type.value })
+  const existingState = getMspjEntryState()
+  entryKey.value = resolvedEntry
+  if (!existingState || existingState.key !== resolvedEntry) {
+    const fallbackUrl = resolvedEntry === 'simulate-record'
+      ? '/pages/interviews/record-simulate'
+      : resolvedEntry === 'enterprise-record'
+        ? '/pages/interviews/record?identity=enterprise'
+        : '/pages/interviews/record'
+    registerMspjEntry(resolvedEntry, { fallbackUrl })
+    console.log('onLoad - 重新注册入口:', resolvedEntry, 'fallback:', fallbackUrl)
+  } else {
+    console.log('onLoad - 使用已注册入口:', existingState)
+  }
+  console.log('onLoad - 解析得到entry:', entryKey.value)
   console.log('=== mspj onLoad 参数分析 END ===')
 })
 const interviewId = ref()
@@ -1161,73 +1161,15 @@ const overallSummary = ref('')
 const improvementSuggestions = ref('')
 const score = ref(0)
 
-function handleClickLeft() {
+async function handleClickLeft() {
   console.log('=== handleClickLeft 返回按钮分析 START ===')
-  console.log('handleClickLeft - type:', type.value, '类型:', typeof type.value)
-  console.log('handleClickLeft - from:', from.value, '类型:', typeof from.value)
-  
-  // 根据type和from决定返回目标
-  let targetUrl = ''
-  
-  if (type.value === '2') {
-    console.log('>>> 走type=2分支：模拟面试')
-    // 模拟面试，返回到模拟面试列表
-    targetUrl = '/pages/interviews/record-simulate'
-    console.log('>>> 设置targetUrl:', targetUrl)
-  } else if (type.value === '1') {
-    console.log('>>> 走type=1分支：正式面试')
-    // 正式面试
-    if (from.value === 'about') {
-      console.log('>>> >>> 走from=about分支：返回AI面试记录')
-      // 从AI面试记录页面进入，返回到AI面试记录页面
-      console.log('>>> >>> 执行uni.navigateBack()')
-      uni.navigateBack()
-      return
-    } else if (from.value === 'h5') {
-      console.log('>>> >>> 走from=h5分支：返回历史记录')
-      // 从H5列表进入，返回到历史记录列表
-      targetUrl = '/pages/interviews/record'
-      console.log('>>> >>> 设置targetUrl:', targetUrl)
-    } else if (from.value === 'app') {
-      console.log('>>> >>> 走from=app分支：返回原生App')
-      // 从原生App进入，尝试返回到原生App
-      console.log('>>> >>> 执行uni.navigateBack()')
-      uni.navigateBack()
-      return
-    } else {
-      console.log('>>> >>> 🎯 走默认分支：返回原生界面（聊天）')
-      console.log('>>> >>> 🎯 即将调用navigateBack()函数')
-      // 默认返回到原生界面（如聊天界面）
-      navigateBack()
-      console.log('>>> >>> 🎯 navigateBack()调用完成')
-      return
-    }
-  } else {
-    console.log('>>> 走type未定义分支，type值:', type.value)
-    // type未定义，根据from判断
-    if (from.value === 'h5') {
-      targetUrl = '/pages/interviews/record'
-      console.log('>>> >>> 根据from=h5设置targetUrl:', targetUrl)
-    } else {
-      console.log('>>> >>> 🎯 type未定义默认分支：使用navigateBack')
-      console.log('>>> >>> 🎯 即将调用uni.navigateBack()')
-      // 默认使用navigateBack
-      uni.navigateBack()
-      console.log('>>> >>> 🎯 uni.navigateBack()调用完成')
-      return
-    }
+  console.log('handleClickLeft - type:', type.value, 'from:', from.value, 'entryKey:', entryKey.value)
+  const handled = await navigateBackByMspjEntry()
+  if (!handled) {
+    const fallbackUrl = type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
+    uni.reLaunch({ url: fallbackUrl })
   }
-  
-  // 执行跳转到指定页面
-  if (targetUrl) {
-    console.log('>>> 执行页面跳转到:', targetUrl)
-    uni.reLaunch({ url: targetUrl })
-    console.log('>>> 页面跳转命令已执行')
-  } else {
-    console.log('>>> ⚠️  targetUrl为空，没有执行跳转')
-  }
-  
-  console.log('=== handleClickLeft 返回按钮分析 END ===')
+  console.log('=== handleClickLeft 返回按钮分析 END，handled:', handled, '===')
 }
 
 // 将秒数转换为"xx分钟xx秒"格式

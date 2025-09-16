@@ -50,7 +50,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
-import { navigateBack } from '@/utils/platformUtils'
+import { hasNativeBridge } from '@/utils/platformUtils'
+import {
+  registerMspjEntry,
+  getMspjEntry,
+  navigateBackByMspjEntry,
+  isMspjEntryKey,
+  type MspjEntryKey,
+} from '@/utils/mspjNavigation'
 import { useNavBar } from '@/utils/useNavBar'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 
@@ -62,10 +69,13 @@ const progress = ref(0)
 const timer = ref<number | null>(null)
 const pollInterval = ref<number | null>(null)
 const isInitialCheckDone = ref(false)  // 标记初始检查是否完成
+const entryKey = ref<MspjEntryKey | null>(null)
+const defaultFallbackUrl = computed(() =>
+  type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
+)
 
 // 获取系统信息
 const systemInfo = uni.getSystemInfoSync()
-const windowInfo = uni.getWindowInfo()
 const statusBarHeight = systemInfo.statusBarHeight || 0
 const pixelRatio = systemInfo.pixelRatio || 1
 
@@ -160,7 +170,7 @@ const pollInterviewReport = () => {
               duration: 2000,
             })
             setTimeout(() => {
-              navigateBack()
+              returnToEntry()
             }, 2000)
           }
         }
@@ -175,7 +185,7 @@ const pollInterviewReport = () => {
             duration: 2000,
           })
           setTimeout(() => {
-            navigateBack()
+            returnToEntry()
           }, 2000)
         }
       } else if (response.statusCode === 403) {
@@ -188,7 +198,7 @@ const pollInterviewReport = () => {
           duration: 2000,
         })
         setTimeout(() => {
-          navigateBack()
+          returnToEntry()
         }, 2000)
       } else if (response.statusCode === 404 || response.statusCode === 400) {
         console.log('报告不存在，继续等待...')
@@ -200,7 +210,7 @@ const pollInterviewReport = () => {
             duration: 2000,
           })
           setTimeout(() => {
-            navigateBack()
+            returnToEntry()
           }, 2000)
         }
       } else {
@@ -216,7 +226,7 @@ const pollInterviewReport = () => {
           duration: 2000,
         })
         setTimeout(() => {
-          navigateBack()
+          returnToEntry()
         }, 2000)
       }
     }
@@ -225,7 +235,19 @@ const pollInterviewReport = () => {
 
 // 跳转到面试报告页面
 const navigateToReportPage = (skipToast = false) => {
-  const targetUrl = `/pages/about/mspj?interviewId=${interviewId.value}&type=${type.value}`
+  const queryParts: string[] = []
+  if (typeof interviewId.value === 'number') {
+    queryParts.push(`interviewId=${interviewId.value}`)
+  }
+  if (type.value) {
+    queryParts.push(`type=${type.value}`)
+  }
+  if (entryKey.value) {
+    queryParts.push(`entry=${entryKey.value}`)
+  }
+  const targetUrl = queryParts.length > 0
+    ? `/pages/about/mspj?${queryParts.join('&')}`
+    : '/pages/about/mspj'
   console.log('➡️ 跳转到报告页面:', targetUrl)
   
   // 所有类型的面试都跳转到报告页面
@@ -251,6 +273,13 @@ const navigateToReportPage = (skipToast = false) => {
   })
 }
 
+const returnToEntry = async () => {
+  const handled = await navigateBackByMspjEntry()
+  if (!handled) {
+    uni.reLaunch({ url: defaultFallbackUrl.value })
+  }
+}
+
 // 清除所有定时器
 const clearAllIntervals = () => {
   if (timer.value) {
@@ -272,20 +301,33 @@ const handleExit = () => {
     success: (res) => {
       if (res.confirm) {
         clearAllIntervals()
-        // 如果是模拟面试（type=2），返回到模拟面试列表页
-        if (type.value === '2') {
-          uni.reLaunch({
-            url: '/pages/interviews/record-simulate'
-          })
-        } else {
-          navigateBack()
-        }
+        returnToEntry()
       }
     },
   })
 }
 const interviewType = ref()
 const type = ref('0')  // 默认值为'0'，表示真实面试
+
+const resolveEntryKey = (options: Record<string, any>): MspjEntryKey => {
+  if (options.entry && isMspjEntryKey(options.entry)) {
+    return options.entry
+  }
+  if (options.token) {
+    return 'native-chat'
+  }
+  const stored = getMspjEntry()
+  if (stored) {
+    return stored
+  }
+  if (hasNativeBridge()) {
+    return 'native-chat'
+  }
+  if (options.type === '2') {
+    return 'simulate-record'
+  }
+  return 'recruiter-record'
+}
 
 onLoad((options) => {
   console.info('options', options)
@@ -298,6 +340,14 @@ onLoad((options) => {
   if (options.type) {
     type.value = options.type
   }
+  const key = resolveEntryKey(options)
+  entryKey.value = key
+  const fallbackUrl = key === 'simulate-record'
+    ? '/pages/interviews/record-simulate'
+    : key === 'enterprise-record'
+      ? '/pages/interviews/record?identity=enterprise'
+      : '/pages/interviews/record'
+  registerMspjEntry(key, { fallbackUrl })
 })
 onMounted(async () => {
   // 获取路由参数
@@ -341,7 +391,7 @@ onMounted(async () => {
           duration: 2000,
         })
         setTimeout(() => {
-          navigateBack()
+          returnToEntry()
         }, 2000)
         return
       } else {
@@ -368,9 +418,9 @@ onMounted(async () => {
       title: '未找到面试ID，请重试',
       icon: 'none',
     })
-    setTimeout(() => {
-      navigateBack()
-    }, 2000)
+        setTimeout(() => {
+          returnToEntry()
+        }, 2000)
   }
 })
 

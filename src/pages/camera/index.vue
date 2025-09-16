@@ -146,7 +146,8 @@ import { ref, onBeforeUnmount } from 'vue'
 import icon01 from '../../static/app/icons/Frame-001.png'
 import icon02 from '../../static/app/icons/Frame-002.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
-import { navigateBack, interviewOver, getPlatformType, PlatformType } from '@/utils/platformUtils'
+import { navigateBack, interviewOver, getPlatformType, PlatformType, hasNativeBridge } from '@/utils/platformUtils'
+import { registerMspjEntry, type MspjEntryKey } from '@/utils/mspjNavigation'
 import { buildAbsoluteH5Url } from '@/utils/url'
 
 const message = useMessage()
@@ -154,6 +155,7 @@ const message = useMessage()
 const toast = useToast()
 // 获取基础URL，根据实际部署环境调整
 let baseUrl = import.meta.env.VITE_SERVER_BASEURL
+const test = ref(false)
 
 // H5环境下检查是否需要添加test前缀
 // #ifdef H5
@@ -183,6 +185,41 @@ const getMimeType = () => {
 const getFileExtension = () => {
   const platform = getPlatformType()
   return platform === PlatformType.IOS ? 'mp4' : 'webm'
+}
+
+const resolveReportEntry = (): MspjEntryKey => {
+  if (hasNativeBridge()) {
+    return 'camera-flow'
+  }
+  return test.value ? 'simulate-record' : 'recruiter-record'
+}
+
+const buildReportRelativeUrl = () => {
+  const params: string[] = []
+  if (interviewId.value) {
+    params.push(`interviewId=${interviewId.value}`)
+  }
+  params.push(`type=${test.value ? '2' : '1'}`)
+  const entryParam = resolveReportEntry()
+  if (entryParam) {
+    params.push(`entry=${entryParam}`)
+  }
+  return `/pages/about/mspj-loading?${params.join('&')}`
+}
+
+const getFallbackForEntry = (entry: MspjEntryKey) => {
+  switch (entry) {
+    case 'simulate-record':
+      return '/pages/interviews/record-simulate'
+    case 'enterprise-record':
+      return '/pages/interviews/record?identity=enterprise'
+    case 'recruiter-record':
+      return '/pages/interviews/record'
+    case 'camera-flow':
+    case 'native-chat':
+    default:
+      return '/pages/interviews/record'
+  }
 }
 
 // 定义接口
@@ -951,13 +988,46 @@ const saveInterview = async () => {
     // 通知原生App面试已结束
     const platform = getPlatformType()
     if (platform !== PlatformType.OTHER) {
-      // 构建报告页面URL（原生App使用绝对地址）
-      const relative = `/pages/about/mspj-loading?interviewId=${interviewId.value}${test.value ? '&type=2' : '&type=1'}`
-      const reportUrl = buildAbsoluteH5Url(relative)
+      // 优先从后端获取带token的跳转URL（原生保存此URL以便二次进入）
+      let reportUrl = ''
+      try {
+        const res = await uni.request({
+          url: baseUrl + `/interviews/redirect-url/`,
+          method: 'GET',
+          header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+          data: { status: 3, interview_id: interviewId.value },
+        })
+        const resData = res.data as any
+        if (resData?.data?.redirect_url) {
+          reportUrl = resData.data.redirect_url
+        }
+      } catch (e) {
+        console.warn('获取redirect-url失败，回退到相对路径:', e)
+      }
+      const entryParam = resolveReportEntry()
+      const fallbackUrl = getFallbackForEntry(entryParam)
+      if (!reportUrl) {
+        if (entryParam) {
+          registerMspjEntry(entryParam, { fallbackUrl })
+        }
+        const relative = buildReportRelativeUrl()
+        reportUrl = buildAbsoluteH5Url(relative)
+      } else {
+        if (entryParam) {
+          try {
+            const url = new URL(reportUrl)
+            url.searchParams.set('entry', entryParam)
+            reportUrl = url.toString()
+          } catch (error) {
+            console.warn('reportUrl不是合法URL，使用追加方式:', error)
+            const separator = reportUrl.includes('?') ? '&' : '?'
+            reportUrl = `${reportUrl}${separator}entry=${entryParam}`
+          }
+          registerMspjEntry(entryParam, { fallbackUrl })
+        }
+      }
       const companyName = interviewDetails.value.data.position.enterprise_name || ''
       const jobName = interviewDetails.value.data.position.title || ''
-      
-      // 调用原生方法通知面试结束
       interviewOver(reportUrl, companyName, jobName)
       console.log('已通知原生App面试结束', { reportUrl, companyName, jobName })
     }
@@ -967,9 +1037,15 @@ const saveInterview = async () => {
     stopCamera()
     
     // 跳转到loading页面等待报告生成，使用redirectTo替换当前页面避免返回到camera
-    console.log('跳转到mspj-loading页面，interviewId:', interviewId.value, 'test:', test.value)
+    const entryParam = resolveReportEntry()
+    if (entryParam) {
+      const fallbackUrl = getFallbackForEntry(entryParam)
+      registerMspjEntry(entryParam, { fallbackUrl })
+    }
+    const loadingUrl = buildReportRelativeUrl()
+    console.log('跳转到mspj-loading页面，路径:', loadingUrl, 'interviewId:', interviewId.value, 'test:', test.value)
     uni.redirectTo({ 
-      url: '/pages/about/mspj-loading?interviewId=' + interviewId.value + (test.value ? '&type=2' : '&type=1')
+      url: loadingUrl
     })
 
   } catch (error) {
@@ -986,8 +1062,42 @@ const saveInterview = async () => {
       // 即使失败也通知原生App面试已结束
       const platform = getPlatformType()
       if (platform !== PlatformType.OTHER) {
-        const relative = `/pages/about/mspj-loading?interviewId=${interviewId.value}${test.value ? '&type=2' : '&type=1'}`
-        const reportUrl = buildAbsoluteH5Url(relative)
+        let reportUrl = ''
+        try {
+          const res = await uni.request({
+            url: baseUrl + `/interviews/redirect-url/`,
+            method: 'GET',
+            header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+            data: { status: 3, interview_id: interviewId.value },
+          })
+          const resData = res.data as any
+          if (resData?.data?.redirect_url) {
+            reportUrl = resData.data.redirect_url
+          }
+        } catch (e) {
+          console.warn('获取redirect-url失败（失败分支），回退到相对路径:', e)
+        }
+        const entryParam = resolveReportEntry()
+        if (!reportUrl) {
+          if (entryParam) {
+            const fallbackUrl = getFallbackForEntry(entryParam)
+            registerMspjEntry(entryParam, { fallbackUrl })
+          }
+          const relative = buildReportRelativeUrl()
+          reportUrl = buildAbsoluteH5Url(relative)
+        } else if (entryParam) {
+          try {
+            const url = new URL(reportUrl)
+            url.searchParams.set('entry', entryParam)
+            reportUrl = url.toString()
+          } catch (error) {
+            console.warn('reportUrl不是合法URL（失败分支），使用追加方式:', error)
+            const separator = reportUrl.includes('?') ? '&' : '?'
+            reportUrl = `${reportUrl}${separator}entry=${entryParam}`
+          }
+          const fallbackUrl = getFallbackForEntry(entryParam)
+          registerMspjEntry(entryParam, { fallbackUrl })
+        }
         const companyName = interviewDetails.value.data.position.enterprise_name || ''
         const jobName = interviewDetails.value.data.position.title || ''
         interviewOver(reportUrl, companyName, jobName)
@@ -1000,8 +1110,14 @@ const saveInterview = async () => {
       
       // 即使失败也尝试跳转到loading页面，让用户看到处理结果，使用redirectTo避免返回到camera
       console.log('虽然处理失败，但仍跳转到mspj-loading页面，test:', test.value)
+      const entryParam = resolveReportEntry()
+      if (entryParam) {
+        const fallbackUrl = getFallbackForEntry(entryParam)
+        registerMspjEntry(entryParam, { fallbackUrl })
+      }
+      const loadingUrl = buildReportRelativeUrl()
       uni.redirectTo({ 
-        url: '/pages/about/mspj-loading?interviewId=' + interviewId.value + (test.value ? '&type=2' : '&type=1')
+        url: loadingUrl
       })
     }
 }
@@ -1878,7 +1994,6 @@ onBeforeUnmount(() => {
 
   console.log('===== 资源清理完成 =====')
 })
-const test = ref(false)
 onLoad((options) => {
   console.log('camera onLoad - 所有参数:', options)
   if (options.token) {

@@ -31,7 +31,7 @@ export function getPlatformType(): PlatformType {
  * @param method 方法名
  * @param params 参数（可选）
  */
-export function callPlatformMethod(method: string, params?: any): void {
+export function callPlatformMethod(method: string, params?: any): boolean {
   console.log('=== callPlatformMethod 原生接口调用分析 START ===')
   console.log('🔧 调用方法:', method)
   console.log('🔧 传入参数:', params)
@@ -39,76 +39,74 @@ export function callPlatformMethod(method: string, params?: any): void {
   const platform = getPlatformType()
   console.log('🔧 检测到平台:', platform)
   
+  const safeParams = params === undefined || params === null ? '' : params
+
+  const tryAndroidCall = () => {
+    console.log('>>> 尝试Android平台调用')
+    if (typeof window === 'undefined') {
+      console.error('>>> ❌ window对象不存在（非浏览器环境）')
+      return false
+    }
+    const appApi = (window as any).appApi
+    if (!appApi) {
+      console.error('>>> ❌ window.appApi对象不存在或未定义')
+      return false
+    }
+    if (typeof appApi.callback !== 'function') {
+      console.error('>>> ❌ appApi.callback方法不存在，类型:', typeof appApi.callback)
+      return false
+    }
+    try {
+      console.log('>>> ✅ appApi.callback存在，准备调用')
+      appApi.callback(method, safeParams)
+      console.log('>>> ✅ Android方法调用完成')
+      return true
+    } catch (err) {
+      console.error('>>> ❌ Android调用异常:', err)
+      return false
+    }
+  }
+
+  const tryIOSCall = () => {
+    console.log('>>> 尝试iOS平台调用')
+    if (typeof window === 'undefined') {
+      console.error('>>> ❌ window对象不存在（非浏览器环境）')
+      return false
+    }
+    const webkit = (window as any).webkit
+    if (!webkit || !webkit.messageHandlers) {
+      console.error('>>> ❌ webkit.messageHandlers不存在')
+      return false
+    }
+    const handler = webkit.messageHandlers[method]
+    if (!handler || typeof handler.postMessage !== 'function') {
+      console.error('>>> ❌ 对应处理器不存在或postMessage不可用:', handler)
+      return false
+    }
+    try {
+      console.log('>>> ✅ iOS处理器存在，准备调用postMessage')
+      handler.postMessage(safeParams)
+      console.log('>>> ✅ iOS方法调用完成')
+      return true
+    } catch (err) {
+      console.error('>>> ❌ iOS调用异常:', err)
+      return false
+    }
+  }
+
+  let handled = false
+
   try {
     if (platform === PlatformType.ANDROID) {
-      console.log('>>> Android平台处理开始')
-      
-      // 检查window和appApi是否存在
-      console.log('>>> 检查window对象:', typeof window !== 'undefined')
-      if (typeof window !== 'undefined') {
-        console.log('>>> 检查appApi对象:', typeof (window as any).appApi)
-        
-        if ((window as any).appApi) {
-          console.log('>>> ✅ appApi对象存在')
-          
-          const appApi = (window as any).appApi
-          if (typeof appApi.callback === 'function') {
-            console.log('>>> ✅ appApi.callback方法存在')
-            
-            // 安卓调用
-            if (params !== undefined) {
-              console.log('>>> 准备调用: appApi.callback(' + method + ', ' + params + ')')
-              appApi.callback(method, params)
-              console.log('>>> ✅ Android方法调用成功（有参数）')
-            } else {
-              console.log('>>> 准备调用: appApi.callback(' + method + ', "")')
-              appApi.callback(method, "")  // 传空字符串而不是不传参数
-              console.log('>>> ✅ Android方法调用成功（无参数）')
-            }
-          } else {
-            console.error('>>> ❌ appApi.callback方法不存在，类型:', typeof appApi.callback)
-          }
-        } else {
-          console.error('>>> ❌ window.appApi对象不存在或未定义')
-        }
-      } else {
-        console.error('>>> ❌ window对象不存在（非浏览器环境）')
-      }
-      
+      handled = tryAndroidCall()
     } else if (platform === PlatformType.IOS) {
-      console.log('>>> iOS平台处理开始')
-      
-      // 检查webkit对象
-      console.log('>>> 检查window对象:', typeof window !== 'undefined')
-      if (typeof window !== 'undefined') {
-        console.log('>>> 检查webkit对象:', typeof (window as any).webkit)
-        
-        if ((window as any).webkit && (window as any).webkit.messageHandlers) {
-          console.log('>>> ✅ webkit.messageHandlers存在')
-          
-          const messageHandler = (window as any).webkit.messageHandlers[method]
-          console.log('>>> 检查' + method + '处理器:', typeof messageHandler)
-          
-          if (messageHandler && typeof messageHandler.postMessage === 'function') {
-            console.log('>>> ✅ ' + method + '处理器存在，准备调用')
-            console.log('>>> 准备调用: window.webkit.messageHandlers.' + method + '.postMessage(' + (params || '') + ')')
-            
-            messageHandler.postMessage(params || '')
-            console.log('>>> ✅ iOS方法调用成功')
-          } else {
-            console.error('>>> ❌ ' + method + '处理器不存在或postMessage方法不可用')
-          }
-        } else {
-          console.error('>>> ❌ webkit.messageHandlers不存在')
-          console.log('>>> webkit对象内容:', (window as any).webkit)
-        }
-      } else {
-        console.error('>>> ❌ window对象不存在（非浏览器环境）')
-      }
-      
+      handled = tryIOSCall()
     } else {
-      console.warn('>>> ⚠️  平台' + platform + '不支持原生方法调用')
-      console.log('>>> 这可能是H5环境或其他不支持的平台')
+      console.warn('>>> ⚠️ 平台识别为Other，尝试同时调用Android和iOS桥接')
+      handled = tryAndroidCall()
+      if (!handled) {
+        handled = tryIOSCall()
+      }
     }
   } catch (error) {
     console.error('>>> ❌ 调用原生方法时发生异常:', error)
@@ -119,24 +117,43 @@ export function callPlatformMethod(method: string, params?: any): void {
     })
   }
   
+  if (!handled) {
+    console.warn('>>> ⚠️ 原生接口调用未能成功，可能当前环境不支持或桥接未注入')
+  }
+  
   console.log('=== callPlatformMethod 原生接口调用分析 END ===')
+  return handled
 }
 
 /**
  * 返回到原生界面
  */
-export function navigateBack(): void {
+export function navigateBack(): boolean {
   console.log('=== navigateBack 原生返回分析 START ===')
   console.log('🎯 准备调用pagerFinish返回原生App')
   
   const platform = getPlatformType()
   console.log('🎯 当前检测到的平台:', platform)
   
-  console.log('🎯 即将调用callPlatformMethod(pagerFinish, null)')
-  callPlatformMethod('pagerFinish', null)
-  console.log('🎯 callPlatformMethod调用完成')
+  console.log('🎯 即将调用callPlatformMethod(pagerFinish, "")')
+  const handled = callPlatformMethod('pagerFinish', '')
+  console.log('🎯 callPlatformMethod调用完成，handled:', handled)
   
   console.log('=== navigateBack 原生返回分析 END ===')
+  return handled
+}
+
+/**
+ * 判断当前环境是否已注入原生桥接能力
+ */
+export function hasNativeBridge(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  const win = window as any
+  const hasAndroidBridge = !!(win.appApi && typeof win.appApi.callback === 'function')
+  const hasIOSBridge = !!(win.webkit && win.webkit.messageHandlers && Object.keys(win.webkit.messageHandlers).length > 0)
+  return hasAndroidBridge || hasIOSBridge
 }
 
 /**

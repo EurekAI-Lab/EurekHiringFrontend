@@ -185,6 +185,7 @@ import iconNotQualified from '../../static/app/icons/interview-status-new/unqual
 import iconVeryQualified from '../../static/app/icons/interview-status-new/very_suitable_2x.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { navigateBack } from '@/utils/platformUtils'
+import { registerMspjEntry } from '@/utils/mspjNavigation'
 import { handleToken } from "@/utils/useAuth"
 import { useNavBar } from '@/utils/useNavBar'
 import { ref, watch, onMounted } from 'vue'
@@ -376,8 +377,9 @@ const getPostionInfo = async () => {
           salaryStr = element.expected_salary_min + '-' + element.expected_salary_max
         }
         
-        const industry = cleanupIndustry(element.industry, element.position_name)
-        const positionName = cleanupPositionName(element.position_name, industry)
+        const industry = element.industry || cleanupIndustry(element.industry, element.position_name)
+        const positionName =
+          element.position_display_name || cleanupPositionName(element.position_name, industry)
         const itemData = {
           // 统一字段
           position_name: positionName,
@@ -505,7 +507,9 @@ const openInfo = (id) => {
 
   uni.setStorageSync('interviewId', id)
   uni.setStorageSync('from', 'h5')
-  uni.navigateTo({ url: '/pages/about/mspj?type=1' })
+  registerMspjEntry('simulate-record', { fallbackUrl: '/pages/interviews/record-simulate' })
+  const targetUrl = `/pages/about/mspj?type=2&entry=simulate-record${id ? `&interviewId=${id}` : ''}`
+  uni.navigateTo({ url: targetUrl })
 }
 const selectItem = (index) => {
   // 清除其他项的选中状态

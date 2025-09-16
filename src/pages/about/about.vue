@@ -257,8 +257,9 @@
   import iconQualified from '../../static/app/icons/interview-status-new/suitable_2x.png'
   import iconNotQualified from '../../static/app/icons/interview-status-new/unqualified_2x.png'
   import iconVeryQualified from '../../static/app/icons/interview-status-new/very_suitable_2x.png'
-  import { useToast, useMessage } from 'wot-design-uni'
+  import { useToast } from 'wot-design-uni'
   import { navigateBack, inviteInterview, openUserVitaeInfo } from '@/utils/platformUtils'
+  import { registerMspjEntry } from '@/utils/mspjNavigation'
   import { getInterviewListAPI } from '@/service/api'
   import { API_ENDPOINTS } from '@/config/apiEndpoints'
   import { handleToken } from "@/utils/useAuth"
@@ -268,8 +269,6 @@
   const interviewShowData = ref([])
   const loading = ref(false)
   const searchValue = ref()
-
-  const message = useMessage()
 
   const toast = useToast()
   // 定义面试结果对象结构
@@ -454,8 +453,11 @@
   const jumpInterviewResult = (interviewId: number) => {
     // 存储参数
     uni.setStorageSync('interviewId', interviewId)
-    // 跳转到面试详情页，传递from参数表明来源是AI面试记录页面
-    uni.navigateTo({ url: '/pages/about/mspj?type=1&from=about' })
+    uni.setStorageSync('from', 'about')
+    registerMspjEntry('enterprise-record', { fallbackUrl: '/pages/about/about' })
+    // 跳转到面试详情页，传递来源信息
+    const targetUrl = `/pages/about/mspj?type=1&from=about&entry=enterprise-record&interviewId=${interviewId}`
+    uni.navigateTo({ url: targetUrl })
   }
   // 全局变量存储当前待处理的邀约用户ID
   let pendingInviteUserId = null
@@ -500,28 +502,41 @@
   const setupInviteCallbacks = (resultId, userId) => {
     // 清理之前的回调
     cleanupInviteCallbacks()
-    
-    pendingInviteUserId = userId
-    
+
+    const expectedUserId = String(userId)
+    pendingInviteUserId = expectedUserId
+
     // 设置成功回调
     window.onInviteSuccess = (callbackUserId) => {
-      console.log('收到邀约成功回调:', callbackUserId)
-      if (callbackUserId === userId) {
+      const normalizedCallbackId = String(callbackUserId)
+      console.log('收到邀约成功回调:', normalizedCallbackId, '预期用户:', expectedUserId)
+      if (normalizedCallbackId === expectedUserId) {
         cleanupInviteCallbacks()
         // 邀约成功，调用API更新状态
         updateInterviewStatus(resultId, 'INVITE').catch(err => {
           console.error('更新状态失败:', err)
         })
+      } else {
+        console.warn('邀约成功回调的用户ID不匹配，忽略本次回调', {
+          expected: expectedUserId,
+          received: normalizedCallbackId
+        })
       }
     }
-    
+
     // 设置取消回调
     window.onInviteCancel = (callbackUserId) => {
-      console.log('收到邀约取消回调:', callbackUserId)
-      if (callbackUserId === userId) {
+      const normalizedCallbackId = String(callbackUserId)
+      console.log('收到邀约取消回调:', normalizedCallbackId, '预期用户:', expectedUserId)
+      if (normalizedCallbackId === expectedUserId) {
         cleanupInviteCallbacks()
         // 邀约取消，显示提示但不更新状态
         toast.info('已取消邀约')
+      } else {
+        console.warn('邀约取消回调的用户ID不匹配，忽略本次回调', {
+          expected: expectedUserId,
+          received: normalizedCallbackId
+        })
       }
     }
   }
@@ -534,41 +549,47 @@
   }
 
   // 邀约面试或弃用
-  const handleInterviewResult = (resultId, userId, nextStep) => {
+  const handleInterviewResult = async (resultId, userId, nextStep) => {
     // 验证 nextStep
     if (!['INVITE', 'DISCARD'].includes(nextStep)) {
       console.error('无效的 next_step:', nextStep)
       return
     }
-    message
-      .confirm({
-        msg: nextStep === 'DISCARD' ? '确认进行弃用吗，确认后不可恢复' : '确认进行邀约面试吗？',
+    try {
+      const modalRes = await uni.showModal({
         title: '确认',
+        content: nextStep === 'DISCARD' ? '确认进行弃用吗，确认后不可恢复' : '确认进行邀约面试吗？',
+        cancelText: '取消',
+        confirmText: '确定'
       })
-      .then(() => {
-        if (nextStep !== 'DISCARD') {
-          // 邀约面试：先调用原生方法，等待回调
-          try {
-            // 设置回调监听
-            setupInviteCallbacks(resultId, userId)
-            // 调用 APP 原生方法
-            inviteInterview(userId)
-            console.log('调用邀约原生方法，userId:', userId)
-          } catch (error) {
-            console.error('调用 APP 原生方法失败:', error)
-            cleanupInviteCallbacks()
-            toast.warning('无法打开邀约页面，请确保在 APP 环境中运行')
-          }
-        } else {
-          // 弃用：直接调用API
-          updateInterviewStatus(resultId, nextStep).catch(err => {
-            console.error('弃用操作失败:', err)
-          })
-        }
-      })
-      .catch(() => {
+
+      if (!modalRes?.confirm) {
         console.log('用户取消操作')
-      })
+        return
+      }
+
+      if (nextStep !== 'DISCARD') {
+        // 邀约面试：先调用原生方法，等待回调
+        try {
+          // 设置回调监听
+          setupInviteCallbacks(resultId, userId)
+          // 调用 APP 原生方法
+          inviteInterview(String(userId))
+          console.log('调用邀约原生方法，userId:', userId)
+        } catch (error) {
+          console.error('调用 APP 原生方法失败:', error)
+          cleanupInviteCallbacks()
+          toast.warning('无法打开邀约页面，请确保在 APP 环境中运行')
+        }
+      } else {
+        // 弃用：直接调用API
+        updateInterviewStatus(resultId, nextStep).catch(err => {
+          console.error('弃用操作失败:', err)
+        })
+      }
+    } catch (error) {
+      console.error('弹出确认框失败:', error)
+    }
   }
   const enterpriseId = ref()
   onLoad((options) => {
@@ -586,21 +607,31 @@
       enterpriseId.value = options.enterpriseId
     }
   })
+  const normalizeNextStep = (item) => {
+    const { next_step } = item.interview_result || {}
+    return typeof next_step === 'string' ? next_step.toUpperCase() : ''
+  }
+
+  const normalizeHandleStatus = (item) => {
+    const { handle_status } = item.interview_result || {}
+    return typeof handle_status === 'string' ? handle_status.toUpperCase() : ''
+  }
+
+  const hasHandled = (item) => normalizeHandleStatus(item) === 'HANDLED'
+
+  const isPendingInterview = (item) => !hasHandled(item)
+
+  const isHandledInterview = (item) => hasHandled(item)
+
   const changeShowData = async () => {
     // 根据标签页显示数据
     if (isBigTabOneActive.value) {
       interviewShowData.value = interviewResults.value
         .filter((item) => {
           if (isSmallTabOneActive.value) {
-            return (
-              item.interview_result.handle_status === 'PENDING'
-              // && item.interview_result.result === 'PASS'
-            )
+            return isPendingInterview(item)
           } else {
-            return (
-              item.interview_result.handle_status === 'PENDING'
-              //  && item.interview_result.result === 'FAIL'
-            )
+            return isPendingInterview(item)
           }
         })
         .sort((a, b) => {
@@ -620,25 +651,24 @@
           return resultSort
         })
     } else {
-      interviewShowData.value = interviewResults.value
+      const processed = interviewResults.value.filter((item) => isHandledInterview(item))
+      interviewShowData.value = processed
         .filter((item) => {
-          if (isSmallTabTwoActive.value) {
-            return (
-              item.interview_result.handle_status === 'HANDLED'
-              // && item.interview_result.next_step === 'INVITE'
-            )
-          } else {
-            return (
-              item.interview_result.handle_status === 'HANDLED'
-              //  && item.interview_result.next_step === 'DISCARD'
-            )
+          const step = normalizeNextStep(item)
+          if (step === 'INVITE') {
+            return isSmallTabTwoActive.value
           }
+          if (step === 'DISCARD') {
+            return !isSmallTabTwoActive.value
+          }
+          // 无明确next_step的处理记录：默认展示在“已邀约面试”里，保持与旧数据兼容
+          return isSmallTabTwoActive.value
         })
         .sort((a, b) => {
           // 首先按照 next_step 为 'INVITE' 的项排在前面
           const nextStepSort =
-            (b.interview_result.next_step === 'INVITE' ? 1 : 0) -
-            (a.interview_result.next_step === 'INVITE' ? 1 : 0)
+            (normalizeNextStep(b) === 'INVITE' ? 1 : 0) -
+            (normalizeNextStep(a) === 'INVITE' ? 1 : 0)
 
           // 如果 next_step 相同，则按照时间排序（最近的排在前面）
           if (nextStepSort === 0) {
@@ -657,16 +687,18 @@
     let firstFailIdAssigned = false // 标记是否已赋值给第一个 FAIL
 
     // 待处理 // 已处理
-    let aKeyWard = isBigTabOneActive.value ? 'result' : 'next_step'
     let aValue = isBigTabOneActive.value ? ['PASS', 'FAIL'] : ['INVITE', 'DISCARD']
-    console.log('// 待处理 // 已处理', aKeyWard, aValue[0])
+    console.log('// 待处理 // 已处理', isBigTabOneActive.value ? 'result' : 'next_step', aValue[0])
     for (const item of interviewShowData.value) {
-      if (!firstPassIdAssigned && item.interview_result[aKeyWard] === aValue[0]) {
+      const comparator = isBigTabOneActive.value
+        ? (item.interview_result?.result || '').toUpperCase()
+        : normalizeNextStep(item)
+      if (!firstPassIdAssigned && comparator === aValue[0]) {
         item.id = 'firstpass' // 赋值
         firstPassIdAssigned = true // 标记为已赋值
       }
 
-      if (!firstFailIdAssigned && item.interview_result[aKeyWard] === aValue[1]) {
+      if (!firstFailIdAssigned && comparator === aValue[1]) {
         item.id = 'firstfail' // 赋值
         firstFailIdAssigned = true // 标记为已赋值
       }
@@ -736,28 +768,21 @@
       }
       isSmallTabOneActive.value = status == 'pull' ? true : false
     } else {
-      let aFlag = false,
-        aFailFlag = false
-      interviewShowData.value.forEach((item) => {
-        if (item.id == 'firstpass' && status == 'invite') {
-          aFlag = true
-        }
+      const processed = interviewResults.value.filter((item) => normalizeHandleStatus(item) === 'HANDLED')
+      const hasInvite = processed.some((item) => normalizeNextStep(item) === 'INVITE')
+      const hasDiscard = processed.some((item) => normalizeNextStep(item) === 'DISCARD')
 
-        if (item.id == 'firstfail' && status == 'discard') {
-          aFailFlag = true
-        }
-      })
-
-      if (!aFlag && status == 'invite') {
+      if (!hasInvite && status === 'invite') {
         uni.showToast({ title: '暂无已邀约面试的数据！', icon: 'none' })
         return false
       }
 
-      if (!aFailFlag && status == 'discard') {
+      if (!hasDiscard && status === 'discard') {
         uni.showToast({ title: '暂无已弃用的数据！', icon: 'none' })
         return false
       }
-      isSmallTabTwoActive.value = status == 'invite' ? true : false
+
+      isSmallTabTwoActive.value = status === 'invite'
 
       console.log('医药与面试', isSmallTabTwoActive.value)
     }
@@ -846,7 +871,7 @@
   .sticky-header {
     position: fixed;
     top: 5.5rem;
-    z-index: 1000;
-    /* 确保在最上层 */
+    z-index: 10;
+    /* 保持在卡片之上，同时允许对话框遮罩盖住 */
   }
 </style>

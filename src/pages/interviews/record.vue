@@ -180,6 +180,7 @@ import aiInterviewHeader from '../../static/app/icons/interview-status-new/AI_in
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import wxSdk from 'weixin-js-sdk'
 import { navigateBack } from '@/utils/platformUtils'
+import { registerMspjEntry } from '@/utils/mspjNavigation'
 import { handleToken } from "@/utils/useAuth"
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useUserStore } from '@/store'
@@ -209,6 +210,7 @@ const interviewResults = ref([]) // 存储筛选后的数据
 const loading = ref(false)
 const searchValue = ref('')
 const isEnterpriseUser = ref(false) // 是否为企业用户
+const enterpriseId = ref<string | null>(null) // 当前企业ID
 
 // 添加搜索监听
 watch(searchValue, (newValue) => {
@@ -229,7 +231,16 @@ watch(searchValue, (newValue) => {
 
 onLoad((options) => {
   handleToken(options)
-  
+
+  // 记录企业ID，原生端可能以 enterpriseId 或 enterprise_id 传递
+  const optionEnterpriseId = options?.enterpriseId ?? options?.enterprise_id
+  if (optionEnterpriseId !== undefined && optionEnterpriseId !== null && optionEnterpriseId !== '') {
+    enterpriseId.value = String(optionEnterpriseId)
+    console.log('记录企业ID:', enterpriseId.value)
+  } else {
+    console.log('未从入口参数获取 enterpriseId')
+  }
+
   // Sync token with user store
   const token = uni.getStorageSync('token')
   if (token) {
@@ -319,7 +330,14 @@ async function getInterviewList(keyword = '') {
   }
   try {
     const trimmedKeyword = keyword.trim()
-    const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
+    const queryParts: string[] = []
+    if (trimmedKeyword) {
+      queryParts.push(`keyword=${encodeURIComponent(trimmedKeyword)}`)
+    }
+    if (isEnterpriseUser.value && enterpriseId.value) {
+      queryParts.push(`enterprise_id=${encodeURIComponent(enterpriseId.value)}`)
+    }
+    const queryParams = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''
     // 根据用户类型调用不同的API
     const apiPath = isEnterpriseUser.value ? API_ENDPOINTS.interviews.enterpriseAiInterviews : API_ENDPOINTS.interviews.myAiInterviews
     // 构建URL，注意apiPath已经有尾部斜杠了
@@ -417,11 +435,22 @@ async function getInterviewList(keyword = '') {
 const jumpInterviewResult = (item) => {
   uni.setStorageSync('interviewId', item.interviews_id)
   uni.setStorageSync('from', 'h5')
-  
-  // 所有情况都直接跳转到报告页面，添加type=1参数标识来源于历史记录列表
-  // 注：B端用户通过API已经过滤了审核中的记录，不会看到；C端用户可以查看自己的所有记录
+  const entryKey = isEnterpriseUser.value || enterpriseId.value ? 'enterprise-record' : 'recruiter-record'
+  const fallbackParams: string[] = []
+  if (entryKey === 'enterprise-record') {
+    fallbackParams.push('identity=enterprise')
+    if (enterpriseId.value) {
+      fallbackParams.push(`enterpriseId=${encodeURIComponent(enterpriseId.value)}`)
+    }
+  }
+  const fallbackUrl = fallbackParams.length > 0
+    ? `/pages/interviews/record?${fallbackParams.join('&')}`
+    : '/pages/interviews/record'
+  registerMspjEntry(entryKey, { fallbackUrl })
+
+  const targetUrl = `/pages/about/mspj?type=1&entry=${entryKey}&interviewId=${item.interviews_id}`
   uni.navigateTo({
-    url: '/pages/about/mspj?type=1',
+    url: targetUrl,
   })
 }
 </script>

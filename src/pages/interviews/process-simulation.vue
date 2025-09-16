@@ -223,8 +223,9 @@ const getPostionInfo = async () => {
         } else {
           salaryStr = element.expected_salary_min + '-' + element.expected_salary_max
         }
-        const industry = cleanupIndustry(element.industry, element.position_name)
-        const positionName = cleanupPositionName(element.position_name, industry)
+        const industry = element.industry || cleanupIndustry(element.industry, element.position_name)
+        const positionName =
+          element.position_display_name || cleanupPositionName(element.position_name, industry)
 
         items.value.push({
           // 统一字段
