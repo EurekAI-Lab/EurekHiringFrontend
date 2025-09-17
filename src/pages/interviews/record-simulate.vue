@@ -508,7 +508,11 @@ const openInfo = (id) => {
   uni.setStorageSync('interviewId', id)
   uni.setStorageSync('from', 'h5')
   registerMspjEntry('simulate-record', { fallbackUrl: '/pages/interviews/record-simulate' })
-  const targetUrl = `/pages/about/mspj?type=2&entry=simulate-record${id ? `&interviewId=${id}` : ''}`
+  const params: string[] = ['type=2', 'entry=simulate-record', 'from=h5']
+  if (id) {
+    params.push(`interviewId=${id}`)
+  }
+  const targetUrl = `/pages/about/mspj?${params.join('&')}`
   uni.navigateTo({ url: targetUrl })
 }
 const selectItem = (index) => {

@@ -808,8 +808,12 @@ onBackPress(() => {
   navigateBackByMspjEntry().then((handled) => {
     console.log('=== onBackPress 系统返回按钮分析 END，handled:', handled, '===')
     if (!handled) {
-      const fallbackUrl = type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
-      uni.reLaunch({ url: fallbackUrl })
+      if (from.value === 'about') {
+        uni.reLaunch({ url: '/pages/about/about' })
+      } else {
+        const fallbackUrl = type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
+        uni.reLaunch({ url: fallbackUrl })
+      }
     }
   })
   return true
@@ -875,7 +879,7 @@ function filiterNum(str) {
 }
 const type = ref('')
 const urlToken = ref('')
-const from = ref('') // 记录来源页面
+const from = ref<string | undefined>() // 记录来源页面
 const entryKey = ref<MspjEntryKey | null>(null)
 
 const resolveEntryKey = (options: Record<string, any>): MspjEntryKey => {
@@ -1166,8 +1170,13 @@ async function handleClickLeft() {
   console.log('handleClickLeft - type:', type.value, 'from:', from.value, 'entryKey:', entryKey.value)
   const handled = await navigateBackByMspjEntry()
   if (!handled) {
-    const fallbackUrl = type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
-    uni.reLaunch({ url: fallbackUrl })
+    console.log('handleClickLeft - 未命中特定入口，执行默认返回逻辑，from:', from.value)
+    if (from.value === 'about') {
+      uni.reLaunch({ url: '/pages/about/about' })
+    } else {
+      const fallbackUrl = type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
+      uni.reLaunch({ url: fallbackUrl })
+    }
   }
   console.log('=== handleClickLeft 返回按钮分析 END，handled:', handled, '===')
 }

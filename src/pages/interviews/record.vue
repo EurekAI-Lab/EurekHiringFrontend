@@ -448,7 +448,9 @@ const jumpInterviewResult = (item) => {
     : '/pages/interviews/record'
   registerMspjEntry(entryKey, { fallbackUrl })
 
-  const targetUrl = `/pages/about/mspj?type=1&entry=${entryKey}&interviewId=${item.interviews_id}`
+  const params: string[] = [`type=1`, `entry=${entryKey}`, `interviewId=${item.interviews_id}`]
+  params.push('from=h5')
+  const targetUrl = `/pages/about/mspj?${params.join('&')}`
   uni.navigateTo({
     url: targetUrl,
   })
