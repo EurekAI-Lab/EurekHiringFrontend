@@ -101,14 +101,52 @@ async function tryUniNavigateBack(): Promise<boolean> {
   }
 }
 
+async function tryUniReLaunch(url?: string): Promise<boolean> {
+  if (!url) {
+    return false
+  }
+  try {
+    return await new Promise((resolve) => {
+      let settled = false
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true
+          resolve(false)
+        }
+      }, 300)
+      uni.reLaunch({
+        url,
+        success: () => {
+          if (!settled) {
+            settled = true
+            clearTimeout(timer)
+            resolve(true)
+          }
+        },
+        fail: (error) => {
+          console.warn('tryUniReLaunch - 调用失败:', error)
+          if (!settled) {
+            settled = true
+            clearTimeout(timer)
+            resolve(false)
+          }
+        },
+      })
+    })
+  } catch (error) {
+    console.warn('tryUniReLaunch - 异常:', error)
+    return false
+  }
+}
+
 function goH5List(defaultFallback: string): (state?: EntryState) => Promise<boolean> {
   return async (state) => {
     if (await tryUniNavigateBack()) {
       return true
     }
     const url = state?.fallbackUrl || defaultFallback
-    uni.reLaunch({ url })
-    return true
+    const success = await tryUniReLaunch(url)
+    return success
   }
 }
 
@@ -121,8 +159,7 @@ function goNativePreferred(defaultFallback?: string): (state?: EntryState) => Pr
       return true
     }
     const url = state?.fallbackUrl || defaultFallback
-    if (url) {
-      uni.reLaunch({ url })
+    if (await tryUniReLaunch(url)) {
       return true
     }
     if (typeof window !== 'undefined' && typeof window.history?.back === 'function') {
@@ -135,10 +172,10 @@ function goNativePreferred(defaultFallback?: string): (state?: EntryState) => Pr
 
 const entryConfig: Record<MspjEntryKey, EntryConfig> = {
   'native-chat': {
-    goBack: goNativePreferred('/pages/interviews/record'),
+    goBack: goNativePreferred(),
   },
   'camera-flow': {
-    goBack: goNativePreferred('/pages/interviews/record'),
+    goBack: goNativePreferred(),
   },
   'enterprise-record': {
     goBack: goH5List('/pages/interviews/record'),

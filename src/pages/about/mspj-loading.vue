@@ -60,6 +60,7 @@ import {
 } from '@/utils/mspjNavigation'
 import { useNavBar } from '@/utils/useNavBar'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
+import { useInterviewStore } from '@/store/interview'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 const interviewId = ref<number | null>(null)
@@ -73,6 +74,23 @@ const entryKey = ref<MspjEntryKey | null>(null)
 const defaultFallbackUrl = computed(() =>
   type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
 )
+const interviewStore = useInterviewStore()
+let isPageActive = true
+const resolvedFallbackUrl = computed(() => {
+  if (!entryKey.value) {
+    return defaultFallbackUrl.value
+  }
+  if (entryKey.value === 'simulate-record') {
+    return '/pages/interviews/record-simulate'
+  }
+  if (entryKey.value === 'enterprise-record') {
+    return '/pages/interviews/record?identity=enterprise'
+  }
+  if (entryKey.value === 'recruiter-record') {
+    return '/pages/interviews/record'
+  }
+  return ''
+})
 
 // 获取系统信息
 const systemInfo = uni.getSystemInfoSync()
@@ -274,10 +292,35 @@ const navigateToReportPage = (skipToast = false) => {
 }
 
 const returnToEntry = async () => {
+  try {
+    if (typeof interviewStore.resetInterview === 'function') {
+      interviewStore.resetInterview()
+    }
+  } catch (error) {
+    console.warn('重置面试状态失败:', error)
+  }
+
+  const ensureExited = () => {
+    setTimeout(() => {
+      if (!isPageActive) {
+        return
+      }
+      const fallback = resolvedFallbackUrl.value
+      if (fallback) {
+        uni.reLaunch({ url: fallback })
+      }
+    }, 320)
+  }
+
   const handled = await navigateBackByMspjEntry()
   if (!handled) {
-    uni.reLaunch({ url: defaultFallbackUrl.value })
+    const fallback = resolvedFallbackUrl.value
+    if (fallback) {
+      uni.reLaunch({ url: fallback })
+    }
+    return
   }
+  ensureExited()
 }
 
 // 清除所有定时器
@@ -346,8 +389,14 @@ onLoad((options) => {
     ? '/pages/interviews/record-simulate'
     : key === 'enterprise-record'
       ? '/pages/interviews/record?identity=enterprise'
-      : '/pages/interviews/record'
-  registerMspjEntry(key, { fallbackUrl })
+      : key === 'recruiter-record'
+        ? '/pages/interviews/record'
+        : undefined
+  if (fallbackUrl) {
+    registerMspjEntry(key, { fallbackUrl })
+  } else {
+    registerMspjEntry(key)
+  }
 })
 onMounted(async () => {
   // 获取路由参数
@@ -425,6 +474,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  isPageActive = false
   clearAllIntervals()
 })
 </script>
