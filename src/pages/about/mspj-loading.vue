@@ -17,19 +17,16 @@
   
   <!-- 初始检查完成后显示正常页面 -->
   <view class="page-container" v-else>
-    <!-- 自定义导航栏 -->
-    <view class="navbar fixed top-0 left-0 right-0 z-10 bg-white" :style="{ height: topBarHeight + 'px' }">
-      <view class="navbar-content" :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }">
-        <view class="navbar-left"></view>
-        <text class="navbar-title">AI面试</text>
-        <view class="navbar-right"></view>
-      </view>
-    </view>
+    <AiPageNavBar
+      title="AI面试"
+      text-color="#111111"
+      background-color="#ffffff"
+      :show-background="true"
+      @back="handleClickLeft"
+    />
     
     <!-- 主内容区域 -->
-    <view class="content-area" :style="{ paddingTop: topBarHeight + 'px' }">
-      <!-- 报告生成图标 -->
-       <div class="content-area-zw"></div>
+    <view class="content-area" :style="contentAreaStyle">
       <image 
         class="report-icon" 
         :src="reportIcon"
@@ -45,25 +42,29 @@
         返回
       </view>
     </view>
+    <AiRuntimeDiagPanel page-name="mspj-loading" :safe-area-top="safeAreaTop" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
-import { hasNativeBridge } from '@/utils/platformUtils'
+import { getPlatformType, hasNativeBridge } from '@/utils/platformUtils'
 import {
   registerMspjEntry,
   getMspjEntry,
-  navigateBackByMspjEntry,
+  navigateBackToAiEntry,
   isMspjEntryKey,
   type MspjEntryKey,
 } from '@/utils/mspjNavigation'
-import { useNavBar } from '@/utils/useNavBar'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useInterviewStore } from '@/store/interview'
+import { useNavBar } from '@/utils/useNavBar'
+import { getCurrentBuildId, getCurrentRouteKey, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 const interviewId = ref<number | null>(null)
+const urlToken = ref('')
 const loadingText = ref('AI正在生成您的面试报告')
 const subText = ref('请耐心等待，这可能需要几分钟时间')
 const progress = ref(0)
@@ -76,6 +77,11 @@ const defaultFallbackUrl = computed(() =>
 )
 const interviewStore = useInterviewStore()
 let isPageActive = true
+const { safeAreaInsets, topBarHeight } = useNavBar()
+const safeAreaTop = Number(safeAreaInsets?.top || 0)
+const contentAreaStyle = computed(() => ({
+  paddingTop: `${Number(topBarHeight || 0) + 24}px`,
+}))
 const resolvedFallbackUrl = computed(() => {
   if (!entryKey.value) {
     return defaultFallbackUrl.value
@@ -94,7 +100,6 @@ const resolvedFallbackUrl = computed(() => {
 
 // 获取系统信息
 const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = systemInfo.statusBarHeight || 0
 const pixelRatio = systemInfo.pixelRatio || 1
 
 // // 获取安全区域信息
@@ -116,21 +121,6 @@ const pixelRatio = systemInfo.pixelRatio || 1
 //   return 48
 // })()
 
-// 计算总的顶部高度（使用安全区域顶部高度 + 导航栏）
-// const topBarHeight = safeAreaInsets.top + navBarHeight
-// 使用导航栏工具获取高度信息
-const { safeAreaInsets, navBarHeight, topBarHeight } = useNavBar()
-
-// 根据像素密度选择合适的图片
-const backIcon = computed(() => {
-  if (pixelRatio >= 3) {
-    return '/static/images/mspj_loading/back_3x.png'
-  } else if (pixelRatio >= 2) {
-    return '/static/images/mspj_loading/back_2x.png'
-  }
-  return '/static/images/mspj_loading/back.png'
-})
-
 const reportIcon = computed(() => {
   if (pixelRatio >= 3) {
     return '/static/images/mspj_loading/mspj_3x_background.png'
@@ -139,6 +129,24 @@ const reportIcon = computed(() => {
   }
   return '/static/images/mspj_loading/mspj_background.png'
 })
+
+const syncLoadingDiagnostics = (stage: string, extras: Record<string, any> = {}) => {
+  // #ifdef H5
+  updateRuntimeDiagnostics({
+    buildId: getCurrentBuildId(),
+    resolvedApiBase: resolveApiBaseUrlForCurrentSite(baseUrl),
+    origin: window.location.origin,
+    currentRoute: getCurrentRouteKey(),
+    pageName: `mspj-loading:${stage}`,
+    siteKind: isH5TestSite() ? 'test' : 'production',
+    interviewId: interviewId.value,
+    safeAreaTop,
+    platformType: getPlatformType(),
+    hasNativeBridge: hasNativeBridge(),
+    ...extras,
+  })
+  // #endif
+}
 
 // 模拟进度增加
 const startProgressSimulation = () => {
@@ -149,6 +157,35 @@ const startProgressSimulation = () => {
       progress.value = Math.min(95, progress.value + increment)
     }
   }, 3000) as unknown as number
+}
+
+// 轮询查询面试报告接口
+const buildReportRequestOptions = (targetInterviewId: number) => {
+  if (urlToken.value) {
+    return {
+      url: `${API_ENDPOINTS.interviews.report(targetInterviewId)}?token=${encodeURIComponent(urlToken.value)}`,
+      method: 'GET' as const,
+    }
+  }
+
+  const storedToken = uni.getStorageSync('token')
+  return {
+    url: API_ENDPOINTS.interviews.report(targetInterviewId),
+    method: 'GET' as const,
+    header: storedToken ? { Authorization: `Bearer ${storedToken}` } : {},
+  }
+}
+
+const handleReportAccessExpired = (title: string) => {
+  clearAllIntervals()
+  uni.showToast({
+    title,
+    icon: 'none',
+    duration: 2000,
+  })
+  setTimeout(() => {
+    returnToEntry()
+  }, 2000)
 }
 
 // 轮询查询面试报告接口
@@ -163,35 +200,11 @@ const pollInterviewReport = () => {
       retryCount++
       console.log(`第 ${retryCount} 次轮询查询`)
 
-      const response = await uni.request({
-        url: API_ENDPOINTS.interviews.report(interviewId.value),
-        method: 'GET',
-        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-      })
+      const response = await uni.request(buildReportRequestOptions(interviewId.value))
 
       if (response.statusCode === 200) {
-        const responseData = response.data as any
-        console.log('轮询收到200响应，report_data长度:', responseData?.report_data?.length || 0)
-        
-        if (responseData && responseData.report_data && Array.isArray(responseData.report_data) && responseData.report_data.length > 0) {
-          // 停止轮询和进度模拟
-          clearAllIntervals()
-          // 立即跳转
-          navigateToReportPage()
-        } else {
-          console.log('报告数据不完整，继续等待...')
-          if (retryCount >= maxRetries) {
-            clearAllIntervals()
-            uni.showToast({
-              title: '报告生成超时，请稍后重试',
-              icon: 'none',
-              duration: 2000,
-            })
-            setTimeout(() => {
-              returnToEntry()
-            }, 2000)
-          }
-        }
+        clearAllIntervals()
+        navigateToReportPage()
       } else if (response.statusCode === 202) {
         // 202 表示报告还在生成中，继续轮询
         console.log('报告正在生成中，继续等待...')
@@ -208,16 +221,11 @@ const pollInterviewReport = () => {
         }
       } else if (response.statusCode === 403) {
         // 403 表示没有权限（企业用户查看未审核的报告）
-        clearAllIntervals()
         console.log('没有权限查看报告')
-        uni.showToast({
-          title: '报告尚未审核通过',
-          icon: 'none',
-          duration: 2000,
-        })
-        setTimeout(() => {
-          returnToEntry()
-        }, 2000)
+        handleReportAccessExpired('报告尚未审核通过')
+      } else if (response.statusCode === 401) {
+        console.log('报告访问已失效')
+        handleReportAccessExpired('报告访问已失效，请重新进入')
       } else if (response.statusCode === 404 || response.statusCode === 400) {
         console.log('报告不存在，继续等待...')
         if (retryCount >= maxRetries) {
@@ -233,6 +241,17 @@ const pollInterviewReport = () => {
         }
       } else {
         console.error('获取面试报告失败:', response)
+        if (retryCount >= maxRetries) {
+          clearAllIntervals()
+          uni.showToast({
+            title: '报告生成失败，请稍后重试',
+            icon: 'none',
+            duration: 2000,
+          })
+          setTimeout(() => {
+            returnToEntry()
+          }, 2000)
+        }
       }
     } catch (error) {
       console.error('轮询面试报告出错:', error)
@@ -262,6 +281,9 @@ const navigateToReportPage = (skipToast = false) => {
   }
   if (entryKey.value) {
     queryParts.push(`entry=${entryKey.value}`)
+  }
+  if (urlToken.value) {
+    queryParts.push(`token=${encodeURIComponent(urlToken.value)}`)
   }
   const targetUrl = queryParts.length > 0
     ? `/pages/about/mspj?${queryParts.join('&')}`
@@ -300,27 +322,7 @@ const returnToEntry = async () => {
     console.warn('重置面试状态失败:', error)
   }
 
-  const ensureExited = () => {
-    setTimeout(() => {
-      if (!isPageActive) {
-        return
-      }
-      const fallback = resolvedFallbackUrl.value
-      if (fallback) {
-        uni.reLaunch({ url: fallback })
-      }
-    }, 320)
-  }
-
-  const handled = await navigateBackByMspjEntry()
-  if (!handled) {
-    const fallback = resolvedFallbackUrl.value
-    if (fallback) {
-      uni.reLaunch({ url: fallback })
-    }
-    return
-  }
-  ensureExited()
+  await navigateBackToAiEntry(resolvedFallbackUrl.value)
 }
 
 // 清除所有定时器
@@ -348,6 +350,10 @@ const handleExit = () => {
       }
     },
   })
+}
+
+const handleClickLeft = () => {
+  handleExit()
 }
 const interviewType = ref()
 const type = ref('0')  // 默认值为'0'，表示真实面试
@@ -383,6 +389,9 @@ onLoad((options) => {
   if (options.type) {
     type.value = options.type
   }
+  if (options.token) {
+    urlToken.value = String(options.token)
+  }
   const key = resolveEntryKey(options)
   entryKey.value = key
   const fallbackUrl = key === 'simulate-record'
@@ -397,35 +406,22 @@ onLoad((options) => {
   } else {
     registerMspjEntry(key)
   }
+  syncLoadingDiagnostics('load')
 })
 onMounted(async () => {
+  syncLoadingDiagnostics('mounted')
   // 获取路由参数
   if (interviewId.value) {
     console.log('获取到面试ID:', interviewId.value)
 
     // 先立即查询一次
     try {
-      const response = await uni.request({
-        url: API_ENDPOINTS.interviews.report(interviewId.value),
-        method: 'GET',
-        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-      })
+      const response = await uni.request(buildReportRequestOptions(interviewId.value))
 
-      // 如果第一次查询就成功且有数据
       if (response.statusCode === 200) {
-        const responseData = response.data as any
-        console.log('首次查询收到200响应，report_data长度:', responseData?.report_data?.length || 0)
-        
-        if (responseData && responseData.report_data && Array.isArray(responseData.report_data) && responseData.report_data.length > 0) {
-          console.log('✅ 报告已生成，直接跳转到报告页面')
-          // 立即跳转，无需延迟，跳过成功提示
-          navigateToReportPage(true)
-          return // 如果成功就不需要启动轮询
-        } else {
-          console.log('❌ 报告数据不完整，启动轮询')
-          // 设置初始检查完成，显示loading页面
-          isInitialCheckDone.value = true
-        }
+        console.log('✅ 报告已生成，直接跳转到报告页面')
+        navigateToReportPage(true)
+        return
       } else if (response.statusCode === 202) {
         // 202 表示报告还在生成中
         console.log('报告正在生成中，开始轮询...')
@@ -434,14 +430,11 @@ onMounted(async () => {
       } else if (response.statusCode === 403) {
         // 403 表示没有权限（企业用户查看未审核的报告）
         console.log('没有权限查看报告')
-        uni.showToast({
-          title: '报告尚未审核通过',
-          icon: 'none',
-          duration: 2000,
-        })
-        setTimeout(() => {
-          returnToEntry()
-        }, 2000)
+        handleReportAccessExpired('报告尚未审核通过')
+        return
+      } else if (response.statusCode === 401) {
+        console.log('报告访问已失效')
+        handleReportAccessExpired('报告访问已失效，请重新进入')
         return
       } else {
         // 其他状态码
@@ -488,42 +481,6 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 
-/* 导航栏样式 */
-.navbar {
-  background-color: transparent;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 999;
-}
-
-.navbar-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-}
-
-.back-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.navbar-title {
-  font-size: 17px;
-  font-weight: 500;
-  color: #333333;
-}
-
-.navbar-left {
-  width: 24px;
-}
-
-.navbar-right {
-  width: 24px;
-}
-
 /* 内容区域 */
 .content-area {
   flex: 1;
@@ -531,7 +488,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   padding: 0 40px;
-  padding-top: 140px !important; /* 调整为中间偏上 */
+  padding-top: 24px;
 }
 
 .report-icon {

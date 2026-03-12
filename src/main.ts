@@ -4,9 +4,23 @@ import store from './store'
 import { routeInterceptor, requestInterceptor, prototypeInterceptor } from './interceptors'
 import 'virtual:uno.css'
 import '@/style/index.scss'
+import { bootstrapBridgeSimulator } from '@/utils/nativeBridgeDebug'
+import { getCurrentBuildId, getCurrentRouteKey, isH5TestSite } from '@/utils/url'
+import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
+import { bootstrapH5RuntimeVersionWatch } from '@/utils/runtimeVersion'
 
-// Enable vConsole in H5 for dev, URL/debug flags, or env toggle
+// Enable vConsole in H5 only for local dev or the /test site.
 if (typeof window !== 'undefined') {
+  bootstrapBridgeSimulator()
+  updateRuntimeDiagnostics({
+    buildId: getCurrentBuildId(),
+    origin: window.location.origin,
+    currentRoute: getCurrentRouteKey(),
+    siteKind: isH5TestSite() ? 'test' : 'production',
+    pageName: 'app-bootstrap',
+  })
+  bootstrapH5RuntimeVersionWatch()
+
   const hasUrlDebugFlag = (): boolean => {
     try {
       const url = new URL(window.location.href)
@@ -29,6 +43,7 @@ if (typeof window !== 'undefined') {
   }
 
   const envToggle = String(import.meta.env.VITE_ENABLE_VCONSOLE || '').toLowerCase() === 'true'
+  const isTestSite = isH5TestSite()
   const persisted = ((): boolean => {
     try {
       const ls = localStorage.getItem('__DEBUG__')
@@ -38,7 +53,7 @@ if (typeof window !== 'undefined') {
     }
   })()
 
-  const shouldEnable = import.meta.env.DEV || envToggle || hasUrlDebugFlag() || persisted
+  const shouldEnable = import.meta.env.DEV || (isTestSite && (envToggle || hasUrlDebugFlag() || persisted))
 
   if (shouldEnable) {
     try {
@@ -63,6 +78,18 @@ if (typeof window !== 'undefined') {
         ;(window as any).__VC__ = new VConsole()
       }
     })
+  } else {
+    try {
+      localStorage.removeItem('__DEBUG__')
+    } catch {}
+    try {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      ;(window as any).__VC__?.destroy?.()
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      delete (window as any).__VC__
+    } catch {}
   }
 }
 export function createApp() {

@@ -75,9 +75,14 @@ import { onLoad } from '@dcloudio/uni-app'
 import { usePublicStore } from '@/store'
 import { useToast } from 'wot-design-uni'
 import { FULL_API_URLS } from '@/utils/apiHelper'
+import { useAiPageBack } from '@/utils/useAiPageBack'
 
 const toast = useToast()
 const publicStore = usePublicStore()
+const { handleBack } = useAiPageBack({
+  mode: 'stack-first',
+  guardBrowserBack: false,
+})
 
 // 确保 store 初始化正确
 if (!publicStore.questionState) {
@@ -422,14 +427,14 @@ const saveQuestion = () => {
     }
     
     // 成功后返回
-    uni.navigateBack()
+    void handleBack()
   } catch (error) {
     console.error('saveQuestion 执行失败:', error)
     toast.error('保存失败，请重试')
   }
 }
 function handleClickLeft() {
-  uni.navigateBack()
+  void handleBack()
 }
 </script>
 <style>

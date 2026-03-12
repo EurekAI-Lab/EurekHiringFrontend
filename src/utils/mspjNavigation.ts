@@ -18,6 +18,10 @@ interface EntryState {
   fallbackUrl?: string
 }
 
+interface NavigateBackRuntimeOptions {
+  allowWindowHistoryFallback?: boolean
+}
+
 let memoryState: EntryState | null = null
 
 export function isMspjEntryKey(value: unknown): value is MspjEntryKey {
@@ -150,8 +154,8 @@ function goH5List(defaultFallback: string): (state?: EntryState) => Promise<bool
   }
 }
 
-function goNativePreferred(defaultFallback?: string): (state?: EntryState) => Promise<boolean> {
-  return async (state) => {
+function goNativePreferred(defaultFallback?: string) {
+  return async (state?: EntryState, runtimeOptions?: NavigateBackRuntimeOptions): Promise<boolean> => {
     if (navigateBack()) {
       return true
     }
@@ -162,7 +166,11 @@ function goNativePreferred(defaultFallback?: string): (state?: EntryState) => Pr
     if (await tryUniReLaunch(url)) {
       return true
     }
-    if (typeof window !== 'undefined' && typeof window.history?.back === 'function') {
+    if (
+      runtimeOptions?.allowWindowHistoryFallback !== false &&
+      typeof window !== 'undefined' &&
+      typeof window.history?.back === 'function'
+    ) {
       window.history.back()
       return true
     }
@@ -199,4 +207,26 @@ export async function navigateBackByMspjEntry(): Promise<boolean> {
   }
   const handled = await handler.goBack(state)
   return handled
+}
+
+export async function navigateBackNativeFirst(
+  fallbackUrl?: string,
+  runtimeOptions?: NavigateBackRuntimeOptions,
+): Promise<boolean> {
+  return goNativePreferred(fallbackUrl)({
+    key: 'native-chat',
+    fallbackUrl,
+  }, runtimeOptions)
+}
+
+export async function navigateBackToAiEntry(
+  defaultFallback?: string,
+  runtimeOptions?: NavigateBackRuntimeOptions,
+): Promise<boolean> {
+  const handled = await navigateBackByMspjEntry()
+  if (handled) {
+    return true
+  }
+
+  return navigateBackNativeFirst(defaultFallback, runtimeOptions)
 }

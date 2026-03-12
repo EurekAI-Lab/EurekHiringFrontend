@@ -8,8 +8,116 @@
  */
 export enum PlatformType {
   ANDROID = 'Android',
+  HARMONY = 'Harmony',
   IOS = 'iOS',
   OTHER = 'Other',
+}
+
+type NativeBridgeType = 'android' | 'ios' | 'none'
+
+interface NativeRuntimeInfo {
+  platform: PlatformType
+  osName: string
+  userAgent: string
+  hasAndroidBridge: boolean
+  hasIOSBridge: boolean
+}
+
+function getUserAgent(): string {
+  if (typeof navigator === 'undefined') return ''
+  return navigator.userAgent || ''
+}
+
+function getSystemOsName(): string {
+  try {
+    if (typeof uni === 'undefined' || typeof uni.getSystemInfoSync !== 'function') {
+      return ''
+    }
+    const systemInfo = uni.getSystemInfoSync() as Record<string, any>
+    return String(systemInfo?.osName || '')
+  } catch {
+    return ''
+  }
+}
+
+function isHarmonyBuildTarget(): boolean {
+  let harmony = false
+  // #ifdef APP-HARMONY
+  harmony = true
+  // #endif
+  return harmony
+}
+
+function hasAndroidBridgeCapability(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  const appApi = (window as any).appApi
+  return !!(appApi && typeof appApi.callback === 'function')
+}
+
+function hasIOSBridgeCapability(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  const webkit = (window as any).webkit
+  return !!(
+    webkit &&
+    webkit.messageHandlers &&
+    Object.keys(webkit.messageHandlers).length > 0
+  )
+}
+
+function isHarmonyRuntime(): boolean {
+  const osName = getSystemOsName()
+  const userAgent = getUserAgent()
+  return (
+    isHarmonyBuildTarget() ||
+    /harmony/i.test(osName) ||
+    /HarmonyOS|OpenHarmony|ArkWeb/i.test(userAgent)
+  )
+}
+
+function isAndroidRuntime(): boolean {
+  const osName = getSystemOsName()
+  const userAgent = getUserAgent()
+  return /android/i.test(osName) || /android/i.test(userAgent)
+}
+
+function isIOSRuntime(): boolean {
+  const osName = getSystemOsName()
+  const userAgent = getUserAgent()
+  return /ios/i.test(osName) || /iPad|iPhone|iPod/i.test(userAgent)
+}
+
+function getPreferredBridgeType(): NativeBridgeType {
+  if (hasAndroidBridgeCapability()) {
+    return 'android'
+  }
+  if (hasIOSBridgeCapability()) {
+    return 'ios'
+  }
+  if (isAndroidRuntime() || isHarmonyRuntime()) {
+    return 'android'
+  }
+  if (isIOSRuntime()) {
+    return 'ios'
+  }
+  return 'none'
+}
+
+export function getNativeRuntimeInfo(): NativeRuntimeInfo {
+  return {
+    platform: getPlatformType(),
+    osName: getSystemOsName(),
+    userAgent: getUserAgent(),
+    hasAndroidBridge: hasAndroidBridgeCapability(),
+    hasIOSBridge: hasIOSBridgeCapability(),
+  }
+}
+
+export function isAndroidLikeBridgePlatform(): boolean {
+  return hasAndroidBridgeCapability() || isAndroidRuntime() || isHarmonyRuntime()
 }
 
 /**
@@ -17,13 +125,16 @@ export enum PlatformType {
  * @returns 当前环境类型
  */
 export function getPlatformType(): PlatformType {
-  if (/android/i.test(navigator.userAgent)) {
-    return PlatformType.ANDROID
-  } else if (/iPad|iPhone|iPod/i.test(navigator.userAgent)) {
-    return PlatformType.IOS
-  } else {
-    return PlatformType.OTHER
+  if (isHarmonyRuntime()) {
+    return PlatformType.HARMONY
   }
+  if (isAndroidRuntime() || hasAndroidBridgeCapability()) {
+    return PlatformType.ANDROID
+  }
+  if (isIOSRuntime() || hasIOSBridgeCapability()) {
+    return PlatformType.IOS
+  }
+  return PlatformType.OTHER
 }
 
 /**
@@ -35,14 +146,16 @@ export function callPlatformMethod(method: string, params?: any): boolean {
   console.log('=== callPlatformMethod 原生接口调用分析 START ===')
   console.log('🔧 调用方法:', method)
   console.log('🔧 传入参数:', params)
-  
-  const platform = getPlatformType()
-  console.log('🔧 检测到平台:', platform)
-  
+
+  const runtimeInfo = getNativeRuntimeInfo()
+  const preferredBridgeType = getPreferredBridgeType()
+  console.log('🔧 运行时信息:', runtimeInfo)
+  console.log('🔧 优先桥接类型:', preferredBridgeType)
+
   const safeParams = params === undefined || params === null ? '' : params
 
   const tryAndroidCall = () => {
-    console.log('>>> 尝试Android平台调用')
+    console.log('>>> 尝试Android/Harmony平台调用')
     if (typeof window === 'undefined') {
       console.error('>>> ❌ window对象不存在（非浏览器环境）')
       return false
@@ -59,10 +172,10 @@ export function callPlatformMethod(method: string, params?: any): boolean {
     try {
       console.log('>>> ✅ appApi.callback存在，准备调用')
       appApi.callback(method, safeParams)
-      console.log('>>> ✅ Android方法调用完成')
+      console.log('>>> ✅ Android/Harmony方法调用完成')
       return true
     } catch (err) {
-      console.error('>>> ❌ Android调用异常:', err)
+      console.error('>>> ❌ Android/Harmony调用异常:', err)
       return false
     }
   }
@@ -95,17 +208,18 @@ export function callPlatformMethod(method: string, params?: any): boolean {
   }
 
   let handled = false
+  const callOrder =
+    preferredBridgeType === 'android'
+      ? [tryAndroidCall, tryIOSCall]
+      : preferredBridgeType === 'ios'
+        ? [tryIOSCall, tryAndroidCall]
+        : [tryAndroidCall, tryIOSCall]
 
   try {
-    if (platform === PlatformType.ANDROID) {
-      handled = tryAndroidCall()
-    } else if (platform === PlatformType.IOS) {
-      handled = tryIOSCall()
-    } else {
-      console.warn('>>> ⚠️ 平台识别为Other，尝试同时调用Android和iOS桥接')
-      handled = tryAndroidCall()
-      if (!handled) {
-        handled = tryIOSCall()
+    for (const caller of callOrder) {
+      handled = caller()
+      if (handled) {
+        break
       }
     }
   } catch (error) {
@@ -116,11 +230,11 @@ export function callPlatformMethod(method: string, params?: any): boolean {
       stack: error.stack
     })
   }
-  
+
   if (!handled) {
     console.warn('>>> ⚠️ 原生接口调用未能成功，可能当前环境不支持或桥接未注入')
   }
-  
+
   console.log('=== callPlatformMethod 原生接口调用分析 END ===')
   return handled
 }
@@ -131,14 +245,15 @@ export function callPlatformMethod(method: string, params?: any): boolean {
 export function navigateBack(): boolean {
   console.log('=== navigateBack 原生返回分析 START ===')
   console.log('🎯 准备调用pagerFinish返回原生App')
-  
-  const platform = getPlatformType()
-  console.log('🎯 当前检测到的平台:', platform)
-  
-  console.log('🎯 即将调用callPlatformMethod(pagerFinish, "")')
-  const handled = callPlatformMethod('pagerFinish', '')
+
+  const runtimeInfo = getNativeRuntimeInfo()
+  console.log('🎯 当前运行时信息:', runtimeInfo)
+
+  const backParam = runtimeInfo.hasIOSBridge ? null : ''
+  console.log('🎯 即将调用callPlatformMethod(pagerFinish, backParam)')
+  const handled = callPlatformMethod('pagerFinish', backParam)
   console.log('🎯 callPlatformMethod调用完成，handled:', handled)
-  
+
   console.log('=== navigateBack 原生返回分析 END ===')
   return handled
 }
@@ -147,13 +262,7 @@ export function navigateBack(): boolean {
  * 判断当前环境是否已注入原生桥接能力
  */
 export function hasNativeBridge(): boolean {
-  if (typeof window === 'undefined') {
-    return false
-  }
-  const win = window as any
-  const hasAndroidBridge = !!(win.appApi && typeof win.appApi.callback === 'function')
-  const hasIOSBridge = !!(win.webkit && win.webkit.messageHandlers && Object.keys(win.webkit.messageHandlers).length > 0)
-  return hasAndroidBridge || hasIOSBridge
+  return hasAndroidBridgeCapability() || hasIOSBridgeCapability()
 }
 
 /**
@@ -161,12 +270,7 @@ export function hasNativeBridge(): boolean {
  * @param userId 用户ID
  */
 export function openUserVitaeInfo(userId: string): void {
-  const platform = getPlatformType()
-  if (platform === PlatformType.ANDROID) {
-    callPlatformMethod('openUserVitaeInfo', userId)
-  } else if (platform === PlatformType.IOS) {
-    callPlatformMethod('openUserVitaeInfo', userId)
-  }
+  callPlatformMethod('openUserVitaeInfo', userId)
 }
 
 /**
@@ -179,12 +283,7 @@ export function inviteInterview(employeeUserid: string, positionId?: number): vo
     employeeUserid,
     ...(positionId ? { positionId } : {}),
   }
-  const platform = getPlatformType()
-  if (platform === PlatformType.ANDROID) {
-    callPlatformMethod('inviteInterview', JSON.stringify(params))
-  } else if (platform === PlatformType.IOS) {
-    callPlatformMethod('inviteInterview', JSON.stringify(params))
-  }
+  callPlatformMethod('inviteInterview', JSON.stringify(params))
 }
 
 /**
@@ -195,41 +294,29 @@ export function inviteInterview(employeeUserid: string, positionId?: number): vo
  */
 export function interviewOver(url: string, companyName: string, jobName: string): void {
   const params = { url, companyName, jobName }
-  const platform = getPlatformType()
-  if (platform === PlatformType.ANDROID) {
-    callPlatformMethod('Interview_over', JSON.stringify(params))
-  } else if (platform === PlatformType.IOS) {
-    callPlatformMethod('Interview_over', JSON.stringify(params))
-  }
+  callPlatformMethod('Interview_over', JSON.stringify(params))
 }
 
 /**
  * 通知原生面试题保存成功
  */
 export function aiInterviewSaved(): void {
-  callPlatformMethod('aiInterviewSaved', null)
+  const params = hasIOSBridgeCapability() ? null : ''
+  callPlatformMethod('aiInterviewSaved', params)
 }
 
 /**
  * 通知原生用户切换身份
  */
 export function userIdentityChange(): void {
-  const platform = getPlatformType()
-  if (platform === PlatformType.ANDROID) {
-    callPlatformMethod('userIdentityChange', '')
-  } else if (platform === PlatformType.IOS) {
-    callPlatformMethod('userIdentityChange', null)
-  }
+  const params = hasIOSBridgeCapability() ? null : ''
+  callPlatformMethod('userIdentityChange', params)
 }
 
 /**
  * 打开AI岗位列表
  */
 export function openAiJobList(): void {
-  const platform = getPlatformType()
-  if (platform === PlatformType.ANDROID) {
-    callPlatformMethod('openAiJobList', '')
-  } else if (platform === PlatformType.IOS) {
-    callPlatformMethod('openAiJobList', null)
-  }
+  const params = hasIOSBridgeCapability() ? null : ''
+  callPlatformMethod('openAiJobList', params)
 }

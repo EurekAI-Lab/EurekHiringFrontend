@@ -8,29 +8,25 @@
 </route>
 
 <template>
-  <view class="w-full bg-#f5f7fb min-h-screen flex flex-col">
-    <!-- 固定导航栏 -->
-    <view
-      class="fixed top-0 left-0 right-0 z-10 bg-white"
-      :style="{
-        height: topBarHeight + 'px'
-      }"
-    >
-      <view class="relative flex items-center" :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }">
+  <view class="w-full min-h-screen bg-#f5f7fb overflow-x-hidden">
+    <view class="relative w-full" @click="goProcess">
+      <image :src="aibg07" class="w-full h-40 block" mode="scaleToFill" />
+
+      <view
+        class="absolute left-0 right-0 z-10"
+        :style="{ top: `${safeAreaTop}px`, height: `${overlayNavHeight}px` }"
+      >
         <view
-          class="i-carbon-chevron-left w-8 h-8 absolute left-5 text-black"
-          @click="handleClickLeft"
+          class="i-carbon-chevron-left absolute left-5 top-1/2 h-7 w-7 -translate-y-1/2 text-white"
+          @click.stop="handleBack"
         ></view>
-        <view class="absolute left-1/2 transform -translate-x-1/2 text-black font-medium">个人AI模拟面试</view>
+        <view class="flex h-full items-center justify-center text-[17px] text-white font-medium">
+          个人AI模拟面试
+        </view>
       </view>
     </view>
-    
-    <!-- 内容区域，包含滚动内容 -->
-    <view class="flex-1 overflow-y-auto" :style="{ paddingTop: topBarHeight + 'px', paddingBottom: '80px' }">
-      <!-- 背景图 点击跳转操作了流程 -->
-      <view @click="goProcess()" class="w-full">
-        <image :src="aibg07" class="w-full" style="aspect-ratio: 375/160;" mode="widthFix"></image>
-      </view>
+
+    <view class="pb-24 pt-3">
 
       <view
         v-for="item in interviewList"
@@ -83,10 +79,16 @@
               class="w-15 h-15" 
             />
             <image 
-              v-else 
+              v-else-if="item.is_qualified == 'PASS'" 
               :src="iconQualified" 
               class="w-15 h-15" 
             />
+            <view
+              v-else
+              class="min-w-12 h-7 px-2 rounded-full bg-#eef3ff text-#5b6b8c text-xs flex items-center justify-center"
+            >
+              生成中
+            </view>
           </view>
         </view>
 
@@ -102,6 +104,7 @@
         />
       </view>
     </view>
+
     <view class="bottom-0 w-full h-10 flex justify-center items-center pt-4 pb-6 fixed bg-white">
       <view
         @click="showSheet = true"
@@ -166,6 +169,8 @@
         </view>
       </wd-action-sheet>
     </view>
+
+    <AiRuntimeDiagPanel page-name="record-simulate" :safe-area-top="safeAreaTop" />
   </view>
 </template>
 
@@ -184,14 +189,16 @@ import iconQualified from '../../static/app/icons/interview-status-new/suitable_
 import iconNotQualified from '../../static/app/icons/interview-status-new/unqualified_2x.png'
 import iconVeryQualified from '../../static/app/icons/interview-status-new/very_suitable_2x.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
-import { navigateBack } from '@/utils/platformUtils'
 import { registerMspjEntry } from '@/utils/mspjNavigation'
+import { buildAbsoluteH5ReloadUrl, getCurrentBuildId, getCurrentRouteKey, getRelativeUniPathFromUrl, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
+import { ensureLatestH5Bundle } from '@/utils/runtimeVersion'
 import { handleToken } from "@/utils/useAuth"
-import { useNavBar } from '@/utils/useNavBar'
 import { ref, watch, onMounted } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useUserStore } from '@/store'
+import { useAiPageBack } from '@/utils/useAiPageBack'
 const toast = useToast()
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
@@ -199,9 +206,31 @@ const loading = ref(true)
 const searchValue = ref()
 const showSheet = ref(false)
 const showErrorTip = ref(false)
+const systemInfo = uni.getSystemInfoSync()
+const safeAreaTop = Number(systemInfo.statusBarHeight || 0)
+const overlayNavHeight = 48
+const { handleBack } = useAiPageBack({
+  fallbackUrl: '/pages/about/about',
+  mode: 'native-first',
+  guardBrowserBack: true,
+})
 
-// 使用导航栏工具获取高度信息
-const { safeAreaInsets, navBarHeight, topBarHeight } = useNavBar()
+const syncRuntimeState = (pageStage: string, extras: Record<string, any> = {}) => {
+  // #ifdef H5
+  updateRuntimeDiagnostics({
+    buildId: getCurrentBuildId(),
+    resolvedApiBase: resolveApiBaseUrlForCurrentSite(baseUrl),
+    origin: window.location.origin,
+    currentRoute: getCurrentRouteKey(),
+    pageName: `record-simulate:${pageStage}`,
+    siteKind: isH5TestSite() ? 'test' : 'production',
+    safeAreaTop,
+    statusBarHeight: safeAreaTop,
+    ...extras,
+  })
+  // #endif
+}
+
 const close = async () => {
   showSheet.value = false
 }
@@ -210,11 +239,15 @@ const generateInterview = async () => {
   showSheet.value = false
 }
 onMounted(() => {
+  // #ifdef H5
+  void ensureLatestH5Bundle({ force: true })
+  // #endif
   console.log('record-simulate.vue - onMounted开始执行')
   console.log('record-simulate.vue - 当前存储的token:', uni.getStorageSync('token'))
   console.log('record-simulate.vue - interviewList初始值:', interviewList.value)
   getPostionInfo()
   my_test_interviews()
+  syncRuntimeState('mounted')
   
   // 添加watch来监控interviewList的变化
   watch(interviewList, (newVal, oldVal) => {
@@ -227,8 +260,12 @@ onMounted(() => {
 
 // 页面显示时刷新数据
 onShow(() => {
+  // #ifdef H5
+  void ensureLatestH5Bundle({ force: true })
+  // #endif
   console.log('record-simulate.vue - onShow触发，刷新列表')
   my_test_interviews()
+  syncRuntimeState('show')
 })
 
 // 添加下拉刷新
@@ -439,6 +476,7 @@ const getPostionInfo = async () => {
 }
 onLoad((options) => {
   handleToken(options)
+  syncRuntimeState('load')
   
   // Sync token with user store
   const token = uni.getStorageSync('token')
@@ -450,10 +488,6 @@ onLoad((options) => {
     }
   }
 })
-function handleClickLeft() {
-  navigateBack()
-}
-
 const items = ref([])
 const interviewList = ref([])
 
@@ -532,10 +566,46 @@ const submitTestInerview = async () => {
         success: (res: any) => {
           console.log('submitTestInerview - 成功响应:', res)
           if (res.statusCode === 200 && res.data && res.data.data && res.data.data.redirect_url) {
-            // 添加test=true参数，标识这是模拟面试
             const redirectUrl = res.data.data.redirect_url
-            const separator = redirectUrl.includes('?') ? '&' : '?'
-            window.location.href = redirectUrl + separator + 'test=true'
+            const relativeUrl = getRelativeUniPathFromUrl(redirectUrl)
+            const targetUrl = relativeUrl
+              ? relativeUrl.includes('test=')
+                ? relativeUrl
+                : `${relativeUrl}${relativeUrl.includes('?') ? '&' : '?'}test=true`
+              : ''
+
+            console.log('submitTestInerview - 创建模拟面试结果:', {
+              selectedJobseekerPositionId: selectedItem.id,
+              redirectUrl,
+              relativeUrl,
+              targetUrl,
+              interviewId: res.data.data.interview_id,
+              positionName: res.data.data.position_name,
+            })
+
+            if (targetUrl) {
+              syncRuntimeState('create-success', {
+                interviewId: res.data.data.interview_id,
+              })
+              if (typeof window !== 'undefined') {
+                const absoluteUrl = buildAbsoluteH5ReloadUrl(targetUrl)
+                console.log('submitTestInerview - H5强制刷新跳转:', {
+                  navigationMode: 'h5-document-reload',
+                  absoluteUrl,
+                })
+                window.location.replace(absoluteUrl)
+                return
+              }
+
+              console.log('submitTestInerview - 非H5跳转:', {
+                navigationMode: 'uni-relaunch',
+                targetUrl,
+              })
+              uni.reLaunch({ url: targetUrl })
+              return
+            }
+
+            window.location.replace(redirectUrl)
           } else {
             console.error('响应格式错误:', res)
             toast.error('创建面试失败，请稍后重试')

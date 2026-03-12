@@ -12,23 +12,21 @@
 </route>
 <template>
   <!--  h-100% overflow-auto -->
-  <view class="relative">
-    <!-- 顶部导航 -->
-    <view class="fixed z-2 w-full h-22 nav-bg" v-if="getENVIR() !== 'wx'">
-      <view class="w-full h-11"></view>
-      <view class="relative h-11 flex flex-row text-white">
-        <!-- -top-1 -->
-        <view class="i-carbon-chevron-left w-6 h-6 absolute left-5" style="top: 50%; transform: translateY(-50%)"
-          @click="handleClickLeft"></view>
-        <view class="absolute left-2/5" style="top: 50%; transform: translateY(-50%)"></view>
-        <!-- <view class="absolute left-4/5" @click="saveQuestion()">确定</view> -->
-      </view>
-    </view>
+  <view class="relative bg-#f5f7fb min-h-screen">
+    <AiPageNavBar
+      title="AI面试"
+      text-color="#111111"
+      background-color="#ffffff"
+      :show-background="true"
+      @back="handleClickLeft"
+    />
     <!-- h-50 h-auto  pt-24-->
-    <view class="relative w-full h-auto flex flex-wrap justify-center pt-24" style="">
+    <view class="relative w-full h-auto flex flex-wrap justify-center" :style="pageContentStyle">
       <!-- 顶部背景 -->
-      <view class="absolute w-100% h-50 z-0 top-22"
-        style="background: linear-gradient(180deg, #145eff 0%, #0cd0ff 100%)"></view>
+      <view
+        class="absolute w-100% h-50 z-0"
+        :style="heroBackgroundStyle"
+      ></view>
       
       <!-- Loading 状态 -->
       <view v-if="isLoading" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-20">
@@ -281,7 +279,7 @@
         :close-on-click-modal="false"
         @close="closeVideoModal"
       >
-        <view class="video-player-container" @click.stop :style="`--safe-area-top: ${safeAreaTop.value}px`">
+        <view class="video-player-container" @click.stop :style="`--safe-area-top: ${safeAreaTop}px`">
           <!-- 顶部操作栏 -->
           <view class="video-top-bar">
             <!-- 关闭按钮 -->
@@ -348,6 +346,11 @@
       </wd-popup>
     </view>
     </view>
+    <AiRuntimeDiagPanel
+      page-name="mspj"
+      :safe-area-top="safeAreaTop"
+      :extra="{ interviewId, entryKey, type, from }"
+    />
   </view>
 </template>
 
@@ -380,7 +383,7 @@ import { hasNativeBridge } from '@/utils/platformUtils'
 import {
   registerMspjEntry,
   getMspjEntry,
-  navigateBackByMspjEntry,
+  navigateBackToAiEntry,
   isMspjEntryKey,
   getMspjEntryState,
   type MspjEntryKey,
@@ -389,8 +392,38 @@ import { handleToken } from "@/utils/useAuth"
 import { renderMarkdownText, cleanMarkdownCodeBlocks, formatImprovementSuggestions } from '@/utils/markdownUtils'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { nextTick, computed } from 'vue'
+import { useNavBar } from '@/utils/useNavBar'
+import { getCurrentBuildId, getCurrentRouteKey, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+const { safeAreaInsets, topBarHeight } = useNavBar()
+const safeAreaTop = Number(safeAreaInsets?.top || 0)
+const pageContentStyle = computed(() => ({
+  paddingTop: `${Number(topBarHeight || 0) + 8}px`,
+}))
+const heroBackgroundStyle = computed(() => ({
+  top: `${Number(topBarHeight || 0)}px`,
+  background: 'linear-gradient(180deg, #145eff 0%, #0cd0ff 100%)',
+}))
+
+const syncReportDiagnostics = (stage: string, extras: Record<string, any> = {}) => {
+  // #ifdef H5
+  updateRuntimeDiagnostics({
+    buildId: getCurrentBuildId(),
+    resolvedApiBase: resolveApiBaseUrlForCurrentSite(baseUrl),
+    origin: window.location.origin,
+    currentRoute: getCurrentRouteKey(),
+    pageName: `mspj:${stage}`,
+    siteKind: isH5TestSite() ? 'test' : 'production',
+    interviewId: typeof interviewId.value === 'number' ? interviewId.value : null,
+    safeAreaTop,
+    hasNativeBridge: hasNativeBridge(),
+    ...extras,
+  })
+  // #endif
+}
+
 console.log('env', import.meta.env.MODE)
 const options = reactive({
   width: '800px', // 播放器高度
@@ -707,34 +740,13 @@ const frameAnalysis = ref<FrameAnalysis>({
   samples: [],
 })
 
-// 获取系统信息，用于安全区域适配
-const systemInfo = uni.getSystemInfoSync()
-const statusBarHeight = ref(0)
-const safeAreaTop = ref(0)
-
-// 计算实际的顶部安全高度
-if (systemInfo) {
-  statusBarHeight.value = systemInfo.statusBarHeight || 0
-  
-  // H5 平台通常没有 safeAreaInsets，使用 statusBarHeight
-  if (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top) {
-    safeAreaTop.value = systemInfo.safeAreaInsets.top
-  } else {
-    // 对于刘海屏，需要确保有足够的高度
-    // iOS 刘海屏通常是 44px，Android 通常是状态栏高度
-    safeAreaTop.value = Math.max(statusBarHeight.value, 44)
-  }
-  
-  console.log('系统信息详情:', {
-    platform: systemInfo.platform,
-    statusBarHeight: statusBarHeight.value,
-    safeAreaInsets: systemInfo.safeAreaInsets,
-    计算的安全高度: safeAreaTop.value
-  })
-}
-
 // 组件挂载时获取面试信息
 onMounted(() => {
+  syncReportDiagnostics('mounted', {
+    entryKey: entryKey.value,
+    type: type.value,
+    from: from.value,
+  })
   // 移除视频镜像处理 - 不再需要镜像效果
   /*
   const handleVideoElementsMirror = () => {
@@ -803,19 +815,7 @@ const fetchInterviewInfo = async (interviewId: number) => {
 
 // 处理返回事件
 onBackPress(() => {
-  console.log('=== onBackPress 系统返回按钮分析 START ===')
-  console.log('onBackPress - type:', type.value, 'from:', from.value, 'entryKey:', entryKey.value)
-  navigateBackByMspjEntry().then((handled) => {
-    console.log('=== onBackPress 系统返回按钮分析 END，handled:', handled, '===')
-    if (!handled) {
-      if (from.value === 'about') {
-        uni.reLaunch({ url: '/pages/about/about' })
-      } else {
-        const fallbackUrl = type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
-        uni.reLaunch({ url: fallbackUrl })
-      }
-    }
-  })
+  navigateBackToAiEntry(resolvedFallbackUrl.value)
   return true
 })
 
@@ -984,8 +984,28 @@ onLoad((options) => {
   }
   console.log('onLoad - 解析得到entry:', entryKey.value)
   console.log('=== mspj onLoad 参数分析 END ===')
+  syncReportDiagnostics('load', {
+    entryKey: entryKey.value,
+    type: type.value,
+    from: from.value,
+  })
 })
 const interviewId = ref()
+const resolvedFallbackUrl = computed(() => {
+  if (entryKey.value === 'simulate-record') {
+    return '/pages/interviews/record-simulate'
+  }
+  if (entryKey.value === 'enterprise-record') {
+    return '/pages/interviews/record?identity=enterprise'
+  }
+  if (entryKey.value === 'recruiter-record') {
+    return '/pages/interviews/record'
+  }
+  if (from.value === 'about') {
+    return '/pages/about/about'
+  }
+  return type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
+})
 // 获取面试题目评价
 defineOptions({ name: 'Home' })
 const fetchInterviewReport = async (interviewId: number) => {
@@ -1079,6 +1099,12 @@ const fetchInterviewReport = async (interviewId: number) => {
       improvementSuggestions.value = responseData.improvement_suggestions || ''
       score.value = responseData.info.score
       pgjg.value = responseData.info.interview_result === 'PASS' ? '通过' : '不通过'
+      syncReportDiagnostics('report-loaded', {
+        entryKey: entryKey.value,
+        type: type.value,
+        from: from.value,
+        reportCount: interviewReport.value.length,
+      })
 
       // 处理帧分析数据
       if (responseData.frame_analysis) {
@@ -1134,25 +1160,6 @@ const fetchInterviewReport = async (interviewId: number) => {
     isLoading.value = false
   }
 }
-function getENVIR() {
-  let text = ''
-  let ua = navigator.userAgent.toLowerCase()
-  if (ua.match(/MicroMessenger/i) == 'micromessenger') {
-    wxSdk.miniProgram.getEnv((res) => {
-      if (res.miniprogram) {
-        //小程序环境
-        text = 'wx'
-      } else {
-        //微信环境
-        text = 'noWx'
-      }
-    })
-  } else {
-    // 其他浏览器
-    text = 'noWx'
-  }
-  return text
-}
 const mszw = ref('')
 const msrName = ref('')
 const ztTime = ref('')
@@ -1166,19 +1173,7 @@ const improvementSuggestions = ref('')
 const score = ref(0)
 
 async function handleClickLeft() {
-  console.log('=== handleClickLeft 返回按钮分析 START ===')
-  console.log('handleClickLeft - type:', type.value, 'from:', from.value, 'entryKey:', entryKey.value)
-  const handled = await navigateBackByMspjEntry()
-  if (!handled) {
-    console.log('handleClickLeft - 未命中特定入口，执行默认返回逻辑，from:', from.value)
-    if (from.value === 'about') {
-      uni.reLaunch({ url: '/pages/about/about' })
-    } else {
-      const fallbackUrl = type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
-      uni.reLaunch({ url: fallbackUrl })
-    }
-  }
-  console.log('=== handleClickLeft 返回按钮分析 END，handled:', handled, '===')
+  await navigateBackToAiEntry(resolvedFallbackUrl.value)
 }
 
 // 将秒数转换为"xx分钟xx秒"格式

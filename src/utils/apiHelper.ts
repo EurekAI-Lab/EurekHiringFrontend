@@ -5,15 +5,15 @@
 
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { getEnvBaseUrl } from '@/utils'
+import { resolveApiBaseUrlForCurrentSite } from '@/utils/url'
 
 // 获取完整的API URL（用于fetch等不经过拦截器的请求）
 export const getFullApiUrl = (endpoint: string): string => {
   let baseUrl = getEnvBaseUrl()
-  // H5: 若当前路径包含 test，但 baseUrl 仍是 /api，则自动纠偏到 /test/api
-  // 统一与 request 拦截器的行为，避免 fetch 与 uni.request 前缀不一致
+  // H5: 与 request 拦截器共用同一套站点判断，避免 query 里的 test=true 把生产页切到测试 API
   // #ifdef H5
-  if (typeof window !== 'undefined' && window?.location?.href?.includes('test') && !baseUrl.includes('/test/')) {
-    baseUrl = baseUrl.replace('/api', '/test/api')
+  if (typeof window !== 'undefined') {
+    baseUrl = resolveApiBaseUrlForCurrentSite(baseUrl)
   }
   // #endif
   return baseUrl + endpoint

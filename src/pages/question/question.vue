@@ -216,14 +216,24 @@ import icon003 from '../../static/app/icons/Frame-003.png'
 import icoTs from '../../static/app/icons/icon_ts.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { usePublicStore } from '@/store'
-import { navigateBack, aiInterviewSaved, getPlatformType, PlatformType } from '@/utils/platformUtils'
+import {
+  aiInterviewSaved,
+  getNativeRuntimeInfo,
+  isAndroidLikeBridgePlatform,
+} from '@/utils/platformUtils'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { FULL_API_URLS } from '@/utils/apiHelper'
+import { useAiPageBack } from '@/utils/useAiPageBack'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 
 const publicStore = usePublicStore()
 const companyLogo = ref(null)
+const { handleBack } = useAiPageBack({
+  fallbackUrl: '/pages/interviews/process',
+  mode: 'native-first',
+  guardBrowserBack: true,
+})
 
 const message = useMessage()
 defineOptions({ name: 'Home' })
@@ -234,8 +244,7 @@ onMounted(async () => {
 const positionsId = ref<number | null>(null)
 
 function handleClickLeft() {
-  // uni.navigateBack()
-  navigateBack()
+  void handleBack()
 }
 
 onLoad((options) => {
@@ -793,12 +802,15 @@ const saveQusetion = async () => {
 
           if (res.statusCode === 200) {
             try {
+              const runtimeInfo = getNativeRuntimeInfo()
+              console.log('保存AI面试题桥接信息:', runtimeInfo)
+
               // 通知原生面试题保存成功
               aiInterviewSaved()
               
-              // Android平台需要调用navigateBack，iOS不需要
-              if (getPlatformType() === PlatformType.ANDROID) {
-                navigateBack()
+              // Android/Harmony平台需要调用navigateBack，iOS不需要
+              if (isAndroidLikeBridgePlatform()) {
+                void handleBack()
               }
             } catch (error) {
               console.log('返回app函数报错', error)

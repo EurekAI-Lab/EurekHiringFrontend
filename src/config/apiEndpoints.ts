@@ -7,7 +7,8 @@ export const API_ENDPOINTS = {
   // 面试相关
   interviews: {
     create: '/interviews/create',
-    createMock: (jobseekerId: number) => `/interviews/create_mock_interview/${jobseekerId}`,
+    createMock: (jobseekerPositionId: number) =>
+      `/interviews/create_mock_interview/${jobseekerPositionId}`,
     getList: '/interviews/getList/',
     getById: (id: number | string) => `/interviews/${id}`,
     redirectUrl: '/interviews/redirect-url/',

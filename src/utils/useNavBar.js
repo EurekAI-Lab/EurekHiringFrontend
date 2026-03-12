@@ -45,6 +45,14 @@ export function useNavBar() {
   if (safeAreaInsets.top < statusBarHeight.value) {
     safeAreaInsets.top = statusBarHeight.value
   }
+
+  const rawSafeAreaTop = Number(safeAreaInsets.top || 0)
+  const rawStatusBarHeight = Number(statusBarHeight.value || 0)
+  const normalizedSafeAreaTop = resolveNormalizedSafeAreaTop({
+    rawSafeAreaTop,
+    rawStatusBarHeight,
+    systemInfo,
+  })
   
   // 微信小程序平台特殊处理
   // #ifdef MP-WEIXIN
@@ -52,13 +60,20 @@ export function useNavBar() {
     const menuButtonInfo = uni.getMenuButtonBoundingClientRect()
     if (menuButtonInfo && menuButtonInfo.top) {
       // 使用胶囊按钮的位置来确定导航栏高度
-      const navBarHeight = (menuButtonInfo.top - safeAreaInsets.top) * 2 + menuButtonInfo.height
+      const navBarHeight = (menuButtonInfo.top - normalizedSafeAreaTop) * 2 + menuButtonInfo.height
+      const headerContentHeight = navBarHeight
+      const headerOuterHeight = normalizedSafeAreaTop + headerContentHeight
       return {
         systemInfo,
-        statusBarHeight: safeAreaInsets.top,
+        statusBarHeight: rawStatusBarHeight,
+        rawSafeAreaTop,
+        safeAreaTop: normalizedSafeAreaTop,
+        safeAreaTopNormalized: normalizedSafeAreaTop,
         safeAreaInsets,
         navBarHeight,
-        topBarHeight: safeAreaInsets.top + navBarHeight,
+        headerContentHeight,
+        headerOuterHeight,
+        topBarHeight: headerOuterHeight,
         menuButtonInfo
       }
     }
@@ -79,16 +94,57 @@ export function useNavBar() {
   
   // 总的顶部高度
   const topBarHeight = computed(() => {
-    return safeAreaInsets.top + navBarHeight.value
+    return normalizedSafeAreaTop + navBarHeight.value
+  })
+
+  const headerContentHeight = computed(() => {
+    return navBarHeight.value
+  })
+
+  const headerOuterHeight = computed(() => {
+    return normalizedSafeAreaTop + headerContentHeight.value
   })
   
   return {
     systemInfo,
-    statusBarHeight: safeAreaInsets.top,
+    statusBarHeight: rawStatusBarHeight,
+    rawSafeAreaTop,
+    safeAreaTop: normalizedSafeAreaTop,
+    safeAreaTopNormalized: normalizedSafeAreaTop,
     safeAreaInsets,
     navBarHeight: navBarHeight.value,
+    headerContentHeight: headerContentHeight.value,
+    headerOuterHeight: headerOuterHeight.value,
     topBarHeight: topBarHeight.value
   }
+}
+
+function resolveNormalizedSafeAreaTop({ rawSafeAreaTop, rawStatusBarHeight, systemInfo }) {
+  let normalizedTop = Number(rawSafeAreaTop || 0)
+  const statusBarTop = Number(rawStatusBarHeight || 0)
+
+  const platform = String(systemInfo?.platform || '').toLowerCase()
+  const osName = String(systemInfo?.osName || '').toLowerCase()
+  const systemText = String(systemInfo?.system || '').toLowerCase()
+  const isAndroidLike = platform === 'android' || /android|harmony/.test(osName) || /android|harmony/.test(systemText)
+
+  // #ifdef H5
+  if (isAndroidLike) {
+    if (statusBarTop > 0) {
+      normalizedTop = statusBarTop
+    } else if (!normalizedTop) {
+      normalizedTop = 24
+    }
+
+    normalizedTop = Math.min(normalizedTop, 36)
+  }
+  // #endif
+
+  if (!normalizedTop || normalizedTop < statusBarTop) {
+    normalizedTop = statusBarTop
+  }
+
+  return normalizedTop
 }
 
 /**

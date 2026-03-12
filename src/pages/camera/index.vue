@@ -11,7 +11,8 @@
 
     <view class="w-full flex justify-center fixed" v-if="!isInterviewStarted">
       <view
-        class="flex flex-row absolute rounded rounded-xl bg-#302920 top-12 h-20 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
+        class="flex flex-row absolute rounded rounded-xl bg-#302920 h-20 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
+        :style="introCardStyle"
       >
         <view class="flex flex-col gap-y-2">
           <view class="flex flex-row gap-x-3 w-70">
@@ -28,7 +29,8 @@
       </view>
 
       <view
-        class="flex flex-row absolute rounded rounded-xl text-sm top-34 bg-#302920 h-22 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
+        class="flex flex-row absolute rounded rounded-xl text-sm bg-#302920 h-22 flex px-2 flex-row w-[90%] items-center text-white opacity-75"
+        :style="introNoticeStyle"
       >
         <view class="flex flex-col gap-y-2">
           您已进入AI视频面试测试环节，请确认您周围环境是否满足面试条件，以及您的设备是否已授权音视频权限
@@ -138,6 +140,16 @@
         </view>
       </wd-overlay>
     </view>
+    <AiRuntimeDiagPanel
+      page-name="camera"
+      :safe-area-top="safeAreaTop"
+      :extra="{
+        currentQuestionIndex,
+        isInterviewStarted,
+        platformType: getPlatformType(),
+        hasNativeBridge: hasNativeBridge(),
+      }"
+    />
   </view>
 </template>
 
@@ -146,9 +158,20 @@ import { ref, onBeforeUnmount } from 'vue'
 import icon01 from '../../static/app/icons/Frame-001.png'
 import icon02 from '../../static/app/icons/Frame-002.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
-import { navigateBack, interviewOver, getPlatformType, PlatformType, hasNativeBridge } from '@/utils/platformUtils'
-import { registerMspjEntry, type MspjEntryKey } from '@/utils/mspjNavigation'
-import { buildAbsoluteH5Url } from '@/utils/url'
+import { interviewOver, getPlatformType, PlatformType, hasNativeBridge } from '@/utils/platformUtils'
+import { registerMspjEntry, navigateBackToAiEntry, type MspjEntryKey } from '@/utils/mspjNavigation'
+import {
+  buildAbsoluteH5ReloadUrl,
+  buildAbsoluteH5Url,
+  getCurrentBuildId,
+  getCurrentRouteKey,
+  getRelativeUniPathFromUrl,
+  isApiBaseMismatchedForCurrentSite,
+  isH5TestSite,
+  resolveApiBaseUrlForCurrentSite,
+  shouldReloadInterviewSession,
+} from '@/utils/url'
+import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 const message = useMessage()
 
@@ -157,17 +180,15 @@ const toast = useToast()
 let baseUrl = import.meta.env.VITE_SERVER_BASEURL
 const test = ref(false)
 
-// H5环境下检查是否需要添加test前缀
-// #ifdef H5
-if (window?.location?.href?.includes('test') && !baseUrl.includes('/test/')) {
-  baseUrl = baseUrl.replace('/api', '/test/api')
-}
-// #endif
-
 // 如果环境变量中已经包含了test，直接使用
 if (import.meta.env.MODE === 'test' && !baseUrl.includes('/test/')) {
   baseUrl = baseUrl.replace('/api', '/test/api')
 }
+
+// H5环境下统一按站点路径收敛 baseUrl，避免 ?test=true 把生产页误判成测试环境
+// #ifdef H5
+baseUrl = resolveApiBaseUrlForCurrentSite(baseUrl)
+// #endif
 
 console.log('Camera页面使用的baseUrl:', baseUrl, 'MODE:', import.meta.env.MODE)
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
@@ -222,6 +243,13 @@ const getFallbackForEntry = (entry: MspjEntryKey) => {
   }
 }
 
+const exitCameraPage = async () => {
+  const entry = resolveReportEntry()
+  const fallbackUrl = getFallbackForEntry(entry)
+  registerMspjEntry(entry, { fallbackUrl })
+  await navigateBackToAiEntry(fallbackUrl)
+}
+
 // 定义接口
 interface Position {
   id: number
@@ -248,8 +276,7 @@ interface InterviewDetailsResponse {
   }
 }
 
-// 定义状态
-const interviewDetails = ref({
+const createEmptyInterviewDetails = (): InterviewDetailsResponse => ({
   data: {
     position: {
       id: 0,
@@ -263,6 +290,30 @@ const interviewDetails = ref({
     questions: [],
   },
 })
+
+const parseInterviewId = (value: unknown) => {
+  const parsedValue = Number.parseInt(String(value ?? ''), 10)
+  return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : null
+}
+
+const clearReactiveStateMap = (stateMap: Record<string, any>) => {
+  Object.keys(stateMap).forEach((key) => {
+    delete stateMap[key]
+  })
+}
+
+const getSelfTestStorageKey = (caseId: string) => `__mock_interview_self_test__:${caseId}`
+
+const syncSelfTestParams = (params: URLSearchParams) => {
+  selfTestCaseId.value = params.get('selfTestCaseId') || ''
+  selfTestReturn.value = params.get('selfTestReturn') || ''
+  selfTestExpectedInterviewId.value = parseInterviewId(params.get('selfTestExpectedInterviewId'))
+  selfTestExpectedPositionName.value = params.get('selfTestExpectedPositionName') || ''
+  selfTestAutoReturn.value = params.get('selfTestAutoReturn') === '1'
+}
+
+// 定义状态
+const interviewDetails = ref<InterviewDetailsResponse>(createEmptyInterviewDetails())
 const currentQuestionIndex = ref(0) // 当前题目索引
 
 const videoRef = ref<HTMLVideoElement | null>(null)
@@ -282,14 +333,160 @@ const isTimeUp = ref(false)
 const recordedData = ref<any[]>([]) // 使用 any[] 类型
 const blobData = ref<Blob | null>(null) // 添加一个专门存储 Blob 的引用
 const loading = ref(false)
-const interviewId = ref()
+const interviewId = ref<number | null>(null)
+const lastLoadedInterviewId = ref<number | null>(null)
+const hasLoadedCurrentInterview = ref(false)
+const selfTestCaseId = ref('')
+const selfTestReturn = ref('')
+const selfTestExpectedInterviewId = ref<number | null>(null)
+const selfTestExpectedPositionName = ref('')
+const selfTestAutoReturn = ref(false)
+const selfTestHasReported = ref(false)
 const videoDuration = ref(0) // 添加视频时长变量
-const fileFrom = reactive({ interview_id: ref(), fileUrls: [] })
+const fileFrom = reactive<{ interview_id: number | null, fileUrls: any[] }>({
+  interview_id: null,
+  fileUrls: [],
+})
+let hashChangeHandler: (() => void) | null = null
+let hasShownRuntimeMismatch = false
 
 // 新增：录制状态管理
 const isRecordingReady = ref(false) // 标记录制是否已准备就绪
-const recordingStatus = reactive<{ [key: number]: 'idle' | 'recording' | 'completed' | 'failed' }>({})
+type QuestionRuntimeStatus = 'idle' | 'recording' | 'submitted' | 'failed' | 'failed_submission'
+const recordingStatus = reactive<{ [key: number]: QuestionRuntimeStatus }>({})
 const uploadRetryCount = reactive<{ [key: number]: number }>({}) // 上传重试次数
+const questionSubmitDiagnostics = reactive<Record<number, any>>({})
+
+const syncCameraRuntimeDiagnostics = (stage: string, extras: Record<string, any> = {}) => {
+  // #ifdef H5
+  updateRuntimeDiagnostics({
+    buildId: getCurrentBuildId(),
+    resolvedApiBase: baseUrl,
+    origin: window.location.origin,
+    currentRoute: getCurrentRouteKey(),
+    interviewId: interviewId.value,
+    siteKind: isH5TestSite() ? 'test' : 'production',
+    pageName: `camera:${stage}`,
+    safeAreaTop,
+    platformType: getPlatformType(),
+    hasNativeBridge: hasNativeBridge(),
+    ...extras,
+  })
+  // #endif
+}
+
+const ensureSafeApiBase = (stage: string) => {
+  syncCameraRuntimeDiagnostics(stage)
+
+  // #ifdef H5
+  if (!isApiBaseMismatchedForCurrentSite(baseUrl)) {
+    return true
+  }
+
+  const mismatchReason = isH5TestSite() ? '测试站点命中了生产 API' : '生产站点命中了测试 API'
+  updateRuntimeDiagnostics({ mismatchReason })
+  console.error('[camera] 检测到跨环境 API 路由异常', {
+    stage,
+    mismatchReason,
+    resolvedApiBase: baseUrl,
+    href: window.location.href,
+    interviewId: interviewId.value,
+  })
+
+  if (!hasShownRuntimeMismatch) {
+    hasShownRuntimeMismatch = true
+    uni.showModal({
+      title: '页面版本异常',
+      content: '当前页面检测到环境路由异常，已阻止继续进入错误面试。请返回后重新进入面试模块。',
+      showCancel: false,
+    })
+  }
+  return false
+  // #endif
+
+  // #ifndef H5
+  return true
+  // #endif
+}
+
+const getQuestionDisplayNumber = (questionId: number) => {
+  const questionIndex = interviewDetails.value.data.questions?.findIndex(q => q.id === questionId) ?? -1
+  return questionIndex >= 0 ? questionIndex + 1 : currentQuestionIndex.value + 1
+}
+
+const upsertQuestionFileData = (item: any) => {
+  const existingIndex = fileFrom.fileUrls.findIndex((entry) => entry.question_id === item.question_id)
+  if (existingIndex >= 0) {
+    fileFrom.fileUrls[existingIndex] = item
+    return
+  }
+  fileFrom.fileUrls.push(item)
+}
+
+const syncRouteStateFromH5Location = () => {
+  // #ifdef H5
+  const relativeUrl = getRelativeUniPathFromUrl(window.location.href)
+  if (!relativeUrl || !relativeUrl.startsWith('/pages/camera/index')) {
+    return
+  }
+
+  const [, search = ''] = relativeUrl.split('?')
+  const params = new URLSearchParams(search)
+  const nextInterviewId = parseInterviewId(params.get('interviewId'))
+  const nextToken = params.get('token')
+
+  if (nextToken) {
+    uni.setStorageSync('token', nextToken)
+  }
+  if (nextInterviewId) {
+    interviewId.value = nextInterviewId
+  }
+  test.value = params.get('test') === 'true'
+  syncSelfTestParams(params)
+  // #endif
+}
+
+const resetInterviewSessionState = () => {
+  stopCamera()
+
+  if (timer.value) {
+    clearInterval(timer.value)
+    timer.value = null
+  }
+
+  if (audioPlayTimeout) {
+    clearTimeout(audioPlayTimeout)
+    audioPlayTimeout = null
+  }
+
+  try {
+    innerAudioContext.stop()
+  } catch (error) {
+    console.error('重置面试会话时停止音频失败:', error)
+  }
+
+  interviewDetails.value = createEmptyInterviewDetails()
+  currentQuestionIndex.value = 0
+  isInterviewStarted.value = false
+  isProcessing.value = false
+  overQuestion.value = false
+  timeLeft.value = 0
+  isTiming.value = false
+  isTimingShow.value = false
+  isTimeUp.value = false
+  recordedData.value = []
+  blobData.value = null
+  videoDuration.value = 0
+  fileFrom.interview_id = interviewId.value
+  fileFrom.fileUrls.splice(0, fileFrom.fileUrls.length)
+  isRecordingReady.value = false
+  showVideoMask.value = true
+  hasLoadedCurrentInterview.value = false
+  selfTestHasReported.value = false
+  clearReactiveStateMap(recordingStatus)
+  clearReactiveStateMap(uploadRetryCount)
+  clearReactiveStateMap(questionSubmitDiagnostics)
+}
 
 // 创建音频
 const innerAudioContext = uni.createInnerAudioContext()
@@ -368,7 +565,7 @@ const play = () => {
       duration: 2000
     })
     setTimeout(() => {
-      uni.navigateBack()
+      exitCameraPage()
     }, 2000)
     return
   }
@@ -645,23 +842,52 @@ const submitSingleQuestion = async (questionData: any) => {
       }
     })
 
-    if (response.statusCode === 200) {
-      console.log(`题目${questionData.question_id}提交成功`)
-      // 显示成功提示
-      // 找出当前题目在题目列表中的索引
-      const questionIndex = interviewDetails.value.data.questions?.findIndex(q => q.id === questionData.question_id) ?? -1
-      const currentQuestionNum = questionIndex >= 0 ? questionIndex + 1 : currentQuestionIndex.value + 1
-      const totalQuestions = interviewDetails.value.data.questions?.length || 0
-      toast.success(`第${currentQuestionNum}题已提交 (${currentQuestionNum}/${totalQuestions})`)
-    } else {
-      console.error(`题目${questionData.question_id}提交失败:`, response)
-      // 显示失败提示
-      toast.error(`第${currentQuestionIndex.value + 1}题提交失败，请重试`)
+    const responseData = response.data as any
+    const questionNumber = getQuestionDisplayNumber(questionData.question_id)
+    const totalQuestions = interviewDetails.value.data.questions?.length || 0
+    const isSuccess =
+      response.statusCode === 200 &&
+      responseData?.code === 200 &&
+      responseData?.interview_record_saved === true &&
+      responseData?.video_answer_saved === true
+
+    questionSubmitDiagnostics[questionData.question_id] = {
+      statusCode: response.statusCode,
+      responseData,
+      submittedAt: new Date().toISOString(),
+      questionNumber,
+      videoUrl: questionData.video_url,
+    }
+
+    if (isSuccess) {
+      console.log(`题目${questionData.question_id}提交成功`, responseData)
+      toast.success(`第${questionNumber}题已提交 (${questionNumber}/${totalQuestions})`)
+      return {
+        ok: true,
+        taskCreated: !!responseData?.task_created,
+        taskId: responseData?.task_id || '',
+        warnings: responseData?.warnings || [],
+      }
+    }
+
+    console.error(`题目${questionData.question_id}提交失败:`, {
+      statusCode: response.statusCode,
+      responseData,
+      questionData,
+    })
+    return {
+      ok: false,
+      message: responseData?.message || responseData?.detail || `第${questionNumber}题提交失败，请重试`,
+      statusCode: response.statusCode,
+      responseData,
     }
   } catch (error) {
     console.error('提交单题视频失败:', error)
-    // 显示网络错误提示
-    toast.error('网络错误，题目提交失败')
+    return {
+      ok: false,
+      message: '网络错误，题目提交失败',
+      error,
+    }
   }
 }
 
@@ -697,17 +923,38 @@ const stopRecordingAndSave = async () => {
             // 上传当前题目的视频
             console.log(`开始上传题目 ${currentIndex} 的视频，大小: ${finalBlob.size} bytes`)
             let uploadResult = await getUploadInfo()
-            console.log('录制的视频上传成功1', uploadResult);
+            console.log('录制的视频上传成功1', uploadResult)
 
             // 立即提交单题到后端进行ASR和评估
-            await submitSingleQuestion(uploadResult)
+            const submitResult = await submitSingleQuestion(uploadResult)
 
-            // 标记当前题目完成
-            recordingStatus[currentIndex] = 'completed'
+            if (!submitResult.ok) {
+              const currentQuestion = interviewDetails.value.data.questions[currentIndex]
+              const failedData = {
+                ...uploadResult,
+                question_id: currentQuestion ? currentQuestion.id : uploadResult.question_id,
+                submission_failed: true,
+                failure_reason: submitResult.message,
+                submit_response: submitResult.responseData || submitResult.error || null,
+              }
+              upsertQuestionFileData(failedData)
+              recordingStatus[currentIndex] = 'failed_submission'
+              console.error(`题目 ${currentIndex} 单题提交失败:`, {
+                submitResult,
+                failedData,
+              })
+              toast.error(submitResult.message || `第${currentIndex + 1}题提交失败，请稍后重试`)
+            } else {
+              recordingStatus[currentIndex] = 'submitted'
+              if (Array.isArray(submitResult.warnings) && submitResult.warnings.length > 0) {
+                console.warn(`题目 ${currentIndex} 提交存在告警:`, submitResult.warnings)
+              }
+            }
+
             // 关闭loading提示
             setTimeout(function () {
-              uni.hideLoading();
-            }, 100);
+              uni.hideLoading()
+            }, 100)
 
             // 上传成功后才更新索引和处理下一题
             if (currentIndex < (interviewDetails.value.data.questions?.length || 0) - 1) {
@@ -775,15 +1022,7 @@ const stopRecordingAndSave = async () => {
             failure_reason: '未录制到视频数据'
           }
 
-          const existingIndex = fileFrom.fileUrls.findIndex(
-            (item) => item.question_id === (currentQuestion ? currentQuestion.id : currentIndex + 1),
-          )
-
-          if (existingIndex >= 0) {
-            fileFrom.fileUrls[existingIndex] = failedData
-          } else {
-            fileFrom.fileUrls.push(failedData)
-          }
+          upsertQuestionFileData(failedData)
 
           // 关闭loading
           setTimeout(function () {
@@ -869,23 +1108,6 @@ const saveInterview = async () => {
   isExiting.value = true
 
   console.log('开始提交面试数据，fileUrls:', fileFrom.fileUrls)
-  
-  // 确保面试状态被更新为完成(2)
-  try {
-    const updateUrl = API_ENDPOINTS.interviews.updateStatus(interviewId.value, 2)
-    console.log('面试完成，更新状态到2，相对路径:', updateUrl)
-    const statusResponse = await uni.request({
-      url: updateUrl,
-      method: 'POST',
-      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-    })
-    console.log('完成状态更新响应:', statusResponse.statusCode, statusResponse.data)
-    if (statusResponse.statusCode !== 200) {
-      console.error('更新面试完成状态失败，但继续处理:', statusResponse)
-    }
-  } catch (error) {
-    console.error('更新面试完成状态异常，但继续处理:', error)
-  }
 
   // 检查是否所有题目都有对应的视频数据
   const totalQuestions = interviewDetails.value.data.questions?.length || 0
@@ -918,7 +1140,7 @@ const saveInterview = async () => {
         recording_failed: true,
         failure_reason: '视频未录制或上传失败'
       }
-      fileFrom.fileUrls.push(failedData)
+      upsertQuestionFileData(failedData)
     }
 
     console.log('已为缺失的题目添加失败记录')
@@ -943,19 +1165,52 @@ const saveInterview = async () => {
 
   try {
     // 实时处理架构下，各题已经单独提交，这里只需要记录完成状态
+    const submissionFailedVideos = fileFrom.fileUrls.filter(item => item.submission_failed)
     const successfulVideos = fileFrom.fileUrls.filter(item =>
-      !item.recording_failed && item.video_url && item.video_url !== ''
+      !item.recording_failed && !item.submission_failed && item.video_url && item.video_url !== ''
     )
 
     const failedVideos = fileFrom.fileUrls.filter(item =>
       item.recording_failed || !item.video_url || item.video_url === ''
     )
 
-    console.log(`成功的视频数: ${successfulVideos.length}, 失败的视频数: ${failedVideos.length}`)
+    console.log(`成功的视频数: ${successfulVideos.length}, 失败的视频数: ${failedVideos.length}, 提交失败数: ${submissionFailedVideos.length}`)
+
+    if (submissionFailedVideos.length > 0) {
+      const failedQuestions = submissionFailedVideos.map(v => v.question_id).join('、')
+      console.error('存在未成功提交到后端的题目，终止complete流程:', {
+        submissionFailedVideos,
+        questionSubmitDiagnostics: JSON.parse(JSON.stringify(questionSubmitDiagnostics)),
+      })
+      uni.hideLoading()
+      isExiting.value = false
+      uni.showModal({
+        title: '题目提交失败',
+        content: `第 ${failedQuestions} 题未成功提交到后端，当前不会进入报告页。请先检查网络或查看调试日志后重试。`,
+        showCancel: false,
+      })
+      return
+    }
 
     if (failedVideos.length > 0) {
       const failedQuestions = failedVideos.map(v => v.question_id).join('、')
       toast.error(`第 ${failedQuestions} 题录制失败，将在报告中标记`)
+    }
+
+    try {
+      const updateUrl = API_ENDPOINTS.interviews.updateStatus(interviewId.value, 2)
+      console.log('面试完成，更新状态到2，相对路径:', updateUrl)
+      const statusResponse = await uni.request({
+        url: updateUrl,
+        method: 'POST',
+        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+      })
+      console.log('完成状态更新响应:', statusResponse.statusCode, statusResponse.data)
+      if (statusResponse.statusCode !== 200) {
+        console.error('更新面试完成状态失败，但继续处理:', statusResponse)
+      }
+    } catch (error) {
+      console.error('更新面试完成状态异常，但继续处理:', error)
     }
 
     // 实时处理架构：每题已经通过submit_single_question提交
@@ -1193,15 +1448,7 @@ const getUploadInfo = async (retryCount: number = 0) => {
       }
 
       // 添加到上传列表中，标记为失败
-      const existingIndex = fileFrom.fileUrls.findIndex(
-        (item) => item.question_id === (currentQuestion ? currentQuestion.id : currentQuestionIdx + 1),
-      )
-
-      if (existingIndex >= 0) {
-        fileFrom.fileUrls[existingIndex] = failedData
-      } else {
-        fileFrom.fileUrls.push(failedData)
-      }
+      upsertQuestionFileData(failedData)
 
       toast.error(`第${currentQuestionIdx + 1}题视频上传失败，将标记为录制失败`)
       throw error // 向上传播错误，但已经记录了失败状态
@@ -1290,11 +1537,10 @@ const uploadFile = async (opt: any) => {
 
         if (existingIndex >= 0) {
           console.log(`题目 ${currentQuestionIdx} 已有上传记录，更新数据:`, fileData)
-          fileFrom.fileUrls[existingIndex] = fileData
         } else {
           console.log(`题目 ${currentQuestionIdx} 上传成功，添加数据:`, fileData)
-          fileFrom.fileUrls.push(fileData)
         }
+        upsertQuestionFileData(fileData)
 
         console.log('当前所有上传数据:', JSON.stringify(fileFrom.fileUrls))
         console.log(`已成功上传的题目列表: [${fileFrom.fileUrls.map(f => f.question_id).sort((a,b) => a-b).join(', ')}]`)
@@ -1647,7 +1893,17 @@ const triggerAnotherMethod = () => {
     startInterview()
   }
 }
-const handleStart = () => {
+const handleStart = async () => {
+  if (!ensureSafeApiBase('handleStart')) {
+    return
+  }
+
+  const isReady = await ensureCurrentInterviewLoaded('handleStart', !hasLoadedCurrentInterview.value)
+  if (!isReady || !interviewId.value || lastLoadedInterviewId.value !== interviewId.value) {
+    toast.error('面试题目仍在加载中，请稍后重试')
+    return
+  }
+
   // 首先显示权限使用说明
   uni.showModal({
     title: '权限使用说明',
@@ -1766,6 +2022,7 @@ const switchCamera = async () => {
 }
 
 onMounted(async () => {
+  syncCameraRuntimeDiagnostics('mounted')
   // 显示视频遮罩
   showVideoMask.value = true
   // 立即处理视频封面元素
@@ -1831,15 +2088,25 @@ onMounted(async () => {
     subtree: true,
   })
 
-  if (interviewId.value) {
-    await fetchInterviewInfo(interviewId.value)
-  } else {
-    console.error('未找到 interviews_id')
+  // #ifdef H5
+  hashChangeHandler = () => {
+    void ensureCurrentInterviewLoaded('hashchange')
   }
+  window.addEventListener('hashchange', hashChangeHandler)
+  // #endif
+
+  await ensureCurrentInterviewLoaded('mounted')
 })
 // 在组件卸载时彻底断开所有监听器和观察器
 onBeforeUnmount(() => {
   console.log('===== 组件卸载，开始清理资源 =====')
+
+  // #ifdef H5
+  if (hashChangeHandler) {
+    window.removeEventListener('hashchange', hashChangeHandler)
+    hashChangeHandler = null
+  }
+  // #endif
 
   // 停止摄像头
   stopCamera()
@@ -1994,25 +2261,127 @@ onBeforeUnmount(() => {
 
   console.log('===== 资源清理完成 =====')
 })
+onShow(() => {
+  syncCameraRuntimeDiagnostics('show')
+  void ensureCurrentInterviewLoaded('show')
+})
 onLoad((options) => {
   console.log('camera onLoad - 所有参数:', options)
   if (options.token) {
     uni.setStorageSync('token', options.token)
   }
-  if (options.interviewId) {
-    interviewId.value = parseInt(options.interviewId, 10) // 将字符串转换为数字
+  interviewId.value = parseInterviewId(options.interviewId)
+  test.value = options.test === 'true'
+  const selfTestParams = new URLSearchParams()
+  if (options.selfTestCaseId) selfTestParams.set('selfTestCaseId', String(options.selfTestCaseId))
+  if (options.selfTestReturn) selfTestParams.set('selfTestReturn', String(options.selfTestReturn))
+  if (options.selfTestExpectedInterviewId) {
+    selfTestParams.set('selfTestExpectedInterviewId', String(options.selfTestExpectedInterviewId))
   }
-  if (options.test === 'true') {
-    test.value = true
-    console.log('camera - 设置test为true')
+  if (options.selfTestExpectedPositionName) {
+    selfTestParams.set('selfTestExpectedPositionName', String(options.selfTestExpectedPositionName))
   }
-  console.log('camera - test值:', test.value)
+  if (options.selfTestAutoReturn) selfTestParams.set('selfTestAutoReturn', String(options.selfTestAutoReturn))
+  syncSelfTestParams(selfTestParams)
+  syncRouteStateFromH5Location()
+  syncCameraRuntimeDiagnostics('onLoad')
+  console.log('camera - 标准化后的参数:', {
+    interviewId: interviewId.value,
+    test: test.value,
+    selfTestCaseId: selfTestCaseId.value,
+  })
 })
+
+const reportSelfTestResult = (responseData: any) => {
+  if (!selfTestCaseId.value || selfTestHasReported.value) {
+    return false
+  }
+
+  const actualInterviewId = interviewId.value
+  const actualPositionTitle = responseData?.data?.position?.title || ''
+  const result = {
+    status:
+      (!selfTestExpectedInterviewId.value || selfTestExpectedInterviewId.value === actualInterviewId) &&
+      (!selfTestExpectedPositionName.value || selfTestExpectedPositionName.value === actualPositionTitle)
+        ? 'PASS'
+        : 'FAIL',
+    caseId: selfTestCaseId.value,
+    expectedInterviewId: selfTestExpectedInterviewId.value,
+    actualInterviewId,
+    expectedPositionName: selfTestExpectedPositionName.value,
+    actualPositionName: actualPositionTitle,
+    enterpriseName: responseData?.data?.position?.enterprise_name || '',
+    questionCount: responseData?.data?.questions?.length || 0,
+    firstQuestionId: responseData?.data?.questions?.[0]?.id || null,
+    href: typeof window !== 'undefined' ? window.location.href : '',
+    resolvedApiBase: baseUrl,
+    buildId: getCurrentBuildId(),
+    reportedAt: new Date().toISOString(),
+  }
+
+  uni.setStorageSync(getSelfTestStorageKey(selfTestCaseId.value), result)
+  selfTestHasReported.value = true
+  console.log('[camera][self-test] 已写入结果:', result)
+
+  if (selfTestAutoReturn.value && selfTestReturn.value && typeof window !== 'undefined') {
+    const separator = selfTestReturn.value.includes('?') ? '&' : '?'
+    const callbackUrl = `${selfTestReturn.value}${separator}selfTestStage=result&automationCaseId=${encodeURIComponent(selfTestCaseId.value)}`
+    window.location.replace(buildAbsoluteH5ReloadUrl(callbackUrl))
+    return true
+  }
+
+  return false
+}
+
+const ensureCurrentInterviewLoaded = async (source: string, force = false) => {
+  syncRouteStateFromH5Location()
+  if (!ensureSafeApiBase(`ensure:${source}`)) {
+    return false
+  }
+
+  const nextInterviewId = interviewId.value
+  if (!nextInterviewId) {
+    console.error(`[camera] ${source} 未找到有效的 interviewId`)
+    return false
+  }
+
+  const needsReload = force || shouldReloadInterviewSession({
+    nextInterviewId,
+    lastLoadedInterviewId: lastLoadedInterviewId.value,
+    hasLoadedCurrentInterview: hasLoadedCurrentInterview.value,
+  })
+
+  if (!needsReload) {
+    return true
+  }
+
+  console.log(`[camera] ${source} 重新加载面试详情`, {
+    nextInterviewId,
+    lastLoadedInterviewId: lastLoadedInterviewId.value,
+    hasLoadedCurrentInterview: hasLoadedCurrentInterview.value,
+    test: test.value,
+  })
+
+  resetInterviewSessionState()
+  const loaded = await fetchInterviewInfo(nextInterviewId)
+  if (!loaded) {
+    return false
+  }
+
+  fileFrom.interview_id = nextInterviewId
+  lastLoadedInterviewId.value = nextInterviewId
+  hasLoadedCurrentInterview.value = true
+  return true
+}
 // 通过 interviews_id 获取面试岗位以及试题信息
 const fetchInterviewInfo = async (interviewId: number) => {
   loading.value = true
 
   try {
+    if (!ensureSafeApiBase(`fetch:${interviewId}`)) {
+      return false
+    }
+
     const response = await uni.request({
       url: baseUrl + `/interviews/interview_details/${interviewId}`,
       method: 'GET',
@@ -2022,6 +2391,22 @@ const fetchInterviewInfo = async (interviewId: number) => {
       // 添加类型断言
       const responseData = response.data as any
       interviewDetails.value = responseData
+      console.log('camera - 面试详情加载完成:', {
+        interviewId,
+        positionId: responseData?.data?.position?.id,
+        positionTitle: responseData?.data?.position?.title,
+        enterpriseName: responseData?.data?.position?.enterprise_name,
+        questionCount: responseData?.data?.questions?.length || 0,
+        firstQuestionId: responseData?.data?.questions?.[0]?.id,
+      })
+      syncCameraRuntimeDiagnostics('fetch-success', {
+        interviewId,
+        mismatchReason: '',
+      })
+
+      if (reportSelfTestResult(responseData)) {
+        return true
+      }
       
       // 检查面试状态，如果是未开始状态(0)，自动初始化为进行中(1)
       if (responseData?.data?.status === 0) {
@@ -2058,6 +2443,7 @@ const fetchInterviewInfo = async (interviewId: number) => {
       if ((interviewDetails.value.data.questions?.length || 0) === 1 && isInterviewStarted.value) {
         overQuestion.value = true
       }
+      return true
     } else {
       console.error('获取面试信息失败:', response.data)
 
@@ -2079,6 +2465,7 @@ const fetchInterviewInfo = async (interviewId: number) => {
           toast.error('更新面试状态失败')
         }
       }
+      return false
     }
   } catch (error) {
     console.error('请求失败:', error)
@@ -2086,12 +2473,15 @@ const fetchInterviewInfo = async (interviewId: number) => {
     if (isInterviewStarted.value) {
       toast.error('网络错误，请检查网络连接')
     }
+    return false
   }
-  loading.value = false
-  showVideoMask.value = false
+  finally {
+    loading.value = false
+    showVideoMask.value = false
 
-  // 移除自动启动摄像头，改为在用户确认权限说明后启动
-  // startCamera()
+    // 移除自动启动摄像头，改为在用户确认权限说明后启动
+    // startCamera()
+  }
 }
 // 对更多字符编码的 url encode 格式
 const camSafeUrlEncode = (str: string) => {
@@ -2119,10 +2509,17 @@ const formatTimeToMinSec = (seconds: number) => {
 }
 
 function handleClickLeft() {
-  uni.navigateBack()
+  handleExit()
 }
 
 const { safeAreaInsets } = uni.getSystemInfoSync()
+const safeAreaTop = Number(safeAreaInsets?.top || 0)
+const introCardStyle = {
+  top: `${safeAreaTop + 12}px`,
+}
+const introNoticeStyle = {
+  top: `${safeAreaTop + 100}px`,
+}
 const isExiting = ref(false) // 添加标志变量，防止多次触发退出逻辑
 
 const handleExit = async () => {
@@ -2161,16 +2558,13 @@ const handleExit = async () => {
               // saveInterview()
             }
             isRequesting.value = false
-            navigateBack()
+            await exitCameraPage()
           } catch (error) {
             console.log('返回app函数报错', error)
             toast.error('更新面试状态失败')
             isRequesting.value = false
           }
         },
-      })
-      .then(() => {
-        uni.navigateBack()
       })
       .catch(() => {})
   } else {
@@ -2201,7 +2595,7 @@ const handleExit = async () => {
 
     // 提前退出不生成报告，直接返回
     console.log('用户提前退出面试，不生成报告')
-    navigateBack()
+    await exitCameraPage()
   }
 }
 

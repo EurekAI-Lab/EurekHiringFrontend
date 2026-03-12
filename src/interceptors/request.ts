@@ -4,6 +4,8 @@ import qs from 'qs'
 import { platform } from '@/utils/platform'
 import { getEnvBaseUrl } from '@/utils'
 import { useUserStore } from '@/store'
+import { resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 export type CustomRequestOptions = UniApp.RequestOptions & {
   query?: Record<string, any>
@@ -14,11 +16,17 @@ export type CustomRequestOptions = UniApp.RequestOptions & {
 // 请求基准地址
 let baseUrl = getEnvBaseUrl()
 
-// 检查是否为测试环境，如果 URL 中包含 test 则使用测试环境的 baseUrl
+// 按当前站点路径统一收敛 API base，避免 ?test=true 误判到测试环境
 // #ifdef H5
-if (typeof window !== 'undefined' && window?.location?.href?.includes('test') && !baseUrl.includes('/test/')) {
-  baseUrl = baseUrl.replace('/api', '/test/api')
-  console.log('拦截器检测到测试环境，使用baseUrl:', baseUrl)
+if (typeof window !== 'undefined') {
+  baseUrl = resolveApiBaseUrlForCurrentSite(baseUrl)
+  updateRuntimeDiagnostics({
+    resolvedApiBase: baseUrl,
+    origin: window.location.origin,
+    currentRoute: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+    siteKind: window.location.pathname.startsWith('/test') ? 'test' : 'production',
+  })
+  console.log('请求拦截器使用 baseUrl:', baseUrl)
 }
 // #endif
 

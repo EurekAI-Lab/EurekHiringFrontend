@@ -70,6 +70,10 @@
     "build:quickapp-webview": "uni build -p quickapp-webview",
     "build:quickapp-webview-huawei": "uni build -p quickapp-webview-huawei",
     "build:quickapp-webview-union": "uni build -p quickapp-webview-union",
+    "probe:android:ai": "bash ./scripts/android_usb_ai_probe.sh",
+    "verify:mock-interview:h5": "node ./scripts/mock_interview_h5_check.js",
+    "verify:mock-interview:prod-legacy": "node ./scripts/verify_prod_mock_interview_legacy.js",
+    "verify:mock-interview:remote": "bash ./scripts/remote_verify_mock_interview.sh",
     "prepare": "git init && husky install ",
     "type-check": "vue-tsc --noEmit",
     "cz": "czg"

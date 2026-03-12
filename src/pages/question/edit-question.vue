@@ -29,12 +29,17 @@ import iconFj from '../../static/app/icons/icon_fj.png'
 import { ref } from 'vue'
 import { usePublicStore } from '@/store'
 import { useToast } from 'wot-design-uni'
+import { useAiPageBack } from '@/utils/useAiPageBack'
 
 const toast = useToast()
 const publicStore = usePublicStore()
+const { handleBack } = useAiPageBack({
+  mode: 'stack-first',
+  guardBrowserBack: false,
+})
 
 function handleClickLeft() {
-  uni.navigateBack()
+  void handleBack()
 }
 const value1 = ref()
 const value2 = ref()
@@ -68,7 +73,7 @@ const changeQuestion = () => {
       element.question = value3.value
     }
   })
-  uni.navigateBack()
+  void handleBack()
 }
 
 onLoad((option) => {
