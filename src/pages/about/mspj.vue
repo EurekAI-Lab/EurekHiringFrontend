@@ -13,13 +13,11 @@
 <template>
   <!--  h-100% overflow-auto -->
   <view class="relative bg-#f5f7fb min-h-screen">
-    <AiPageNavBar
-      title="AI面试"
-      text-color="#111111"
-      background-color="#ffffff"
-      :show-background="true"
-      @back="handleClickLeft"
-    />
+    <view class="fixed left-0 right-0 top-0 z-2 w-full nav-bg" :style="reportHeaderStyle">
+      <view class="mspj-header__toolbar" :style="reportHeaderToolbarStyle">
+        <view class="mspj-header__back i-carbon-chevron-left" @click="handleClickLeft"></view>
+      </view>
+    </view>
     <!-- h-50 h-auto  pt-24-->
     <view class="relative w-full h-auto flex flex-wrap justify-center" :style="pageContentStyle">
       <!-- 顶部背景 -->
@@ -387,6 +385,7 @@ import {
   isMspjEntryKey,
   getMspjEntryState,
   type MspjEntryKey,
+  type MspjEntryState,
 } from '@/utils/mspjNavigation'
 import { handleToken } from "@/utils/useAuth"
 import { renderMarkdownText, cleanMarkdownCodeBlocks, formatImprovementSuggestions } from '@/utils/markdownUtils'
@@ -397,8 +396,14 @@ import { getCurrentBuildId, getCurrentRouteKey, isH5TestSite, resolveApiBaseUrlF
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-const { safeAreaInsets, topBarHeight } = useNavBar()
-const safeAreaTop = Number(safeAreaInsets?.top || 0)
+const { safeAreaTop, headerContentHeight, topBarHeight } = useNavBar()
+const reportHeaderStyle = computed(() => ({
+  height: `${Number(topBarHeight || 0)}px`,
+}))
+const reportHeaderToolbarStyle = computed(() => ({
+  marginTop: `${Number(safeAreaTop || 0)}px`,
+  height: `${Number(headerContentHeight || 0)}px`,
+}))
 const pageContentStyle = computed(() => ({
   paddingTop: `${Number(topBarHeight || 0) + 8}px`,
 }))
@@ -815,7 +820,7 @@ const fetchInterviewInfo = async (interviewId: number) => {
 
 // 处理返回事件
 onBackPress(() => {
-  navigateBackToAiEntry(resolvedFallbackUrl.value)
+  void navigateBackFromReport()
   return true
 })
 
@@ -1006,6 +1011,21 @@ const resolvedFallbackUrl = computed(() => {
   }
   return type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
 })
+const currentEntryState = computed<MspjEntryState | null>(() => {
+  if (!entryKey.value) {
+    return null
+  }
+
+  const storedEntryState = getMspjEntryState()
+  if (storedEntryState?.key === entryKey.value && storedEntryState.fallbackUrl) {
+    return storedEntryState
+  }
+
+  return {
+    key: entryKey.value,
+    ...(resolvedFallbackUrl.value ? { fallbackUrl: resolvedFallbackUrl.value } : {}),
+  }
+})
 // 获取面试题目评价
 defineOptions({ name: 'Home' })
 const fetchInterviewReport = async (interviewId: number) => {
@@ -1173,7 +1193,13 @@ const improvementSuggestions = ref('')
 const score = ref(0)
 
 async function handleClickLeft() {
-  await navigateBackToAiEntry(resolvedFallbackUrl.value)
+  await navigateBackFromReport()
+}
+
+async function navigateBackFromReport() {
+  await navigateBackToAiEntry(resolvedFallbackUrl.value, {
+    entryState: currentEntryState.value,
+  })
 }
 
 // 将秒数转换为"xx分钟xx秒"格式
@@ -1331,6 +1357,22 @@ uni-page-body,
 .nav-bg {
   // background: linear-gradient(180deg, #145eff 0%, #1383ff 100%);
   background-color: #145eff;
+}
+
+.mspj-header__toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mspj-header__back {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  color: #ffffff;
+  transform: translateY(-50%);
 }
 
 .video_title {

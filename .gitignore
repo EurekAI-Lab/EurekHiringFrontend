@@ -50,3 +50,6 @@ docs/.vitepress/cache
 CLAUDE.md
 .claude
 .omx
+.omc
+tmp
+

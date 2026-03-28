@@ -8,25 +8,24 @@
 </route>
 
 <template>
-  <view class="w-full min-h-screen bg-#f5f7fb overflow-x-hidden">
-    <view class="relative w-full" @click="goProcess">
-      <image :src="aibg07" class="w-full h-40 block" mode="scaleToFill" />
-
-      <view
-        class="absolute left-0 right-0 z-10"
-        :style="{ top: `${safeAreaTop}px`, height: `${overlayNavHeight}px` }"
-      >
+  <view class="w-full bg-#f5f7fb min-h-screen flex flex-col">
+    <view
+      class="fixed top-0 left-0 right-0 z-10 bg-white"
+      :style="{ height: topBarHeight + 'px' }"
+    >
+      <view class="relative flex items-center" :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }">
         <view
-          class="i-carbon-chevron-left absolute left-5 top-1/2 h-7 w-7 -translate-y-1/2 text-white"
-          @click.stop="handleBack"
+          class="i-carbon-chevron-left w-8 h-8 absolute left-5 text-black"
+          @click="handleBack"
         ></view>
-        <view class="flex h-full items-center justify-center text-[17px] text-white font-medium">
-          个人AI模拟面试
-        </view>
+        <view class="absolute left-1/2 transform -translate-x-1/2 text-black font-medium">个人AI模拟面试</view>
       </view>
     </view>
 
-    <view class="pb-24 pt-3">
+    <view class="flex-1 overflow-y-auto" :style="{ paddingTop: topBarHeight + 'px', paddingBottom: '80px' }">
+      <view class="w-full" @click="goProcess">
+        <image :src="aibg07" class="w-full" style="aspect-ratio: 375/160;" mode="widthFix"></image>
+      </view>
 
       <view
         v-for="item in interviewList"
@@ -57,31 +56,31 @@
           </view>
           <view class="absolute top-12 right-5">
             <!-- 根据qualification_level显示不同图标 -->
-            <image 
-              v-if="item.qualification_level === 'VERY_QUALIFIED'" 
-              :src="iconVeryQualified" 
-              class="w-15 h-15" 
+            <image
+              v-if="item.qualification_level === 'VERY_QUALIFIED'"
+              :src="iconVeryQualified"
+              class="w-15 h-15"
             />
-            <image 
-              v-else-if="item.qualification_level === 'QUALIFIED'" 
-              :src="iconQualified" 
-              class="w-15 h-15" 
+            <image
+              v-else-if="item.qualification_level === 'QUALIFIED'"
+              :src="iconQualified"
+              class="w-15 h-15"
             />
-            <image 
-              v-else-if="item.qualification_level === 'NOT_QUALIFIED'" 
-              :src="iconNotQualified" 
-              class="w-15 h-15" 
+            <image
+              v-else-if="item.qualification_level === 'NOT_QUALIFIED'"
+              :src="iconNotQualified"
+              class="w-15 h-15"
             />
             <!-- 兼容旧的is_qualified字段 -->
-            <image 
-              v-else-if="item.is_qualified == 'FAIL'" 
-              :src="iconNotQualified" 
-              class="w-15 h-15" 
+            <image
+              v-else-if="item.is_qualified == 'FAIL'"
+              :src="iconNotQualified"
+              class="w-15 h-15"
             />
-            <image 
-              v-else-if="item.is_qualified == 'PASS'" 
-              :src="iconQualified" 
-              class="w-15 h-15" 
+            <image
+              v-else-if="item.is_qualified == 'PASS'"
+              :src="iconQualified"
+              class="w-15 h-15"
             />
             <view
               v-else
@@ -199,6 +198,7 @@ import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useUserStore } from '@/store'
 import { useAiPageBack } from '@/utils/useAiPageBack'
+import { useNavBar } from '@/utils/useNavBar'
 const toast = useToast()
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
@@ -206,9 +206,8 @@ const loading = ref(true)
 const searchValue = ref()
 const showSheet = ref(false)
 const showErrorTip = ref(false)
-const systemInfo = uni.getSystemInfoSync()
-const safeAreaTop = Number(systemInfo.statusBarHeight || 0)
-const overlayNavHeight = 48
+const { safeAreaInsets, navBarHeight, topBarHeight } = useNavBar()
+const safeAreaTop = Number(safeAreaInsets.top || 0)
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
@@ -225,7 +224,6 @@ const syncRuntimeState = (pageStage: string, extras: Record<string, any> = {}) =
     pageName: `record-simulate:${pageStage}`,
     siteKind: isH5TestSite() ? 'test' : 'production',
     safeAreaTop,
-    statusBarHeight: safeAreaTop,
     ...extras,
   })
   // #endif
@@ -631,5 +629,3 @@ const goProcess = () => {
   uni.navigateTo({ url: '/pages/interviews/process-simulation' })
 }
 </script>
-
-<style scoped></style>

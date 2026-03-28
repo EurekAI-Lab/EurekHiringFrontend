@@ -9,6 +9,10 @@ export interface RuntimeDiagnosticsState {
   siteKind?: 'production' | 'test'
   mismatchReason?: string
   safeAreaTop?: number
+  nativeSafeTop?: number | null
+  cssEnvSafeTop?: number
+  resolvedAiSafeTop?: number
+  safeAreaSource?: 'native' | 'css-env' | 'default'
   rawSafeAreaTop?: number
   statusBarHeight?: number
   headerContentHeight?: number

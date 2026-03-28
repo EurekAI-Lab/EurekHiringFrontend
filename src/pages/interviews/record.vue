@@ -8,137 +8,146 @@
 
 <template>
   <view class="w-full min-h-screen bg-#f5f7fb overflow-x-hidden">
-    <wd-navbar
-      safe-area-inset-top
-      fixed
-      placeholder
-      left-arrow
-      title="AI面试记录"
-      custom-style="background-color: #ffffff !important;"
-      @click-left="handleBack"
-    />
-
-    <view class="relative w-full">
-      <image :src="aiInterviewHeader" class="w-full h-50 block" mode="scaleToFill" />
-      <view class="absolute bottom-0 z-10 w-full translate-y-1/2 px-3">
+    <view
+      class="fixed top-0 left-0 right-0 z-10 bg-white"
+      :style="{ height: topBarHeight + 'px' }"
+    >
+      <view
+        class="relative flex items-center"
+        :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }"
+      >
         <view
-          class="w-full h-12 bg-white rounded-3xl flex flex-row items-center shadow-#D0D7E5 shadow"
-        >
-          <view class="i-carbon-search pl-8 h-5" />
-          <view class="-pl-2 w-75">
-            <input
-              type="text"
-              v-model="searchValue"
-              placeholder="搜索关键词"
-              @blur="getInterviewList(searchValue)"
-            />
-          </view>
+          class="i-carbon-chevron-left w-8 h-8 absolute left-5 text-black"
+          @click="handleBack"
+        ></view>
+        <view class="absolute left-1/2 transform -translate-x-1/2 text-black font-medium">
+          AI面试记录
         </view>
       </view>
     </view>
 
-    <view class="pb-6 pt-10">
-      <view
-        class="w-full flex items-center justify-center"
-        :class="{ 'pt-2': index === 0, 'pt-3': index !== 0 }"
-        @click="jumpInterviewResult(item)"
-        v-for="(item, index) in interviewResults"
-        :key="item.interviews_id"
-      >
-      <!--卡片 -->
-
-        <view class="w-[92%] rounded-xl bg-white overflow-hidden flex flex-col shadow-sm">
-          <view class="flex flex-row relative">
-            <image :src="aimn" class="w-full h-7.5" />
-            <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
+    <view :style="{ paddingTop: topBarHeight + 'px' }">
+      <view class="relative w-full">
+        <image :src="aiInterviewHeader" class="w-full h-50 block" mode="scaleToFill" />
+        <view class="absolute bottom-0 z-10 w-full translate-y-1/2 px-3">
+          <view
+            class="w-full h-12 bg-white rounded-3xl flex flex-row items-center shadow-#D0D7E5 shadow"
+          >
+            <view class="i-carbon-search pl-8 h-5" />
+            <view class="-pl-2 w-75">
+              <input
+                type="text"
+                v-model="searchValue"
+                placeholder="搜索关键词"
+                @blur="getInterviewList(searchValue)"
+              />
+            </view>
           </view>
-          <view class="flex flex-row">
-            <image :src="item.logo_url" class="ml-2.5 mt-2 w-12 h-12 rounded" />
-            <view>
-              <view class="flex flex-col text-sm">
-                <view class="ml-2.5 mt-2 font-bold">{{ item.enterprise_name }}</view>
-                <view class="ml-2.5 mt-1 text-gray-500 tracking-wide">
-                  {{ item.enterprise_scale }}
+        </view>
+      </view>
+
+      <view class="pb-6 pt-10">
+        <view
+          class="w-full flex items-center justify-center"
+          :class="{ 'pt-2': index === 0, 'pt-3': index !== 0 }"
+          @click="jumpInterviewResult(item)"
+          v-for="(item, index) in interviewResults"
+          :key="item.interviews_id"
+        >
+        <!--卡片 -->
+
+          <view class="w-[92%] rounded-xl bg-white overflow-hidden flex flex-col shadow-sm">
+            <view class="flex flex-row relative">
+              <image :src="aimn" class="w-full h-7.5" />
+              <view class="text-white text-sm absolute left-12% top-16.5%">AI面试</view>
+            </view>
+            <view class="flex flex-row">
+              <image :src="item.logo_url" class="ml-2.5 mt-2 w-12 h-12 rounded" />
+              <view>
+                <view class="flex flex-col text-sm">
+                  <view class="ml-2.5 mt-2 font-bold">{{ item.enterprise_name }}</view>
+                  <view class="ml-2.5 mt-1 text-gray-500 tracking-wide">
+                    {{ item.enterprise_scale }}
+                  </view>
                 </view>
               </view>
-            </view>
 
-            <!-- C端用户：显示审核状态 -->
-            <template v-if="!isEnterpriseUser">
-              <image
-                v-if="item.interview_type !== 'test' && item.audit_status === 'PENDING'"
-                :src="iconReviewing"
-                class="w-12 h-12 absolute right-5 mt-2"
-              />
-              <image
-                v-else-if="item.interview_type !== 'test' && item.audit_status === 'REJECTED'"
-                :src="iconReviewFailed"
-                class="w-15 h-15 absolute right-5 mt-1"
-              />
-              <image
-                v-else-if="item.qualification_level === 'VERY_QUALIFIED'"
-                :src="iconVeryQualified"
-                class="w-15 h-15 absolute right-5 mt-1"
-              />
-              <image
-                v-else-if="item.qualification_level === 'QUALIFIED'"
-                :src="iconQualified"
-                class="w-15 h-15 absolute right-5 mt-1"
-              />
-              <image
-                v-else-if="item.qualification_level === 'NOT_QUALIFIED'"
-                :src="iconNotQualified"
-                class="w-15 h-15 absolute right-5 mt-1"
-              />
-            </template>
+              <!-- C端用户：显示审核状态 -->
+              <template v-if="!isEnterpriseUser">
+                <image
+                  v-if="item.interview_type !== 'test' && item.audit_status === 'PENDING'"
+                  :src="iconReviewing"
+                  class="w-12 h-12 absolute right-5 mt-2"
+                />
+                <image
+                  v-else-if="item.interview_type !== 'test' && item.audit_status === 'REJECTED'"
+                  :src="iconReviewFailed"
+                  class="w-15 h-15 absolute right-5 mt-1"
+                />
+                <image
+                  v-else-if="item.qualification_level === 'VERY_QUALIFIED'"
+                  :src="iconVeryQualified"
+                  class="w-15 h-15 absolute right-5 mt-1"
+                />
+                <image
+                  v-else-if="item.qualification_level === 'QUALIFIED'"
+                  :src="iconQualified"
+                  class="w-15 h-15 absolute right-5 mt-1"
+                />
+                <image
+                  v-else-if="item.qualification_level === 'NOT_QUALIFIED'"
+                  :src="iconNotQualified"
+                  class="w-15 h-15 absolute right-5 mt-1"
+                />
+              </template>
 
-            <!-- B端用户：只显示合格状态 -->
-            <template v-else>
-              <image
-                v-if="item.qualification_level === 'VERY_QUALIFIED'"
-                :src="iconVeryQualified"
-                class="w-15 h-15 absolute right-5 mt-1"
-              />
-              <image
-                v-else-if="item.qualification_level === 'QUALIFIED'"
-                :src="iconQualified"
-                class="w-15 h-15 absolute right-5 mt-1"
-              />
-              <image
-                v-else-if="item.qualification_level === 'NOT_QUALIFIED'"
-                :src="iconNotQualified"
-                class="w-15 h-15 absolute right-5 mt-1"
-              />
-            </template>
-          </view>
-          <view class="flex justify-center items-center pt-2">
-            <view class="w-[94.5%] bg-gray-100 h-0.3 items-center justify-center"></view>
-          </view>
-          <view class="flex flex-col text-sm items-center pt-1.5 pb-2">
-            <view class="flex flex-row w-[95%]">
-              <view class="text-gray">面试职位：</view>
-              <view>{{ getDisplayPositionTitle(item.position_title) }}</view>
+              <!-- B端用户：只显示合格状态 -->
+              <template v-else>
+                <image
+                  v-if="item.qualification_level === 'VERY_QUALIFIED'"
+                  :src="iconVeryQualified"
+                  class="w-15 h-15 absolute right-5 mt-1"
+                />
+                <image
+                  v-else-if="item.qualification_level === 'QUALIFIED'"
+                  :src="iconQualified"
+                  class="w-15 h-15 absolute right-5 mt-1"
+                />
+                <image
+                  v-else-if="item.qualification_level === 'NOT_QUALIFIED'"
+                  :src="iconNotQualified"
+                  class="w-15 h-15 absolute right-5 mt-1"
+                />
+              </template>
             </view>
-            <view class="flex flex-row w-[95%] pt-1">
-              <view class="text-gray">面试完成时间：</view>
-              <view>{{ formatCompletionTime(item.completion_time) }}</view>
+            <view class="flex justify-center items-center pt-2">
+              <view class="w-[94.5%] bg-gray-100 h-0.3 items-center justify-center"></view>
             </view>
-            <view class="flex flex-row w-[95%] pt-1">
-              <view class="text-gray">面试完成时长：</view>
-              <view>{{ formatTimeToMinSec(item.time_spent) }}</view>
+            <view class="flex flex-col text-sm items-center pt-1.5 pb-2">
+              <view class="flex flex-row w-[95%]">
+                <view class="text-gray">面试职位：</view>
+                <view>{{ getDisplayPositionTitle(item.position_title) }}</view>
+              </view>
+              <view class="flex flex-row w-[95%] pt-1">
+                <view class="text-gray">面试完成时间：</view>
+                <view>{{ formatCompletionTime(item.completion_time) }}</view>
+              </view>
+              <view class="flex flex-row w-[95%] pt-1">
+                <view class="text-gray">面试完成时长：</view>
+                <view>{{ formatTimeToMinSec(item.time_spent) }}</view>
+              </view>
             </view>
           </view>
         </view>
 
-      </view>
+        <view v-if="!loading && interviewResults.length === 0" class="flex flex-col items-center justify-center pt-20">
+          <view class="text-gray-400 text-lg">暂无面试记录</view>
+          <view class="text-gray-300 text-sm mt-2">完成面试后记录将显示在这里</view>
+        </view>
 
-      <view v-if="!loading && interviewResults.length === 0" class="flex flex-col items-center justify-center pt-20">
-        <view class="text-gray-400 text-lg">暂无面试记录</view>
-        <view class="text-gray-300 text-sm mt-2">完成面试后记录将显示在这里</view>
-      </view>
-
-      <view v-if="loading" class="flex flex-col items-center justify-center pt-20">
-        <view class="text-gray-400">加载中...</view>
+        <view v-if="loading" class="flex flex-col items-center justify-center pt-20">
+          <view class="text-gray-400">加载中...</view>
+        </view>
       </view>
     </view>
 
@@ -169,9 +178,9 @@ import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useUserStore } from '@/store'
 import { onShow } from '@dcloudio/uni-app'
 import { useAiPageBack } from '@/utils/useAiPageBack'
+import { useNavBar } from '@/utils/useNavBar'
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-const systemInfo = uni.getSystemInfoSync()
-const safeAreaTop = Number(systemInfo.statusBarHeight || 0)
+const { safeAreaInsets, navBarHeight, topBarHeight, safeAreaTop } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
@@ -459,5 +468,3 @@ const jumpInterviewResult = (item) => {
   })
 }
 </script>
-
-<style scoped></style>

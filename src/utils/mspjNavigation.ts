@@ -10,19 +10,20 @@ export type MspjEntryKey =
   | 'simulate-record'
 
 interface EntryConfig {
-  goBack: (state?: EntryState) => Promise<boolean>
+  goBack: (state?: MspjEntryState) => Promise<boolean>
 }
 
-interface EntryState {
+export interface MspjEntryState {
   key: MspjEntryKey
   fallbackUrl?: string
 }
 
 interface NavigateBackRuntimeOptions {
   allowWindowHistoryFallback?: boolean
+  entryState?: MspjEntryState | null
 }
 
-let memoryState: EntryState | null = null
+let memoryState: MspjEntryState | null = null
 
 export function isMspjEntryKey(value: unknown): value is MspjEntryKey {
   return (
@@ -53,7 +54,7 @@ export function getMspjEntry(): MspjEntryKey | null {
   try {
     const stored = uni.getStorageSync(STORAGE_KEY)
     if (stored && typeof stored === 'object' && isMspjEntryKey(stored.key)) {
-      memoryState = stored as EntryState
+      memoryState = stored as MspjEntryState
       return memoryState.key
     }
   } catch (error) {
@@ -62,108 +63,91 @@ export function getMspjEntry(): MspjEntryKey | null {
   return null
 }
 
-function getEntryState(): EntryState | null {
+function getStoredEntryState(): MspjEntryState | null {
   getMspjEntry()
   return memoryState
 }
 
-export function getMspjEntryState(): EntryState | null {
-  return getEntryState()
+function getEntryState(runtimeEntryState?: MspjEntryState | null): MspjEntryState | null {
+  if (runtimeEntryState?.key) {
+    return runtimeEntryState
+  }
+  return getStoredEntryState()
 }
 
-async function tryUniNavigateBack(): Promise<boolean> {
+export function getMspjEntryState(): MspjEntryState | null {
+  return getStoredEntryState()
+}
+
+function hasUniPageStackBackAvailable(): boolean {
   try {
-    return await new Promise((resolve) => {
-      let settled = false
-      const timer = setTimeout(() => {
-        if (!settled) {
-          settled = true
-          resolve(false)
-        }
-      }, 200)
-      uni.navigateBack({
-        delta: 1,
-        success: () => {
-          if (!settled) {
-            settled = true
-            clearTimeout(timer)
-            resolve(true)
-          }
-        },
-        fail: () => {
-          if (!settled) {
-            settled = true
-            clearTimeout(timer)
-            resolve(false)
-          }
-        },
-      })
-    })
+    if (typeof getCurrentPages !== 'function') {
+      return false
+    }
+
+    const pages = getCurrentPages()
+    return Array.isArray(pages) && pages.length > 1
   } catch (error) {
-    console.warn('tryUniNavigateBack - 调用失败:', error)
+    console.warn('hasUniPageStackBackAvailable - 读取页面栈失败:', error)
     return false
   }
 }
 
-async function tryUniReLaunch(url?: string): Promise<boolean> {
+function dispatchUniNavigateBack(): boolean {
+  if (!hasUniPageStackBackAvailable()) {
+    return false
+  }
+
+  try {
+    uni.navigateBack({
+      delta: 1,
+      fail: (error) => {
+        console.warn('dispatchUniNavigateBack - 调用失败:', error)
+      },
+    })
+    return true
+  } catch (error) {
+    console.warn('dispatchUniNavigateBack - 异常:', error)
+    return false
+  }
+}
+
+function dispatchUniReLaunch(url?: string): boolean {
   if (!url) {
     return false
   }
+
   try {
-    return await new Promise((resolve) => {
-      let settled = false
-      const timer = setTimeout(() => {
-        if (!settled) {
-          settled = true
-          resolve(false)
-        }
-      }, 300)
-      uni.reLaunch({
-        url,
-        success: () => {
-          if (!settled) {
-            settled = true
-            clearTimeout(timer)
-            resolve(true)
-          }
-        },
-        fail: (error) => {
-          console.warn('tryUniReLaunch - 调用失败:', error)
-          if (!settled) {
-            settled = true
-            clearTimeout(timer)
-            resolve(false)
-          }
-        },
-      })
+    uni.reLaunch({
+      url,
+      fail: (error) => {
+        console.warn('dispatchUniReLaunch - 调用失败:', error)
+      },
     })
+    return true
   } catch (error) {
-    console.warn('tryUniReLaunch - 异常:', error)
+    console.warn('dispatchUniReLaunch - 异常:', error)
     return false
   }
 }
 
-function goH5List(defaultFallback: string): (state?: EntryState) => Promise<boolean> {
+function goH5List(defaultFallback: string): (state?: MspjEntryState) => Promise<boolean> {
   return async (state) => {
-    if (await tryUniNavigateBack()) {
-      return true
-    }
     const url = state?.fallbackUrl || defaultFallback
-    const success = await tryUniReLaunch(url)
-    return success
+    return dispatchUniReLaunch(url)
   }
 }
 
 function goNativePreferred(defaultFallback?: string) {
-  return async (state?: EntryState, runtimeOptions?: NavigateBackRuntimeOptions): Promise<boolean> => {
+  return async (state?: MspjEntryState, runtimeOptions?: NavigateBackRuntimeOptions): Promise<boolean> => {
     if (navigateBack()) {
       return true
     }
-    if (await tryUniNavigateBack()) {
+    if (dispatchUniNavigateBack()) {
       return true
     }
     const url = state?.fallbackUrl || defaultFallback
-    if (await tryUniReLaunch(url)) {
+    if (dispatchUniReLaunch(url)) {
       return true
     }
     if (
@@ -196,8 +180,8 @@ const entryConfig: Record<MspjEntryKey, EntryConfig> = {
   },
 }
 
-export async function navigateBackByMspjEntry(): Promise<boolean> {
-  const state = getEntryState()
+export async function navigateBackByMspjEntry(runtimeEntryState?: MspjEntryState | null): Promise<boolean> {
+  const state = getEntryState(runtimeEntryState)
   if (!state) {
     return false
   }
@@ -223,7 +207,7 @@ export async function navigateBackToAiEntry(
   defaultFallback?: string,
   runtimeOptions?: NavigateBackRuntimeOptions,
 ): Promise<boolean> {
-  const handled = await navigateBackByMspjEntry()
+  const handled = await navigateBackByMspjEntry(runtimeOptions?.entryState)
   if (handled) {
     return true
   }

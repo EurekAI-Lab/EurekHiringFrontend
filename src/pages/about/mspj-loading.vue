@@ -52,9 +52,11 @@ import { getPlatformType, hasNativeBridge } from '@/utils/platformUtils'
 import {
   registerMspjEntry,
   getMspjEntry,
+  getMspjEntryState,
   navigateBackToAiEntry,
   isMspjEntryKey,
   type MspjEntryKey,
+  type MspjEntryState,
 } from '@/utils/mspjNavigation'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useInterviewStore } from '@/store/interview'
@@ -96,6 +98,21 @@ const resolvedFallbackUrl = computed(() => {
     return '/pages/interviews/record'
   }
   return ''
+})
+const currentEntryState = computed<MspjEntryState | null>(() => {
+  if (!entryKey.value) {
+    return null
+  }
+
+  const storedEntryState = getMspjEntryState()
+  if (storedEntryState?.key === entryKey.value && storedEntryState.fallbackUrl) {
+    return storedEntryState
+  }
+
+  return {
+    key: entryKey.value,
+    ...(resolvedFallbackUrl.value ? { fallbackUrl: resolvedFallbackUrl.value } : {}),
+  }
 })
 
 // 获取系统信息
@@ -322,7 +339,9 @@ const returnToEntry = async () => {
     console.warn('重置面试状态失败:', error)
   }
 
-  await navigateBackToAiEntry(resolvedFallbackUrl.value)
+  await navigateBackToAiEntry(resolvedFallbackUrl.value, {
+    entryState: currentEntryState.value,
+  })
 }
 
 // 清除所有定时器

@@ -247,7 +247,12 @@ const exitCameraPage = async () => {
   const entry = resolveReportEntry()
   const fallbackUrl = getFallbackForEntry(entry)
   registerMspjEntry(entry, { fallbackUrl })
-  await navigateBackToAiEntry(fallbackUrl)
+  await navigateBackToAiEntry(fallbackUrl, {
+    entryState: {
+      key: entry,
+      fallbackUrl,
+    },
+  })
 }
 
 // 定义接口

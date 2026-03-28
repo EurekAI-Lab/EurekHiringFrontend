@@ -3,50 +3,56 @@
 </route>
 
 <template>
-  <view class="min-h-screen bg-#f5f7fb pb-26">
-    <wd-navbar
-      safeAreaInsetTop
-      fixed
-      placeholder
-      left-arrow
-      title="企业AI面试应用"
-      @click-left="handleBack"
-    />
-
-    <image :src="aibg11" class="w-full h-58 block" mode="aspectFill" />
-
-    <view class="px-4 -mt-6 relative z-1">
-      <view class="rounded-2xl overflow-hidden bg-white shadow-sm">
-        <image :src="sybz" class="w-full h-10 block" mode="scaleToFill" />
-        <view class="-mt-7 px-4 flex items-center text-sm font-bold text-white">
-          <view class="w-5 h-5 rounded-full bg-white text-#1173fd flex items-center justify-center">
+  <view class="w-full bg-#f4f4f4 min-h-[210vw] h-auto relative overflow-y-auto">
+    <view
+      class="absolute top-0 z-1 w-full flex flex-row fixed"
+      :style="{
+        backgroundColor: `rgba(255, 255, 255, ${headerOpacity})`,
+        color: headerOpacity > 0.5 ? '#333' : '#f4f4f4',
+        height: '44px',
+        paddingTop: '44px',
+      }"
+    >
+      <view
+        class="i-carbon-chevron-left w-8 h-8 absolute left-5 top-[48px]"
+        @click="handleBack"
+        :style="{ color: headerOpacity > 0.5 ? '#333' : '#f4f4f4' }"
+      ></view>
+      <view class="absolute left-1.8/5 top-[52px]">企业AI面试应用</view>
+    </view>
+    <view>
+      <image :src="aibg11" class="w-full h-70"></image>
+    </view>
+    <view class="w-full h-380 -translate-y-30 mt-3 flex justify-center items-center">
+      <view class="w-90% h-full rounded-2xl flex flex-col justify-center items-center bg-white">
+        <image :src="sybz" class="flex flex-row rounded-t-2xl h-10 w-full" />
+        <view class="-translate-y-7 -translate-x-30 flex flex-row">
+          <view class="w-5 h-5 bg-white text-blue flex justify-center items-center rounded-full">
             ?
           </view>
-          <view class="pl-2">使用帮助</view>
+          <view class="text-sm pl-1.5 pt-0.4 text-white font-bold">使用帮助</view>
         </view>
-        <view class="px-4 pt-2 pb-4 text-sm leading-6 text-#4b5563">
+        <view class="text-sm p-4 text-gray-700 w-91% tracking-wider -mt-5 no-text-transform">
           系统会依据企业所发布的职位信息自动生成AI面试题目。平台上的求职者在受邀后，能够进行线上AI视频面试。面试完成后，企业的HR可以依据生成的面试报告，来判断是否与该候选人进一步进行沟通，或者邀约其进行线下面试。
         </view>
-        <image :src="processSimulation" class="w-full block" mode="widthFix" />
+        <image :src="processSimulation" class="w-90% h-full rounded-2xl -translate-x-1" />
       </view>
     </view>
-
-    <view class="fixed left-0 right-0 bottom-0 bg-white px-6 pt-3 pb-6">
+    <view class="bottom-0 w-full h-10 flex justify-center items-center pt-4 pb-6 fixed bg-white">
       <view
-        class="h-11 rounded-3xl bg-gradient-to-r from-#1173fd to-#4fc2fd flex items-center justify-center text-white text-base font-bold"
+        class="bg-gradient-to-r from-#1173fd to-#4fc2fd bg-opacity-50 backdrop-blur-lg w-[85%] h-full flex justify-center items-center text-white text-base font-serif font-extrabold rounded-3xl"
         @click="handleCreateAiInterview"
       >
         创建AI面试题
       </view>
     </view>
 
-    <AiRuntimeDiagPanel page-name="process" :safe-area-top="safeAreaTop" />
+    <AiRuntimeDiagPanel page-name="process" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onPageScroll as uniPageScroll } from '@dcloudio/uni-app'
 import aibg11 from '../../static/images/ai-bg-11.png'
 import processSimulation from '../../static/app/icons/icon_process.png'
 import sybz from '../../static/app/icons/icon_sybz.png'
@@ -60,21 +66,17 @@ import {
 } from '@/utils/platformUtils'
 import { useAiPageBack } from '@/utils/useAiPageBack'
 
-const safeAreaTop = ref(0)
+const headerOpacity = ref(0)
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
-  guardBrowserBack: true,
+  guardBrowserBack: false,
 })
 
-function refreshSafeAreaTop() {
-  try {
-    const systemInfo = uni.getSystemInfoSync()
-    safeAreaTop.value = Number(systemInfo?.statusBarHeight || 0)
-  } catch {
-    safeAreaTop.value = 0
-  }
-}
+uniPageScroll((e) => {
+  const threshold = 100
+  headerOpacity.value = Math.min(e.scrollTop / threshold, 1)
+})
 
 function handleCreateAiInterview() {
   const platform = getPlatformType()
@@ -98,6 +100,15 @@ function handleCreateAiInterview() {
 
 onLoad((options) => {
   handleToken(options)
-  refreshSafeAreaTop()
 })
 </script>
+
+<style scoped>
+.no-text-transform,
+.no-text-transform * {
+  text-transform: none !important;
+  font-variant: normal !important;
+  -webkit-text-transform: none !important;
+  text-rendering: auto !important;
+}
+</style>

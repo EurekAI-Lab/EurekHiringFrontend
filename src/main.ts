@@ -8,16 +8,36 @@ import { bootstrapBridgeSimulator } from '@/utils/nativeBridgeDebug'
 import { getCurrentBuildId, getCurrentRouteKey, isH5TestSite } from '@/utils/url'
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 import { bootstrapH5RuntimeVersionWatch } from '@/utils/runtimeVersion'
+import { bootstrapAiSafeArea } from '@/utils/aiSafeArea'
 
 // Enable vConsole in H5 only for local dev or the /test site.
 if (typeof window !== 'undefined') {
+  // Dev harness: 仅开发模式，生产构建时 Vite 会消除整个 if 分支
+  if (import.meta.env.DEV) {
+    // 同步设置 safe area（必须在 bootstrapAiSafeArea 之前）
+    try {
+      const devDevice = localStorage.getItem('__DEV_DEVICE__')
+      const devProfiles: Record<string, number> = { 'iphone-x': 44, 'android-notch': 36, 'no-notch': 24, 'none': 0 }
+      if (devDevice && devDevice in devProfiles) {
+        ;(window as any).__AI_SAFE_TOP__ = devProfiles[devDevice]
+      }
+    } catch {}
+    // 异步加载完整 harness（token、console 工具）
+    import('@/utils/devHarness').then((m) => m.bootstrapDevHarness()).catch(() => {})
+  }
   bootstrapBridgeSimulator()
+  const aiSafeArea = bootstrapAiSafeArea()
   updateRuntimeDiagnostics({
     buildId: getCurrentBuildId(),
     origin: window.location.origin,
     currentRoute: getCurrentRouteKey(),
     siteKind: isH5TestSite() ? 'test' : 'production',
     pageName: 'app-bootstrap',
+    safeAreaTop: aiSafeArea.resolvedAiSafeTop,
+    nativeSafeTop: aiSafeArea.nativeSafeTop,
+    cssEnvSafeTop: aiSafeArea.cssEnvSafeTop,
+    resolvedAiSafeTop: aiSafeArea.resolvedAiSafeTop,
+    safeAreaSource: aiSafeArea.source,
   })
   bootstrapH5RuntimeVersionWatch()
 

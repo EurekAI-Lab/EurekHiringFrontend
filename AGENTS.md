@@ -31,3 +31,15 @@
 ## Security & Configuration Tips
 - Do not commit secrets. Place environment-specific values in `env/` and platform configs; review `nginx.conf` and deploy scripts before release.
 - Validate route and permission changes in `pages.json` and `manifest.json` for all targets.
+# 开发调试和部署
+- 服务器
+  - 前端服务器部署位置：/home/TianduHiring/production/frontend                                                                                                                                      
+    服务器ip: 119.45.15.47                                                                                                                                                                    
+    账号：root                                                     
+    密码:    #Td2133886037    
+- 开发时候总是通过sshpass scp上传到目标服务器并且通过执行sh deploy.sh 在服务器前端部署位置下进行部署
+- 总是部署后通过mobile-mcp进行测试调试，确保功能没有问题
+- 如果需要登陆请请求用户的帮助
+- 对于复杂开发场景，请阅读https://openai.com/zh-Hans-CN/index/harness-engineering/，理解你作为codex如何更好的进行闭环开发，并理解任务所需的脚手架，对于可以显著解决验收的方案，纳入方案一起解决进行开发，通过脚手架/mcp/skill/模拟器等方式，进行harness engineering agent完成闭环开发
+- 永远不要引入兼容性改动和fallback，这会显著提高代码复杂度，保持代码干净唯一版本是更重要的，除非用户单独说明，永远不要这么做，当你修改问题时候，请总是彻底从底层修复，而不是纳入临时性改动，这会导致长期的代码不可维护
+- 对于mcp测试流程，总是沉淀到docs/test.md下，并且优先看测试路径是否已经记录过了，没有的话每次要把产品交互预期和测试路径记录下来碰到新的测试
