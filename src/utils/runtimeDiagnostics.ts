@@ -9,14 +9,17 @@ export interface RuntimeDiagnosticsState {
   siteKind?: 'production' | 'test'
   mismatchReason?: string
   safeAreaTop?: number
-  nativeSafeTop?: number | null
-  cssEnvSafeTop?: number
-  resolvedAiSafeTop?: number
-  safeAreaSource?: 'native' | 'css-env' | 'default'
+  cssSafeAreaTop?: number
+  safeAreaSource?: 'css-env' | 'system-info'
   rawSafeAreaTop?: number
   statusBarHeight?: number
+  windowTop?: number
+  screenTop?: number
+  pixelRatio?: number
   headerContentHeight?: number
   headerOuterHeight?: number
+  deviceModel?: string
+  deviceSystem?: string
   platformType?: string
   hasNativeBridge?: boolean
   updatedAt?: string

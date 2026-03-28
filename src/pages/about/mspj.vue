@@ -396,7 +396,7 @@ import { getCurrentBuildId, getCurrentRouteKey, isH5TestSite, resolveApiBaseUrlF
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-const { safeAreaTop, headerContentHeight, topBarHeight } = useNavBar()
+const { safeAreaTop, headerContentHeight, topBarHeight, navDiagnostics } = useNavBar()
 const reportHeaderStyle = computed(() => ({
   height: `${Number(topBarHeight || 0)}px`,
 }))
@@ -422,7 +422,7 @@ const syncReportDiagnostics = (stage: string, extras: Record<string, any> = {}) 
     pageName: `mspj:${stage}`,
     siteKind: isH5TestSite() ? 'test' : 'production',
     interviewId: typeof interviewId.value === 'number' ? interviewId.value : null,
-    safeAreaTop,
+    ...navDiagnostics,
     hasNativeBridge: hasNativeBridge(),
     ...extras,
   })

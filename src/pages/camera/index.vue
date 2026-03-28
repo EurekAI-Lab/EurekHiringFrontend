@@ -373,7 +373,7 @@ const syncCameraRuntimeDiagnostics = (stage: string, extras: Record<string, any>
     interviewId: interviewId.value,
     siteKind: isH5TestSite() ? 'test' : 'production',
     pageName: `camera:${stage}`,
-    safeAreaTop,
+    ...navDiagnostics,
     platformType: getPlatformType(),
     hasNativeBridge: hasNativeBridge(),
     ...extras,
@@ -2518,7 +2518,7 @@ function handleClickLeft() {
   handleExit()
 }
 
-const { safeAreaTop } = useNavBar()
+const { safeAreaTop, navDiagnostics } = useNavBar()
 const introCardStyle = {
   top: `${safeAreaTop + 12}px`,
 }

@@ -5,20 +5,21 @@
 <template>
   <view class="w-full bg-#f5f7fb min-h-[210vw] h-auto relative overflow-y-auto">
     <view
-      class="absolute top-0 z-1 w-full flex flex-row fixed"
+      class="absolute top-0 z-1 w-full fixed"
       :style="{
         backgroundColor: `rgba(255, 255, 255, ${headerOpacity})`,
         color: headerOpacity > 0.5 ? '#333' : '#f4f4f4',
-        height: '44px',
-        paddingTop: '44px',
+        height: topBarHeight + 'px',
       }"
     >
-      <view
-        class="i-carbon-chevron-left w-8 h-8 absolute left-5 top-[48px]"
-        @click="handleBack"
-        :style="{ color: headerOpacity > 0.5 ? '#333' : '#f4f4f4' }"
-      ></view>
-      <view class="absolute left-1.8/5 top-[52px]">个人AI模拟面试</view>
+      <view class="relative flex items-center w-full" :style="{ marginTop: safeAreaTop + 'px', height: headerContentHeight + 'px' }">
+        <view
+          class="i-carbon-chevron-left w-8 h-8 absolute left-5"
+          @click="handleBack"
+          :style="{ color: headerOpacity > 0.5 ? '#333' : '#f4f4f4' }"
+        ></view>
+        <view class="absolute left-1/2 transform -translate-x-1/2">个人AI模拟面试</view>
+      </view>
     </view>
     <view>
       <image :src="aibg10" class="w-full h-70"></image>
@@ -100,7 +101,7 @@
       </wd-action-sheet>
     </view>
 
-    <AiRuntimeDiagPanel page-name="process-simulation" />
+    <AiRuntimeDiagPanel page-name="process-simulation" :safe-area-top="safeAreaTop" />
   </view>
 </template>
 
@@ -114,14 +115,18 @@ import dw from '../../static/app/icons/icon_dw.png'
 import dh from '../../static/app/icons/icon_dh.png'
 import { useToast } from 'wot-design-uni'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
-import { buildAbsoluteH5ReloadUrl, getRelativeUniPathFromUrl } from '@/utils/url'
+import { buildAbsoluteH5ReloadUrl, getCurrentBuildId, getCurrentRouteKey, getRelativeUniPathFromUrl, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
 import { handleToken } from '@/utils/useAuth'
 import { useAiPageBack } from '@/utils/useAiPageBack'
+import { useNavBar } from '@/utils/useNavBar'
+import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 const toast = useToast()
 const showSheet = ref(false)
 const items = ref([])
 const headerOpacity = ref(0)
+const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+const { safeAreaTop, headerContentHeight, topBarHeight, navDiagnostics } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/interviews/record-simulate',
   mode: 'entry-aware',
@@ -135,6 +140,17 @@ uniPageScroll((e) => {
 
 onLoad((options) => {
   handleToken(options)
+  // #ifdef H5
+  updateRuntimeDiagnostics({
+    buildId: getCurrentBuildId(),
+    resolvedApiBase: resolveApiBaseUrlForCurrentSite(baseUrl),
+    origin: window.location.origin,
+    currentRoute: getCurrentRouteKey(),
+    pageName: 'process-simulation:load',
+    siteKind: isH5TestSite() ? 'test' : 'production',
+    ...navDiagnostics,
+  })
+  // #endif
 })
 
 const close = async () => {

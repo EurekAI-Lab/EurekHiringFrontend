@@ -79,7 +79,7 @@ const defaultFallbackUrl = computed(() =>
 )
 const interviewStore = useInterviewStore()
 let isPageActive = true
-const { safeAreaTop, topBarHeight } = useNavBar()
+const { safeAreaTop, topBarHeight, navDiagnostics } = useNavBar()
 const contentAreaStyle = computed(() => ({
   paddingTop: `${Number(topBarHeight || 0) + 24}px`,
 }))
@@ -156,7 +156,7 @@ const syncLoadingDiagnostics = (stage: string, extras: Record<string, any> = {})
     pageName: `mspj-loading:${stage}`,
     siteKind: isH5TestSite() ? 'test' : 'production',
     interviewId: interviewId.value,
-    safeAreaTop,
+    ...navDiagnostics,
     platformType: getPlatformType(),
     hasNativeBridge: hasNativeBridge(),
     ...extras,

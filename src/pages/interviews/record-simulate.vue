@@ -206,7 +206,7 @@ const loading = ref(true)
 const searchValue = ref()
 const showSheet = ref(false)
 const showErrorTip = ref(false)
-const { safeAreaTop, navBarHeight, topBarHeight } = useNavBar()
+const { safeAreaTop, navBarHeight, topBarHeight, navDiagnostics } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
@@ -222,7 +222,7 @@ const syncRuntimeState = (pageStage: string, extras: Record<string, any> = {}) =
     currentRoute: getCurrentRouteKey(),
     pageName: `record-simulate:${pageStage}`,
     siteKind: isH5TestSite() ? 'test' : 'production',
-    safeAreaTop,
+    ...navDiagnostics,
     ...extras,
   })
   // #endif

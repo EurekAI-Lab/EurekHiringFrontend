@@ -5,20 +5,21 @@
 <template>
   <view class="w-full bg-#f4f4f4 min-h-[210vw] h-auto relative overflow-y-auto">
     <view
-      class="absolute top-0 z-1 w-full flex flex-row fixed"
+      class="absolute top-0 z-1 w-full fixed"
       :style="{
         backgroundColor: `rgba(255, 255, 255, ${headerOpacity})`,
         color: headerOpacity > 0.5 ? '#333' : '#f4f4f4',
-        height: '44px',
-        paddingTop: '44px',
+        height: topBarHeight + 'px',
       }"
     >
-      <view
-        class="i-carbon-chevron-left w-8 h-8 absolute left-5 top-[48px]"
-        @click="handleBack"
-        :style="{ color: headerOpacity > 0.5 ? '#333' : '#f4f4f4' }"
-      ></view>
-      <view class="absolute left-1.8/5 top-[52px]">企业AI面试应用</view>
+      <view class="relative flex items-center w-full" :style="{ marginTop: safeAreaTop + 'px', height: headerContentHeight + 'px' }">
+        <view
+          class="i-carbon-chevron-left w-8 h-8 absolute left-5"
+          @click="handleBack"
+          :style="{ color: headerOpacity > 0.5 ? '#333' : '#f4f4f4' }"
+        ></view>
+        <view class="absolute left-1/2 transform -translate-x-1/2">企业AI面试应用</view>
+      </view>
     </view>
     <view>
       <image :src="aibg11" class="w-full h-70"></image>
@@ -47,7 +48,7 @@
       </view>
     </view>
 
-    <AiRuntimeDiagPanel page-name="process" />
+    <AiRuntimeDiagPanel page-name="process" :safe-area-top="safeAreaTop" />
   </view>
 </template>
 
@@ -65,8 +66,13 @@ import {
   PlatformType,
 } from '@/utils/platformUtils'
 import { useAiPageBack } from '@/utils/useAiPageBack'
+import { useNavBar } from '@/utils/useNavBar'
+import { getCurrentBuildId, getCurrentRouteKey, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 const headerOpacity = ref(0)
+const baseUrl = import.meta.env.VITE_SERVER_BASEURL
+const { safeAreaTop, headerContentHeight, topBarHeight, navDiagnostics } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
@@ -100,6 +106,18 @@ function handleCreateAiInterview() {
 
 onLoad((options) => {
   handleToken(options)
+  // #ifdef H5
+  updateRuntimeDiagnostics({
+    buildId: getCurrentBuildId(),
+    resolvedApiBase: resolveApiBaseUrlForCurrentSite(baseUrl),
+    origin: window.location.origin,
+    currentRoute: getCurrentRouteKey(),
+    pageName: 'process:load',
+    siteKind: isH5TestSite() ? 'test' : 'production',
+    ...navDiagnostics,
+    platformType: getPlatformType(),
+  })
+  // #endif
 })
 </script>
 

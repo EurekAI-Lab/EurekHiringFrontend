@@ -180,7 +180,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { useAiPageBack } from '@/utils/useAiPageBack'
 import { useNavBar } from '@/utils/useNavBar'
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-const { safeAreaTop, navBarHeight, topBarHeight } = useNavBar()
+const { safeAreaTop, navBarHeight, topBarHeight, navDiagnostics } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
@@ -220,7 +220,7 @@ onLoad((options) => {
     currentRoute: getCurrentRouteKey(),
     pageName: 'record:load',
     siteKind: isH5TestSite() ? 'test' : 'production',
-    safeAreaTop,
+    ...navDiagnostics,
   })
   // #endif
 
@@ -267,7 +267,7 @@ onShow(() => {
   // #endif
   updateRuntimeDiagnostics({
     pageName: 'record:show',
-    safeAreaTop,
+    ...navDiagnostics,
   })
 })
 
