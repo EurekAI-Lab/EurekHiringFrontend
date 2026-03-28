@@ -172,6 +172,7 @@ import {
   shouldReloadInterviewSession,
 } from '@/utils/url'
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
+import { useNavBar } from '@/utils/useNavBar'
 
 const message = useMessage()
 
@@ -2517,8 +2518,7 @@ function handleClickLeft() {
   handleExit()
 }
 
-const { safeAreaInsets } = uni.getSystemInfoSync()
-const safeAreaTop = Number(safeAreaInsets?.top || 0)
+const { safeAreaTop } = useNavBar()
 const introCardStyle = {
   top: `${safeAreaTop + 12}px`,
 }

@@ -14,7 +14,7 @@
     >
       <view
         class="relative flex items-center"
-        :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }"
+        :style="{ marginTop: safeAreaTop + 'px', height: navBarHeight + 'px' }"
       >
         <view
           class="i-carbon-chevron-left w-8 h-8 absolute left-5 text-black"
@@ -180,7 +180,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { useAiPageBack } from '@/utils/useAiPageBack'
 import { useNavBar } from '@/utils/useNavBar'
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-const { safeAreaInsets, navBarHeight, topBarHeight, safeAreaTop } = useNavBar()
+const { safeAreaTop, navBarHeight, topBarHeight } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',

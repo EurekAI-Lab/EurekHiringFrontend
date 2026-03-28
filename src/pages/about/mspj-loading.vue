@@ -79,8 +79,7 @@ const defaultFallbackUrl = computed(() =>
 )
 const interviewStore = useInterviewStore()
 let isPageActive = true
-const { safeAreaInsets, topBarHeight } = useNavBar()
-const safeAreaTop = Number(safeAreaInsets?.top || 0)
+const { safeAreaTop, topBarHeight } = useNavBar()
 const contentAreaStyle = computed(() => ({
   paddingTop: `${Number(topBarHeight || 0) + 24}px`,
 }))

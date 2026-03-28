@@ -6,7 +6,7 @@
  *
  * 功能：
  * 1. 自动获取 Token（调用后端登录接口）
- * 2. Safe Area 模拟（设备预设 + CSS 变量）
+ * 2. 设备轮廓预设（仅本地调试标记）
  * 3. Console 工具（window.__DEV__）
  */
 
@@ -69,7 +69,7 @@ export function bootstrapDevHarness(): void {
 
   console.log('[dev-harness] Initializing...')
 
-  // 1. Apply device profile → sets window.__AI_SAFE_TOP__ before aiSafeArea reads it
+  // 1. Apply device profile for local debugging only
   applyDeviceProfile()
 
   // 2. Attach console helpers
@@ -84,14 +84,8 @@ export function bootstrapDevHarness(): void {
 // ─── Device Profile / Safe Area ──────────────────────────────────────
 
 function applyDeviceProfile(): void {
-  // URL param ?safeTop=N takes priority (handled by aiSafeArea.ts)
   try {
     const url = new URL(window.location.href)
-    if (url.searchParams.has('safeTop') || url.searchParams.has('safeAreaTop')) {
-      console.log('[dev-harness] safeTop from URL param, skipping device profile')
-      return
-    }
-
     // Check ?device=xxx URL param
     let device = url.searchParams.get('device') as DeviceProfile | null
 
@@ -106,8 +100,8 @@ function applyDeviceProfile(): void {
     }
 
     const safeTop = DEVICE_PROFILES[device]
-    ;(window as any).__AI_SAFE_TOP__ = safeTop
     localStorage.setItem(DEV_DEVICE_KEY, device)
+    document.documentElement.style.setProperty('--ai-safe-top', `${safeTop}px`)
     console.log(`[dev-harness] Device: ${device} (safeTop=${safeTop}px)`)
   } catch (err) {
     console.warn('[dev-harness] applyDeviceProfile failed:', err)
@@ -121,7 +115,6 @@ function setDeviceLive(profile: DeviceProfile): void {
   }
   const safeTop = DEVICE_PROFILES[profile]
   localStorage.setItem(DEV_DEVICE_KEY, profile)
-  ;(window as any).__AI_SAFE_TOP__ = safeTop
   document.documentElement.style.setProperty('--ai-safe-top', `${safeTop}px`)
   console.log(`[dev-harness] Device set to: ${profile} (safeTop=${safeTop}px) — CSS updated live`)
 }
@@ -239,14 +232,8 @@ function attachConsoleHelpers(): void {
     },
 
     navigateTo(page: string, params?: Record<string, string>) {
-      const device = localStorage.getItem(DEV_DEVICE_KEY) || 'none'
-      const safeTop = DEVICE_PROFILES[device as DeviceProfile] ?? 0
       const allParams: Record<string, string> = {
         ...params,
-      }
-      // Only add safeTop if non-zero
-      if (safeTop > 0) {
-        allParams.safeTop = String(safeTop)
       }
       const qs = Object.entries(allParams)
         .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)

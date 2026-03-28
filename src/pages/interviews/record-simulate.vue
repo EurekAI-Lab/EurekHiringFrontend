@@ -13,7 +13,7 @@
       class="fixed top-0 left-0 right-0 z-10 bg-white"
       :style="{ height: topBarHeight + 'px' }"
     >
-      <view class="relative flex items-center" :style="{ marginTop: safeAreaInsets.top + 'px', height: navBarHeight + 'px' }">
+      <view class="relative flex items-center" :style="{ marginTop: safeAreaTop + 'px', height: navBarHeight + 'px' }">
         <view
           class="i-carbon-chevron-left w-8 h-8 absolute left-5 text-black"
           @click="handleBack"
@@ -206,8 +206,7 @@ const loading = ref(true)
 const searchValue = ref()
 const showSheet = ref(false)
 const showErrorTip = ref(false)
-const { safeAreaInsets, navBarHeight, topBarHeight } = useNavBar()
-const safeAreaTop = Number(safeAreaInsets.top || 0)
+const { safeAreaTop, navBarHeight, topBarHeight } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
