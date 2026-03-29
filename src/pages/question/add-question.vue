@@ -81,7 +81,7 @@ const toast = useToast()
 const publicStore = usePublicStore()
 const { handleBack } = useAiPageBack({
   mode: 'stack-first',
-  guardBrowserBack: false,
+  browserBackStrategy: 'none',
 })
 
 // 确保 store 初始化正确

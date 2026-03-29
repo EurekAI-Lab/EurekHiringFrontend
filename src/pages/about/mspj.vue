@@ -269,50 +269,44 @@
             <aimn class="mt-10" />
             <xzzw class="my-10" />
             <xzzw class="my-10" /> -->
-      <!-- 优化的视频播放弹窗 -->
-      <wd-popup 
-        v-model="isModalVisible" 
-        custom-style="background-color: rgba(0, 0, 0, 0.95); width: 100vw; height: 100vh; max-width: none;"
-        position="center"
-        :close-on-click-modal="false"
-        @close="closeVideoModal"
+      <view
+        v-if="isModalVisible"
+        class="video-modal-overlay"
+        :style="`--video-safe-top: ${safeAreaTop}px`"
+        @click.stop
+        @touchmove.stop.prevent
       >
-        <view class="video-player-container" @click.stop :style="`--safe-area-top: ${safeAreaTop}px`">
-          <!-- 顶部操作栏 -->
-          <view class="video-top-bar">
-            <!-- 关闭按钮 -->
-            <view class="close-btn" @click.stop="closeVideoModal">
-              <view class="close-btn-inner">
-                <text class="close-icon">×</text>
-              </view>
+        <view class="video-modal-shell" @click.stop>
+          <view class="video-modal-bar">
+            <view class="video-modal-meta">
+              <text class="video-modal-title">{{ currentVideoTitle || '面试录屏' }}</text>
+              <text class="video-modal-duration">{{ formattedVideoDuration }}</text>
+            </view>
+            <view class="video-modal-close" @click.stop="closeVideoModal">
+              <text class="video-modal-close-icon">×</text>
             </view>
           </view>
-          
-          
-          <!-- 视频播放器 -->
-          <view class="video-wrapper">
-            <!-- 加载中状态 -->
-            <view v-if="isVideoLoading && !videoError" class="video-loading">
+
+          <view class="video-modal-content">
+            <view v-if="isVideoLoading && !videoError" class="video-modal-loading">
               <view class="loading-spinner"></view>
               <text class="loading-text">视频加载中...</text>
             </view>
-            
-            <!-- 错误状态 -->
-            <view v-if="videoError" class="video-error">
+
+            <view v-if="videoError" class="video-modal-error">
               <text class="i-carbon-warning text-4xl text-gray-400 mb-2"></text>
               <text class="text-gray-400">视频加载失败</text>
-              <view class="retry-btn" @click="retryLoadVideo">
+              <view class="video-modal-retry" @click="retryLoadVideo">
                 <text class="text-white">重试</text>
               </view>
             </view>
-            
-            <!-- 视频播放器 -->
-            <video 
+
+            <video
               v-show="showVideo && !videoError"
               :id="'video-player-' + currentVideoIndex"
-              class="interview-video" 
-              :src="showVideo" 
-              controls 
+              class="video-modal-player"
+              :src="showVideo"
+              controls
               show-center-play-btn
               :show-fullscreen-btn="false"
               show-play-btn
@@ -334,14 +328,10 @@
               @pause="onVideoPause"
               @ended="onVideoEnded"
               @timeupdate="onVideoTimeUpdate"
-              @fullscreenchange="onFullscreenChange"
-              style="width: 100%; height: 100%;"
             ></video>
-            
-            <!-- 移除自定义全屏按钮 -->
           </view>
         </view>
-      </wd-popup>
+      </view>
     </view>
     </view>
     <AiRuntimeDiagPanel
@@ -610,27 +600,6 @@ const onVideoEnded = () => {
 
 const onVideoTimeUpdate = (e: any) => {
   // 可以在这里更新播放进度
-}
-
-// 处理全屏变化
-const onFullscreenChange = (e: any) => {
-  console.log('全屏状态变化:', e.detail)
-  // 处理全屏状态变化
-  if (!e.detail.fullScreen || !e.detail.fullscreen) {
-    // 退出全屏时的处理
-    console.log('退出全屏')
-  }
-}
-
-// 手动触发全屏
-const requestFullscreen = () => {
-  if (currentVideoIndex.value !== -1) {
-    const videoId = `video-player-${currentVideoIndex.value}`
-    const context = uni.createVideoContext(videoId)
-    if (context) {
-      context.requestFullScreen({ direction: 0 }) // 0为正常竖屏, 90为横屏
-    }
-  }
 }
 
 // 处理视频加载错误
@@ -1412,184 +1381,102 @@ uni-page-body,
   background-size: 100% 100%;
 }
 
-/* 视频播放器样式 */
-.video-player-container {
-  background: #000;
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-}
-
-.close-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
-  width: 36px;
-  height: 36px;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.close-btn:active {
-  background: rgba(0, 0, 0, 0.8);
-}
-
-.video-header {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 10;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 8px 12px;
-  border-radius: 6px;
-}
-
-.video-title {
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.video-duration {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 12px;
-  margin-top: 2px;
-}
-
-.video-wrapper {
-  width: 100%;
-  aspect-ratio: 16/9;
-  background: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.interview-video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 8px;
-  display: block;
-  margin: 0 auto;
-}
-
-.video-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  height: 100%;
-}
-
-/* 视频播放器容器样式 */
-.video-player-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background-color: transparent;
-  padding-top: env(safe-area-inset-top);
-}
-
-/* 顶部操作栏 */
-.video-top-bar {
+/* 视频播放层 */
+.video-modal-overlay {
   position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.96);
+  overflow: hidden;
+}
+
+.video-modal-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+.video-modal-bar {
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
+  z-index: 20;
   display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 20px;
-  padding-top: calc(30px + env(safe-area-inset-top) + var(--safe-area-top, 0px));
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
-  z-index: 100;
-  min-height: 60px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: calc(var(--video-safe-top, 0px) + 12px) 16px 20px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.28) 70%, rgba(0, 0, 0, 0) 100%);
 }
 
-
-/* 关闭按钮样式 - 增大点击区域 */
-.close-btn {
-  width: 60px;
-  height: 60px;
+.video-modal-meta {
+  min-width: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 10px;
-  margin: -10px;
-  position: relative;
+  flex-direction: column;
+  gap: 4px;
+  color: #fff;
 }
 
-.close-btn-inner {
+.video-modal-title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.video-modal-duration {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.2;
+}
+
+.video-modal-close {
   width: 44px;
   height: 44px;
-  background-color: rgba(0, 0, 0, 0.6);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   backdrop-filter: blur(10px);
-  transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.close-btn:hover .close-btn-inner {
-  background-color: rgba(0, 0, 0, 0.8);
-  border-color: rgba(255, 255, 255, 0.5);
+.video-modal-close:active {
+  background: rgba(0, 0, 0, 0.78);
 }
 
-.close-btn:active .close-btn-inner {
-  background-color: rgba(0, 0, 0, 0.9);
-  transform: scale(0.9);
-}
-
-/* 关闭图标样式 */
-.close-icon {
-  color: white;
-  font-size: 32px;
+.video-modal-close-icon {
+  color: #fff;
+  font-size: 28px;
   font-weight: 300;
   line-height: 1;
-  display: block;
 }
 
-.video-title {
-  font-size: 16px;
-  font-weight: 500;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-}
-
-/* 视频包装器 */
-.video-wrapper {
-  flex: 1;
-  position: relative;
+.video-modal-content {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #000;
   overflow: hidden;
-  margin-top: calc(80px + var(--safe-area-top, 0px));
-  margin-left: 20px;
-  margin-right: 20px;
-  margin-bottom: 20px;
-  border-radius: 12px;
-  background-color: #000;
+}
+
+.video-modal-player {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #000;
 }
 
 /* 自定义全屏按钮 - 已移除 */
 
 /* 加载中状态 */
-.video-loading {
+.video-modal-loading {
   position: absolute;
   top: 0;
   left: 0;
@@ -1623,24 +1510,8 @@ uni-page-body,
   to { transform: rotate(360deg); }
 }
 
-/* 重试按钮 */
-.retry-btn {
-  margin-top: 20px;
-  padding: 12px 24px;
-  background-color: #145eff;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-size: 14px;
-}
-
-.retry-btn:active {
-  background-color: #0d4fcc;
-  transform: scale(0.98);
-}
-
 /* 错误状态优化 */
-.video-error {
+.video-modal-error {
   position: absolute;
   top: 0;
   left: 0;
@@ -1655,6 +1526,21 @@ uni-page-body,
   text-align: center;
   background-color: rgba(0, 0, 0, 0.8);
   z-index: 10;
+}
+
+.video-modal-retry {
+  margin-top: 20px;
+  padding: 12px 24px;
+  background-color: #145eff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.video-modal-retry:active {
+  background-color: #0d4fcc;
+  transform: scale(0.98);
 }
 
 /* 移除镜像效果 - 已注释 */

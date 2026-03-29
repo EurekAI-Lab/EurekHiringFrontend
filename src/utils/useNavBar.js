@@ -4,8 +4,9 @@ const DEFAULT_NAV_BAR_HEIGHT = 48
 /**
  * 导航栏高度计算工具
  *
- * H5 统一以 WebView 当前视口暴露的 CSS safe area 作为顶部布局真值，
- * 避免宿主窗口已经让出顶部区域后，页面再次按设备状态栏高度二次留白。
+ * H5 平台按系统类型区分顶部安全区来源：
+ * - iOS 使用历史稳定的系统安全区语义，必要时退回刘海屏基线值
+ * - Android/Harmony 使用 CSS safe area，避免宿主已让出顶部后再次二次留白
  */
 export function useNavBar() {
   const systemInfo = uni.getSystemInfoSync()
@@ -17,12 +18,19 @@ export function useNavBar() {
   const screenTop = normalizeNumber(systemInfo.screenTop)
   const pixelRatio = resolvePixelRatio(systemInfo)
 
-  let safeAreaTop = rawSafeAreaTop > 0 ? rawSafeAreaTop : statusBarHeight
-  let safeAreaSource = 'system-info'
+  let safeAreaTop = resolveSystemSafeAreaTop(rawSafeAreaTop, statusBarHeight)
+  let safeAreaSource = rawSafeAreaTop > 0 ? 'system-safe-area' : 'status-bar-height'
 
   // #ifdef H5
-  safeAreaTop = normalizeH5SafeAreaTop(cssSafeAreaTop, systemInfo, pixelRatio)
-  safeAreaSource = 'css-env'
+  const h5SafeArea = resolveH5SafeAreaTop({
+    systemInfo,
+    rawSafeAreaTop,
+    statusBarHeight,
+    cssSafeAreaTop,
+    pixelRatio,
+  })
+  safeAreaTop = h5SafeArea.top
+  safeAreaSource = h5SafeArea.source
   // #endif
 
   const navBarHeight = resolveNavBarHeight(systemInfo)
@@ -130,9 +138,7 @@ function resolveSafeAreaInsets(systemInfo, statusBarHeight) {
 }
 
 function resolveNavBarHeight(systemInfo) {
-  return String(systemInfo.platform || '').toLowerCase() === 'ios'
-    ? IOS_NAV_BAR_HEIGHT
-    : DEFAULT_NAV_BAR_HEIGHT
+  return isIOSLikePlatform(systemInfo) ? IOS_NAV_BAR_HEIGHT : DEFAULT_NAV_BAR_HEIGHT
 }
 
 function measureCssSafeAreaInsetTop() {
@@ -163,7 +169,113 @@ function measureCssSafeAreaInsetTop() {
   return Number.isFinite(measured) && measured > 0 ? measured : 0
 }
 
-function normalizeH5SafeAreaTop(value, systemInfo, pixelRatio) {
+function resolveH5SafeAreaTop({
+  systemInfo,
+  rawSafeAreaTop,
+  statusBarHeight,
+  cssSafeAreaTop,
+  pixelRatio,
+}) {
+  if (isIOSLikePlatform(systemInfo)) {
+    const top = resolveIOSH5SafeAreaTop(rawSafeAreaTop, statusBarHeight, cssSafeAreaTop)
+
+    return {
+      top,
+      source: resolveIOSSafeAreaSource(top, rawSafeAreaTop, statusBarHeight, cssSafeAreaTop),
+    }
+  }
+
+  if (isAndroidLikePlatform(systemInfo)) {
+    return {
+      top: normalizeAndroidH5SafeAreaTop(cssSafeAreaTop, systemInfo, pixelRatio),
+      source: 'android-css-env',
+    }
+  }
+
+  return {
+    top: resolveSystemSafeAreaTop(rawSafeAreaTop, statusBarHeight),
+    source: rawSafeAreaTop > 0 ? 'h5-system-safe-area' : 'h5-status-bar-height',
+  }
+}
+
+function resolveSystemSafeAreaTop(rawSafeAreaTop, statusBarHeight, fallbackTop = 0) {
+  if (rawSafeAreaTop > 0) {
+    return rawSafeAreaTop
+  }
+
+  if (statusBarHeight > 0) {
+    return statusBarHeight
+  }
+
+  return normalizeNumber(fallbackTop)
+}
+
+function resolveIOSH5SafeAreaTop(rawSafeAreaTop, statusBarHeight, cssSafeAreaTop) {
+  const systemTop = normalizeNumber(rawSafeAreaTop)
+  const statusTop = normalizeNumber(statusBarHeight)
+  const cssTop = normalizeNumber(cssSafeAreaTop)
+  const baselineTop = detectIOSBaselineSafeAreaTop()
+
+  return Math.max(systemTop, statusTop, cssTop, baselineTop)
+}
+
+function resolveIOSSafeAreaSource(top, rawSafeAreaTop, statusBarHeight, cssSafeAreaTop) {
+  const normalizedTop = normalizeNumber(top)
+  const systemTop = normalizeNumber(rawSafeAreaTop)
+  const statusTop = normalizeNumber(statusBarHeight)
+  const cssTop = normalizeNumber(cssSafeAreaTop)
+  const baselineTop = detectIOSBaselineSafeAreaTop()
+
+  if (systemTop > 0 && systemTop >= normalizedTop) {
+    return 'ios-system-safe-area'
+  }
+
+  if (cssTop > 0 && cssTop >= normalizedTop) {
+    return 'ios-css-env'
+  }
+
+  if (baselineTop >= normalizedTop && baselineTop > statusTop) {
+    return 'ios-notch-baseline'
+  }
+
+  if (statusTop > 0) {
+    return 'ios-status-bar-height'
+  }
+
+  return 'ios-default-top'
+}
+
+function isIOSLikePlatform(systemInfo) {
+  const platform = String(systemInfo.platform || '').toLowerCase()
+  const osName = String(systemInfo.osName || '').toLowerCase()
+  const systemText = String(systemInfo.system || '').toLowerCase()
+  const userAgent =
+    typeof navigator !== 'undefined' ? String(navigator.userAgent || '').toLowerCase() : ''
+
+  return (
+    platform === 'ios' ||
+    /ios/.test(osName) ||
+    /ios|iphone|ipad|ipod/.test(systemText) ||
+    /iphone|ipad|ipod/.test(userAgent)
+  )
+}
+
+function isAndroidLikePlatform(systemInfo) {
+  const platform = String(systemInfo.platform || '').toLowerCase()
+  const osName = String(systemInfo.osName || '').toLowerCase()
+  const systemText = String(systemInfo.system || '').toLowerCase()
+  const userAgent =
+    typeof navigator !== 'undefined' ? String(navigator.userAgent || '').toLowerCase() : ''
+
+  return (
+    platform === 'android' ||
+    /android|harmony/.test(osName) ||
+    /android|harmony/.test(systemText) ||
+    /android|arkweb|harmony/.test(userAgent)
+  )
+}
+
+function normalizeAndroidH5SafeAreaTop(value, systemInfo, pixelRatio) {
   const normalizedValue = normalizeNumber(value)
   if (normalizedValue <= 0) {
     return 0
@@ -175,6 +287,70 @@ function normalizeH5SafeAreaTop(value, systemInfo, pixelRatio) {
   }
 
   return normalizedValue / pixelRatio
+}
+
+function detectIOSBaselineSafeAreaTop() {
+  if (typeof window === 'undefined') {
+    return 0
+  }
+
+  if (!isIPhoneHandset()) {
+    return 20
+  }
+
+  const ratio = window.devicePixelRatio || 1
+  const screen = window.screen || {}
+  const width = normalizeNumber(screen.width) * ratio
+  const height = normalizeNumber(screen.height) * ratio
+  const normalizedWidth = Math.min(width, height)
+  const normalizedHeight = Math.max(width, height)
+  const viewportWidth = Math.min(
+    normalizeNumber(window.innerWidth),
+    normalizeNumber(window.innerHeight),
+  )
+  const viewportHeight = Math.max(
+    normalizeNumber(window.innerWidth),
+    normalizeNumber(window.innerHeight),
+  )
+
+  if (!normalizedWidth || !normalizedHeight) {
+    return viewportHeight >= 812 ? 44 : 20
+  }
+
+  const notchDeviceSizes = [
+    [1125, 2436],
+    [1242, 2688],
+    [828, 1792],
+    [1080, 2340],
+    [1170, 2532],
+    [1179, 2556],
+    [1284, 2778],
+    [1290, 2796],
+  ]
+
+  const isNotchDevice = notchDeviceSizes.some(
+    ([deviceWidth, deviceHeight]) =>
+      normalizedWidth === deviceWidth && normalizedHeight === deviceHeight,
+  )
+
+  if (isNotchDevice) {
+    return 44
+  }
+
+  if (normalizedHeight >= 2436 || viewportHeight >= 780) {
+    return 44
+  }
+
+  return 20
+}
+
+function isIPhoneHandset() {
+  if (typeof navigator === 'undefined') {
+    return false
+  }
+
+  const userAgent = String(navigator.userAgent || '').toLowerCase()
+  return /iphone|ipod/.test(userAgent)
 }
 
 function resolvePixelRatio(systemInfo) {

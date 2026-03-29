@@ -76,7 +76,7 @@ const { safeAreaTop, headerContentHeight, topBarHeight, navDiagnostics } = useNa
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
-  guardBrowserBack: false,
+  browserBackStrategy: 'none',
 })
 
 uniPageScroll((e) => {

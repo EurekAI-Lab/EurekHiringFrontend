@@ -115,7 +115,7 @@ import dw from '../../static/app/icons/icon_dw.png'
 import dh from '../../static/app/icons/icon_dh.png'
 import { useToast } from 'wot-design-uni'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
-import { buildAbsoluteH5ReloadUrl, getCurrentBuildId, getCurrentRouteKey, getRelativeUniPathFromUrl, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import { getCurrentBuildId, getCurrentRouteKey, getRelativeUniPathFromUrl, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
 import { handleToken } from '@/utils/useAuth'
 import { useAiPageBack } from '@/utils/useAiPageBack'
 import { useNavBar } from '@/utils/useNavBar'
@@ -130,7 +130,7 @@ const { safeAreaTop, headerContentHeight, topBarHeight, navDiagnostics } = useNa
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/interviews/record-simulate',
   mode: 'entry-aware',
-  guardBrowserBack: false,
+  browserBackStrategy: 'none',
 })
 
 uniPageScroll((e) => {
@@ -246,42 +246,36 @@ const submitTestInerview = async () => {
         header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
         success: (res: any) => {
           const redirectUrl = res?.data?.data?.redirect_url || ''
-          const relativeUrl = getRelativeUniPathFromUrl(redirectUrl)
-          const targetUrl = relativeUrl
-            ? relativeUrl.includes('test=')
-              ? relativeUrl
-              : `${relativeUrl}${relativeUrl.includes('?') ? '&' : '?'}test=true`
-            : ''
 
           console.log('process-simulation 创建模拟面试结果:', {
             selectedJobseekerPositionId: selectedItem.id,
             redirectUrl,
-            relativeUrl,
-            targetUrl,
             interviewId: res?.data?.data?.interview_id,
             positionName: res?.data?.data?.position_name,
           })
 
-          if (targetUrl) {
+          if (redirectUrl) {
             if (typeof window !== 'undefined') {
-              const absoluteUrl = buildAbsoluteH5ReloadUrl(targetUrl)
-              console.log('process-simulation - H5强制刷新跳转:', {
-                navigationMode: 'h5-document-reload',
-                absoluteUrl,
+              console.log('process-simulation - H5直跳redirect_url:', {
+                navigationMode: 'h5-redirect-url',
+                redirectUrl,
               })
-              window.location.replace(absoluteUrl)
+              window.location.href = redirectUrl
               return
             }
 
-            console.log('process-simulation - 非H5跳转:', {
-              navigationMode: 'uni-relaunch',
-              targetUrl,
-            })
-            uni.reLaunch({ url: targetUrl })
-            return
+            const targetUrl = getRelativeUniPathFromUrl(redirectUrl)
+            if (targetUrl) {
+              console.log('process-simulation - 非H5跳转:', {
+                navigationMode: 'uni-relaunch',
+                targetUrl,
+              })
+              uni.reLaunch({ url: targetUrl })
+              return
+            }
           }
 
-          window.location.replace(redirectUrl)
+          console.error('process-simulation - 缺少redirect_url', res)
         },
         fail: () => {},
         complete: () => {

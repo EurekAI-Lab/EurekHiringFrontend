@@ -189,7 +189,7 @@ import iconNotQualified from '../../static/app/icons/interview-status-new/unqual
 import iconVeryQualified from '../../static/app/icons/interview-status-new/very_suitable_2x.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { registerMspjEntry } from '@/utils/mspjNavigation'
-import { buildAbsoluteH5ReloadUrl, getCurrentBuildId, getCurrentRouteKey, getRelativeUniPathFromUrl, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import { getCurrentBuildId, getCurrentRouteKey, getRelativeUniPathFromUrl, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 import { ensureLatestH5Bundle } from '@/utils/runtimeVersion'
 import { handleToken } from "@/utils/useAuth"
@@ -210,7 +210,7 @@ const { safeAreaTop, navBarHeight, topBarHeight, navDiagnostics } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
-  guardBrowserBack: true,
+  browserBackStrategy: 'native-entry-exit',
 })
 
 const syncRuntimeState = (pageStage: string, extras: Record<string, any> = {}) => {
@@ -564,36 +564,29 @@ const submitTestInerview = async () => {
           console.log('submitTestInerview - 成功响应:', res)
           if (res.statusCode === 200 && res.data && res.data.data && res.data.data.redirect_url) {
             const redirectUrl = res.data.data.redirect_url
-            const relativeUrl = getRelativeUniPathFromUrl(redirectUrl)
-            const targetUrl = relativeUrl
-              ? relativeUrl.includes('test=')
-                ? relativeUrl
-                : `${relativeUrl}${relativeUrl.includes('?') ? '&' : '?'}test=true`
-              : ''
 
             console.log('submitTestInerview - 创建模拟面试结果:', {
               selectedJobseekerPositionId: selectedItem.id,
               redirectUrl,
-              relativeUrl,
-              targetUrl,
               interviewId: res.data.data.interview_id,
               positionName: res.data.data.position_name,
             })
 
-            if (targetUrl) {
-              syncRuntimeState('create-success', {
-                interviewId: res.data.data.interview_id,
-              })
-              if (typeof window !== 'undefined') {
-                const absoluteUrl = buildAbsoluteH5ReloadUrl(targetUrl)
-                console.log('submitTestInerview - H5强制刷新跳转:', {
-                  navigationMode: 'h5-document-reload',
-                  absoluteUrl,
-                })
-                window.location.replace(absoluteUrl)
-                return
-              }
+            syncRuntimeState('create-success', {
+              interviewId: res.data.data.interview_id,
+            })
 
+            if (typeof window !== 'undefined') {
+              console.log('submitTestInerview - H5直跳redirect_url:', {
+                navigationMode: 'h5-redirect-url',
+                redirectUrl,
+              })
+              window.location.href = redirectUrl
+              return
+            }
+
+            const targetUrl = getRelativeUniPathFromUrl(redirectUrl)
+            if (targetUrl) {
               console.log('submitTestInerview - 非H5跳转:', {
                 navigationMode: 'uni-relaunch',
                 targetUrl,
@@ -602,7 +595,9 @@ const submitTestInerview = async () => {
               return
             }
 
-            window.location.replace(redirectUrl)
+            console.error('submitTestInerview - 非H5缺少可用目标地址', {
+              redirectUrl,
+            })
           } else {
             console.error('响应格式错误:', res)
             toast.error('创建面试失败，请稍后重试')

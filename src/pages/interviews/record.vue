@@ -184,7 +184,7 @@ const { safeAreaTop, navBarHeight, topBarHeight, navDiagnostics } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
-  guardBrowserBack: true,
+  browserBackStrategy: 'native-entry-exit',
 })
 const originalInterviewResults = ref([]) // 存储原始数据
 const interviewResults = ref([]) // 存储筛选后的数据

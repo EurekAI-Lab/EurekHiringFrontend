@@ -58,7 +58,7 @@ import { useAiPageBack } from '@/utils/useAiPageBack'
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
-  guardBrowserBack: true,
+  browserBackStrategy: 'child-page-guard',
 })
 
 function handleSwitchIdentity() {

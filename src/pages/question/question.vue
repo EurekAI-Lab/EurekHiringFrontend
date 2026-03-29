@@ -232,7 +232,7 @@ const companyLogo = ref(null)
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/interviews/process',
   mode: 'native-first',
-  guardBrowserBack: true,
+  browserBackStrategy: 'child-page-guard',
 })
 
 const message = useMessage()
