@@ -2,6 +2,7 @@
   "compilerOptions": {
     "composite": true,
     "skipLibCheck": true,
+    "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Node",
     "resolveJsonModule": true,
@@ -25,7 +26,7 @@
   "vueCompilerOptions": {
     "plugins": ["@uni-helper/uni-types/volar-plugin"]
   },
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules", "src/**/*.spec.ts"],
   "include": [
     "src/**/*.ts",
     "src/**/*.js",

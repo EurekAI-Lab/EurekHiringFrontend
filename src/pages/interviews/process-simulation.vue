@@ -4,23 +4,13 @@
 
 <template>
   <view class="w-full bg-#f5f7fb min-h-[210vw] h-auto relative overflow-y-auto">
-    <view
-      class="absolute top-0 z-1 w-full fixed"
-      :style="{
-        backgroundColor: `rgba(255, 255, 255, ${headerOpacity})`,
-        color: headerOpacity > 0.5 ? '#333' : '#f4f4f4',
-        height: topBarHeight + 'px',
-      }"
-    >
-      <view class="relative flex items-center w-full" :style="{ marginTop: safeAreaTop + 'px', height: headerContentHeight + 'px' }">
-        <view
-          class="i-carbon-chevron-left w-8 h-8 absolute left-5"
-          @click="handleBack"
-          :style="{ color: headerOpacity > 0.5 ? '#333' : '#f4f4f4' }"
-        ></view>
-        <view class="absolute left-1/2 transform -translate-x-1/2">个人AI模拟面试</view>
-      </view>
-    </view>
+    <AiPageNavBar
+      title="个人AI模拟面试"
+      :text-color="headerOpacity > 0.5 ? '#333' : '#f4f4f4'"
+      :background-color="`rgba(255, 255, 255, ${headerOpacity})`"
+      show-background
+      @back="handleBack"
+    />
     <view>
       <image :src="aibg10" class="w-full h-70"></image>
     </view>
@@ -74,10 +64,13 @@
               <image :src="zfj" class="w-5 h-5" />
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-4">
-              <view style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <view style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
                 {{ item.position_name || item.title }}
               </view>
-              <view class="text-gray-400" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <view
+                class="text-gray-400"
+                style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
+              >
                 {{ item.industry || '行业不限' }}
               </view>
             </view>
@@ -113,9 +106,17 @@ import zfj from '../../static/app/icons/icon_zfj.png'
 import qzzsybz from '../../static/app/icons/icon_qzzsybz.png'
 import dw from '../../static/app/icons/icon_dw.png'
 import dh from '../../static/app/icons/icon_dh.png'
+import AiPageNavBar from '@/components/public/AiPageNavBar.vue'
+import AiRuntimeDiagPanel from '@/components/public/AiRuntimeDiagPanel.vue'
 import { useToast } from 'wot-design-uni'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
-import { getCurrentBuildId, getCurrentRouteKey, getRelativeUniPathFromUrl, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import {
+  getCurrentBuildId,
+  getCurrentRouteKey,
+  getRelativeUniPathFromUrl,
+  isH5TestSite,
+  resolveApiBaseUrlForCurrentSite,
+} from '@/utils/url'
 import { handleToken } from '@/utils/useAuth'
 import { useAiPageBack } from '@/utils/useAiPageBack'
 import { useNavBar } from '@/utils/useNavBar'
@@ -126,7 +127,7 @@ const showSheet = ref(false)
 const items = ref([])
 const headerOpacity = ref(0)
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-const { safeAreaTop, headerContentHeight, topBarHeight, navDiagnostics } = useNavBar()
+const { safeAreaTop, navDiagnostics } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/interviews/record-simulate',
   mode: 'entry-aware',
@@ -176,12 +177,17 @@ const cleanupIndustry = (raw: any, positionName: string) => {
 const cleanupPositionName = (raw: any, industry: string) => {
   if (!raw) return ''
   const str = String(raw)
-  const parts = splitByDelimiters(str).map((s) => s.trim()).filter(Boolean)
+  const parts = splitByDelimiters(str)
+    .map((s) => s.trim())
+    .filter(Boolean)
   let name = parts.length > 1 ? parts[parts.length - 1] : str.trim()
   if (industry) {
     name = name.replace(String(industry), '').trim()
   }
-  name = name.replace(/^行业不限/, '').replace(/^[·•\-—\/\|:：]/, '').trim()
+  name = name
+    .replace(/^行业不限/, '')
+    .replace(/^[·•\-—\/\|:：]/, '')
+    .trim()
   return name
 }
 
@@ -206,7 +212,8 @@ const getPostionInfo = async () => {
         } else {
           salaryStr = element.expected_salary_min + '-' + element.expected_salary_max
         }
-        const industry = element.industry || cleanupIndustry(element.industry, element.position_name)
+        const industry =
+          element.industry || cleanupIndustry(element.industry, element.position_name)
         const positionName =
           element.position_display_name || cleanupPositionName(element.position_name, industry)
 

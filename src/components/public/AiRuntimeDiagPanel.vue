@@ -10,11 +10,7 @@
       </view>
     </view>
     <view v-if="!collapsed" class="diag-panel__body">
-      <view
-        v-for="item in entries"
-        :key="item.key"
-        class="diag-panel__row"
-      >
+      <view v-for="item in entries" :key="item.key" class="diag-panel__row">
         <text class="diag-panel__label">{{ item.label }}</text>
         <text class="diag-panel__value">{{ item.value }}</text>
       </view>
@@ -95,14 +91,52 @@ const entries = computed(() => {
     { key: 'platformType', label: 'platform', value: stringifyValue(data.platformType) },
     { key: 'hasNativeBridge', label: 'bridge', value: stringifyValue(data.hasNativeBridge) },
     { key: 'safeAreaTop', label: 'safeTop', value: stringifyValue(data.safeAreaTop) },
+    {
+      key: 'cssStatusBarHeight',
+      label: 'cssStatus',
+      value: stringifyValue(data.cssStatusBarHeight),
+    },
     { key: 'cssSafeAreaTop', label: 'cssTop', value: stringifyValue(data.cssSafeAreaTop) },
     { key: 'safeAreaSource', label: 'safeSrc', value: stringifyValue(data.safeAreaSource) },
+    { key: 'topInsetSource', label: 'insetSrc', value: stringifyValue(data.topInsetSource) },
     { key: 'rawSafeAreaTop', label: 'rawSafe', value: stringifyValue(data.rawSafeAreaTop) },
     { key: 'statusBarHeight', label: 'statusBar', value: stringifyValue(data.statusBarHeight) },
+    {
+      key: 'normalizedCssStatusBarHeight',
+      label: 'normCssStatus',
+      value: stringifyValue(data.normalizedCssStatusBarHeight),
+    },
+    {
+      key: 'normalizedCssSafeAreaTop',
+      label: 'normCssTop',
+      value: stringifyValue(data.normalizedCssSafeAreaTop),
+    },
+    {
+      key: 'normalizedStatusBarHeight',
+      label: 'normStatus',
+      value: stringifyValue(data.normalizedStatusBarHeight),
+    },
+    {
+      key: 'normalizedSafeAreaTop',
+      label: 'normSafe',
+      value: stringifyValue(data.normalizedSafeAreaTop),
+    },
     { key: 'windowTop', label: 'windowTop', value: stringifyValue(data.windowTop) },
     { key: 'screenTop', label: 'screenTop', value: stringifyValue(data.screenTop) },
     { key: 'pixelRatio', label: 'dpr', value: stringifyValue(data.pixelRatio) },
-    { key: 'headerContentHeight', label: 'headerH', value: stringifyValue(data.headerContentHeight) },
+    { key: 'devicePxPerCssPx', label: 'cssScale', value: stringifyValue(data.devicePxPerCssPx) },
+    { key: 'windowInnerWidth', label: 'innerW', value: stringifyValue(data.windowInnerWidth) },
+    { key: 'windowScreenWidth', label: 'screenW', value: stringifyValue(data.windowScreenWidth) },
+    {
+      key: 'systemScreenWidth',
+      label: 'sysScreenW',
+      value: stringifyValue(data.systemScreenWidth),
+    },
+    {
+      key: 'headerContentHeight',
+      label: 'headerH',
+      value: stringifyValue(data.headerContentHeight),
+    },
     { key: 'headerOuterHeight', label: 'headerOut', value: stringifyValue(data.headerOuterHeight) },
     { key: 'origin', label: 'origin', value: stringifyValue(data.origin) },
     { key: 'currentRoute', label: 'route', value: stringifyValue(data.currentRoute) },

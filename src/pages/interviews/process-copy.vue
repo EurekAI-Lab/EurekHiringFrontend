@@ -52,6 +52,7 @@ import {
   isAndroidLikeBridgePlatform,
   PlatformType,
   userIdentityChange,
+  userIdentityChangeAndExit,
 } from '@/utils/platformUtils'
 import { useAiPageBack } from '@/utils/useAiPageBack'
 
@@ -65,8 +66,7 @@ function handleSwitchIdentity() {
   const platform = getPlatformType()
 
   if (isAndroidLikeBridgePlatform()) {
-    userIdentityChange()
-    void handleBack()
+    userIdentityChangeAndExit()
     return
   }
 

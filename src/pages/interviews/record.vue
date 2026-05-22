@@ -8,25 +8,9 @@
 
 <template>
   <view class="w-full min-h-screen bg-#f5f7fb overflow-x-hidden">
-    <view
-      class="fixed top-0 left-0 right-0 z-10 bg-white"
-      :style="{ height: topBarHeight + 'px' }"
-    >
-      <view
-        class="relative flex items-center"
-        :style="{ marginTop: safeAreaTop + 'px', height: navBarHeight + 'px' }"
-      >
-        <view
-          class="i-carbon-chevron-left w-8 h-8 absolute left-5 text-black"
-          @click="handleBack"
-        ></view>
-        <view class="absolute left-1/2 transform -translate-x-1/2 text-black font-medium">
-          AI面试记录
-        </view>
-      </view>
-    </view>
+    <AiPageNavBar title="AI面试记录" text-color="#ffffff" @back="handleBack" />
 
-    <view :style="{ paddingTop: topBarHeight + 'px' }">
+    <view>
       <view class="relative w-full">
         <image :src="aiInterviewHeader" class="w-full h-50 block" mode="scaleToFill" />
         <view class="absolute bottom-0 z-10 w-full translate-y-1/2 px-3">
@@ -54,7 +38,7 @@
           v-for="(item, index) in interviewResults"
           :key="item.interviews_id"
         >
-        <!--卡片 -->
+          <!--卡片 -->
 
           <view class="w-[92%] rounded-xl bg-white overflow-hidden flex flex-col shadow-sm">
             <view class="flex flex-row relative">
@@ -140,7 +124,10 @@
           </view>
         </view>
 
-        <view v-if="!loading && interviewResults.length === 0" class="flex flex-col items-center justify-center pt-20">
+        <view
+          v-if="!loading && interviewResults.length === 0"
+          class="flex flex-col items-center justify-center pt-20"
+        >
           <view class="text-gray-400 text-lg">暂无面试记录</view>
           <view class="text-gray-300 text-sm mt-2">完成面试后记录将显示在这里</view>
         </view>
@@ -170,17 +157,24 @@ import iconVeryQualified from '../../static/app/icons/interview-status-new/very_
 import aiInterviewHeader from '../../static/app/icons/interview-status-new/AI_interview_record_header_2x.jpg'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { registerMspjEntry } from '@/utils/mspjNavigation'
-import { getCurrentBuildId, getCurrentRouteKey, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import {
+  getCurrentBuildId,
+  getCurrentRouteKey,
+  isH5TestSite,
+  resolveApiBaseUrlForCurrentSite,
+} from '@/utils/url'
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 import { ensureLatestH5Bundle } from '@/utils/runtimeVersion'
-import { handleToken } from "@/utils/useAuth"
+import { handleToken } from '@/utils/useAuth'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useUserStore } from '@/store'
 import { onShow } from '@dcloudio/uni-app'
+import AiPageNavBar from '@/components/public/AiPageNavBar.vue'
+import AiRuntimeDiagPanel from '@/components/public/AiRuntimeDiagPanel.vue'
 import { useAiPageBack } from '@/utils/useAiPageBack'
 import { useNavBar } from '@/utils/useNavBar'
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-const { safeAreaTop, navBarHeight, topBarHeight, navDiagnostics } = useNavBar()
+const { safeAreaTop, navDiagnostics } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
@@ -226,7 +220,11 @@ onLoad((options) => {
 
   // 记录企业ID，原生端可能以 enterpriseId 或 enterprise_id 传递
   const optionEnterpriseId = options?.enterpriseId ?? options?.enterprise_id
-  if (optionEnterpriseId !== undefined && optionEnterpriseId !== null && optionEnterpriseId !== '') {
+  if (
+    optionEnterpriseId !== undefined &&
+    optionEnterpriseId !== null &&
+    optionEnterpriseId !== ''
+  ) {
     enterpriseId.value = String(optionEnterpriseId)
     console.log('记录企业ID:', enterpriseId.value)
   } else {
@@ -254,10 +252,10 @@ onMounted(async () => {
   console.log('=== 面试记录页面加载 ===')
   console.log('token:', uni.getStorageSync('token'))
   console.log('userStore.userInfo:', useUserStore().userInfo)
-  
+
   await checkUserType()
   console.log('用户类型检测完成，是否为企业用户:', isEnterpriseUser.value)
-  
+
   await getInterviewList()
 })
 
@@ -305,12 +303,12 @@ async function checkUserType() {
       isEnterpriseUser.value = false
       return
     }
-    
+
     const response = await uni.request({
       url: `/users/me`,
-      method: 'GET'
+      method: 'GET',
     })
-    
+
     if (response.statusCode === 200) {
       const userData = response.data
       console.log('用户信息：', userData)
@@ -318,7 +316,7 @@ async function checkUserType() {
         id: userData.id,
         email: userData.email,
         user_type: userData.user_type,
-        phone: userData.phone
+        phone: userData.phone,
       })
       // 根据user_type判断用户类型
       isEnterpriseUser.value = userData.user_type === 'ENTERPRISE'
@@ -351,28 +349,30 @@ async function getInterviewList(keyword = '') {
     }
     const queryParams = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''
     // 根据用户类型调用不同的API
-    const apiPath = isEnterpriseUser.value ? API_ENDPOINTS.interviews.enterpriseAiInterviews : API_ENDPOINTS.interviews.myAiInterviews
+    const apiPath = isEnterpriseUser.value
+      ? API_ENDPOINTS.interviews.enterpriseAiInterviews
+      : API_ENDPOINTS.interviews.myAiInterviews
     // 构建URL，注意apiPath已经有尾部斜杠了
     const url = apiPath + queryParams
     console.log('请求URL：', url)
 
     loading.value = true
-    
+
     // 确保请求带上认证信息
     const token = uni.getStorageSync('token')
     if (!token) {
       console.error('未找到token，无法获取面试记录')
       uni.showToast({
         title: '请先登录',
-        icon: 'none'
+        icon: 'none',
       })
       loading.value = false
       return
     }
-    
+
     const response = await uni.request({
       url: url,
-      method: 'GET'
+      method: 'GET',
     })
     console.log('API响应：', response)
     if (response.statusCode === 200) {
@@ -381,7 +381,7 @@ async function getInterviewList(keyword = '') {
       console.log('响应数据结构：', responseData)
       console.log('响应数据类型:', typeof responseData)
       console.log('响应数据字段:', Object.keys(responseData))
-      
+
       // 处理不同的响应格式
       if (responseData && typeof responseData === 'object') {
         if (Array.isArray(responseData.data)) {
@@ -395,7 +395,7 @@ async function getInterviewList(keyword = '') {
       } else {
         originalInterviewResults.value = []
       }
-      
+
       interviewResults.value = originalInterviewResults.value // 初始显示所有数据
       console.log('获取到面试记录数量：', interviewResults.value.length)
       console.log('面试记录数据：', interviewResults.value)
@@ -405,7 +405,7 @@ async function getInterviewList(keyword = '') {
           interview_type: interviewResults.value[0].interview_type,
           audit_status: interviewResults.value[0].audit_status,
           qualification_level: interviewResults.value[0].qualification_level,
-          is_qualified: interviewResults.value[0].is_qualified
+          is_qualified: interviewResults.value[0].is_qualified,
         })
         // 添加更详细的调试信息
         console.log('=== 调试：面试列表数据详情 ===')
@@ -416,7 +416,9 @@ async function getInterviewList(keyword = '') {
             audit_status: item.audit_status,
             qualification_level: item.qualification_level,
             isEnterpriseUser: isEnterpriseUser.value,
-            shouldShowAuditIcon: item.interview_type !== 'test' && (item.audit_status === 'PENDING' || item.audit_status === 'REJECTED')
+            shouldShowAuditIcon:
+              item.interview_type !== 'test' &&
+              (item.audit_status === 'PENDING' || item.audit_status === 'REJECTED'),
           })
         })
       }
@@ -425,7 +427,7 @@ async function getInterviewList(keyword = '') {
       console.error('错误响应：', response.data)
       uni.showToast({
         title: `获取面试记录失败：${response.statusCode}`,
-        icon: 'none'
+        icon: 'none',
       })
     }
   } catch (error) {
@@ -433,13 +435,13 @@ async function getInterviewList(keyword = '') {
     console.error('错误详情:', {
       message: error.message,
       stack: error.stack,
-      error: error
+      error: error,
     })
     uni.showToast({
-        title: '网络错误，请检查您的连接',
-        icon: 'none',
-        duration: 3000
-      })
+      title: '网络错误，请检查您的连接',
+      icon: 'none',
+      duration: 3000,
+    })
   } finally {
     loading.value = false
   }
@@ -447,7 +449,8 @@ async function getInterviewList(keyword = '') {
 const jumpInterviewResult = (item) => {
   uni.setStorageSync('interviewId', item.interviews_id)
   uni.setStorageSync('from', 'h5')
-  const entryKey = isEnterpriseUser.value || enterpriseId.value ? 'enterprise-record' : 'recruiter-record'
+  const entryKey =
+    isEnterpriseUser.value || enterpriseId.value ? 'enterprise-record' : 'recruiter-record'
   const fallbackParams: string[] = []
   if (entryKey === 'enterprise-record') {
     fallbackParams.push('identity=enterprise')
@@ -455,9 +458,10 @@ const jumpInterviewResult = (item) => {
       fallbackParams.push(`enterpriseId=${encodeURIComponent(enterpriseId.value)}`)
     }
   }
-  const fallbackUrl = fallbackParams.length > 0
-    ? `/pages/interviews/record?${fallbackParams.join('&')}`
-    : '/pages/interviews/record'
+  const fallbackUrl =
+    fallbackParams.length > 0
+      ? `/pages/interviews/record?${fallbackParams.join('&')}`
+      : '/pages/interviews/record'
   registerMspjEntry(entryKey, { fallbackUrl })
 
   const params: string[] = [`type=1`, `entry=${entryKey}`, `interviewId=${item.interviews_id}`]

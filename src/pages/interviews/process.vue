@@ -4,23 +4,13 @@
 
 <template>
   <view class="w-full bg-#f4f4f4 min-h-[210vw] h-auto relative overflow-y-auto">
-    <view
-      class="absolute top-0 z-1 w-full fixed"
-      :style="{
-        backgroundColor: `rgba(255, 255, 255, ${headerOpacity})`,
-        color: headerOpacity > 0.5 ? '#333' : '#f4f4f4',
-        height: topBarHeight + 'px',
-      }"
-    >
-      <view class="relative flex items-center w-full" :style="{ marginTop: safeAreaTop + 'px', height: headerContentHeight + 'px' }">
-        <view
-          class="i-carbon-chevron-left w-8 h-8 absolute left-5"
-          @click="handleBack"
-          :style="{ color: headerOpacity > 0.5 ? '#333' : '#f4f4f4' }"
-        ></view>
-        <view class="absolute left-1/2 transform -translate-x-1/2">企业AI面试应用</view>
-      </view>
-    </view>
+    <AiPageNavBar
+      title="企业AI面试应用"
+      :text-color="headerOpacity > 0.5 ? '#333' : '#f4f4f4'"
+      :background-color="`rgba(255, 255, 255, ${headerOpacity})`"
+      show-background
+      @back="handleBack"
+    />
     <view>
       <image :src="aibg11" class="w-full h-70"></image>
     </view>
@@ -57,22 +47,30 @@ import { onLoad, onPageScroll as uniPageScroll } from '@dcloudio/uni-app'
 import aibg11 from '../../static/images/ai-bg-11.png'
 import processSimulation from '../../static/app/icons/icon_process.png'
 import sybz from '../../static/app/icons/icon_sybz.png'
+import AiPageNavBar from '@/components/public/AiPageNavBar.vue'
+import AiRuntimeDiagPanel from '@/components/public/AiRuntimeDiagPanel.vue'
 import { handleToken } from '@/utils/useAuth'
 import {
   getNativeRuntimeInfo,
   getPlatformType,
   isAndroidLikeBridgePlatform,
+  openAiJobListAndExit,
   openAiJobList,
   PlatformType,
 } from '@/utils/platformUtils'
 import { useAiPageBack } from '@/utils/useAiPageBack'
 import { useNavBar } from '@/utils/useNavBar'
-import { getCurrentBuildId, getCurrentRouteKey, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import {
+  getCurrentBuildId,
+  getCurrentRouteKey,
+  isH5TestSite,
+  resolveApiBaseUrlForCurrentSite,
+} from '@/utils/url'
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 const headerOpacity = ref(0)
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
-const { safeAreaTop, headerContentHeight, topBarHeight, navDiagnostics } = useNavBar()
+const { safeAreaTop, navDiagnostics } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
@@ -91,8 +89,7 @@ function handleCreateAiInterview() {
   console.log('创建AI面试题桥接信息:', runtimeInfo)
 
   if (isAndroidLikeBridgePlatform()) {
-    openAiJobList()
-    void handleBack()
+    openAiJobListAndExit()
     return
   }
 

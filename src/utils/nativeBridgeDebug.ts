@@ -1,4 +1,8 @@
 type BridgeSimulatorType = 'none' | 'android' | 'ios'
+type NativeHandledCallback =
+  | 'onOpenAiJobListHandled'
+  | 'onAiInterviewSavedHandled'
+  | 'onUserIdentityChangeHandled'
 
 interface BridgeLogItem {
   timestamp: string
@@ -9,6 +13,11 @@ interface BridgeLogItem {
 
 const BRIDGE_STORAGE_KEY = '__BRIDGE_SIMULATOR__'
 const BRIDGE_LOG_STORAGE_KEY = '__BRIDGE_SIMULATOR_LOGS__'
+const BRIDGE_HANDLED_CALLBACKS: Record<string, NativeHandledCallback> = {
+  openAiJobList: 'onOpenAiJobListHandled',
+  aiInterviewSaved: 'onAiInterviewSavedHandled',
+  userIdentityChange: 'onUserIdentityChangeHandled',
+}
 
 let originalCaptured = false
 let originalAppApi: any
@@ -49,10 +58,30 @@ function appendBridgeLog(bridge: Exclude<BridgeSimulatorType, 'none'>, method: s
   console.log(`[bridge:${bridge}] ${method}`, params)
 }
 
+function triggerHandledCallback(method: string): void {
+  const callbackName = BRIDGE_HANDLED_CALLBACKS[method]
+  if (!callbackName || !canUseWindow()) {
+    return
+  }
+
+  const maybeHandler = (window as any)[callbackName]
+  if (typeof maybeHandler !== 'function') {
+    return
+  }
+
+  window.setTimeout(() => {
+    const nextHandler = (window as any)[callbackName]
+    if (typeof nextHandler === 'function') {
+      nextHandler()
+    }
+  }, 0)
+}
+
 function createAndroidBridge() {
   return {
-    callback(method: string, params: any) {
-      appendBridgeLog('android', method, params)
+    callback(method: string, ...params: any[]) {
+      appendBridgeLog('android', method, params.length > 1 ? params : params[0])
+      triggerHandledCallback(method)
     },
     __bridgeSimulator: true,
   }
@@ -68,7 +97,7 @@ function createIOSBridge() {
       }
     },
     ownKeys() {
-      return ['pagerFinish', 'openAiJobList', 'aiInterviewSaved', 'Interview_over']
+      return ['pagerFinish', 'openAiJobList', 'aiInterviewSaved', 'Interview_over', 'startPager']
     },
     getOwnPropertyDescriptor() {
       return {

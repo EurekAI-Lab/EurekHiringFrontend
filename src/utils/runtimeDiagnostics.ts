@@ -9,19 +9,32 @@ export interface RuntimeDiagnosticsState {
   siteKind?: 'production' | 'test'
   mismatchReason?: string
   safeAreaTop?: number
+  cssStatusBarHeight?: number
   cssSafeAreaTop?: number
-  safeAreaSource?: 'css-env' | 'system-info'
+  safeAreaSource?: string
+  topInsetSource?: string
   rawSafeAreaTop?: number
   statusBarHeight?: number
+  normalizedCssStatusBarHeight?: number
+  normalizedCssSafeAreaTop?: number
+  normalizedStatusBarHeight?: number
+  normalizedSafeAreaTop?: number
   windowTop?: number
   screenTop?: number
   pixelRatio?: number
+  devicePxPerCssPx?: number
+  windowInnerWidth?: number
+  windowScreenWidth?: number
+  systemScreenWidth?: number
   headerContentHeight?: number
   headerOuterHeight?: number
   deviceModel?: string
   deviceSystem?: string
   platformType?: string
   hasNativeBridge?: boolean
+  auth?: Record<string, any>
+  lastApiRequest?: Record<string, any>
+  bridgeAction?: Record<string, any>
   updatedAt?: string
 }
 

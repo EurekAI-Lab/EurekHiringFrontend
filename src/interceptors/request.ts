@@ -6,6 +6,7 @@ import { getEnvBaseUrl } from '@/utils'
 import { useUserStore } from '@/store'
 import { resolveApiBaseUrlForCurrentSite } from '@/utils/url'
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
+import { getStoredAuthToken } from '@/utils/h5Session'
 
 export type CustomRequestOptions = UniApp.RequestOptions & {
   query?: Record<string, any>
@@ -70,8 +71,10 @@ const httpInterceptor = {
     }
     // 3. 添加 token 请求头标识
     const userStore = useUserStore()
-    const { token } = userStore.userInfo as unknown as IUserInfo
-    if (token) {
+    const { token: storeToken } = userStore.userInfo as unknown as IUserInfo
+    const token = storeToken || getStoredAuthToken()
+    const hasExplicitAuthorization = !!options.header.Authorization || !!options.header.authorization
+    if (token && !hasExplicitAuthorization) {
       options.header.Authorization = `Bearer ${token}`
     }
   },

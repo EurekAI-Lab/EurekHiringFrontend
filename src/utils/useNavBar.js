@@ -1,22 +1,34 @@
 const IOS_NAV_BAR_HEIGHT = 44
 const DEFAULT_NAV_BAR_HEIGHT = 48
+const MIN_STATUS_BAR_CSS_HEIGHT = DEFAULT_NAV_BAR_HEIGHT / 3
+const MAX_STATUS_BAR_CSS_HEIGHT = DEFAULT_NAV_BAR_HEIGHT * 1.25
 
 /**
  * 导航栏高度计算工具
  *
  * H5 平台按系统类型区分顶部安全区来源：
  * - iOS 使用历史稳定的系统安全区语义，必要时退回刘海屏基线值
- * - Android/Harmony 使用 CSS safe area，避免宿主已让出顶部后再次二次留白
+ * - Android/Harmony 使用 uni 系统窗口信息，避免 ArkWeb/Android WebView CSS safe area 为 0 时贴住状态栏
  */
 export function useNavBar() {
   const systemInfo = uni.getSystemInfoSync()
   const statusBarHeight = normalizeNumber(systemInfo.statusBarHeight)
   const safeAreaInsets = resolveSafeAreaInsets(systemInfo, statusBarHeight)
   const rawSafeAreaTop = normalizeNumber(safeAreaInsets.top)
+  const cssStatusBarHeight = measureCssStatusBarHeight()
   const cssSafeAreaTop = measureCssSafeAreaInsetTop()
   const windowTop = normalizeNumber(systemInfo.windowTop)
   const screenTop = normalizeNumber(systemInfo.screenTop)
-  const pixelRatio = resolvePixelRatio(systemInfo)
+  const viewportMetrics = resolveViewportMetrics(systemInfo)
+  const { pixelRatio, devicePxPerCssPx, windowInnerWidth, windowScreenWidth, systemScreenWidth } =
+    viewportMetrics
+  const normalizedCssStatusBarHeight = normalizeTopInsetForCss(
+    cssStatusBarHeight,
+    devicePxPerCssPx,
+  ).top
+  const normalizedCssSafeAreaTop = normalizeTopInsetForCss(cssSafeAreaTop, devicePxPerCssPx).top
+  const normalizedStatusBarHeight = normalizeTopInsetForCss(statusBarHeight, devicePxPerCssPx).top
+  const normalizedSafeAreaTop = normalizeTopInsetForCss(rawSafeAreaTop, devicePxPerCssPx).top
 
   let safeAreaTop = resolveSystemSafeAreaTop(rawSafeAreaTop, statusBarHeight)
   let safeAreaSource = rawSafeAreaTop > 0 ? 'system-safe-area' : 'status-bar-height'
@@ -26,8 +38,9 @@ export function useNavBar() {
     systemInfo,
     rawSafeAreaTop,
     statusBarHeight,
+    cssStatusBarHeight,
     cssSafeAreaTop,
-    pixelRatio,
+    devicePxPerCssPx,
   })
   safeAreaTop = h5SafeArea.top
   safeAreaSource = h5SafeArea.source
@@ -39,13 +52,23 @@ export function useNavBar() {
 
   const navDiagnostics = {
     safeAreaTop,
+    cssStatusBarHeight,
     cssSafeAreaTop,
     rawSafeAreaTop,
     statusBarHeight,
+    normalizedCssStatusBarHeight,
+    normalizedCssSafeAreaTop,
+    normalizedStatusBarHeight,
+    normalizedSafeAreaTop,
     windowTop,
     screenTop,
     pixelRatio,
+    devicePxPerCssPx,
+    windowInnerWidth,
+    windowScreenWidth,
+    systemScreenWidth,
     safeAreaSource,
+    topInsetSource: safeAreaSource,
     headerContentHeight,
     headerOuterHeight,
     deviceModel: stringifyField(systemInfo.model),
@@ -66,13 +89,22 @@ export function useNavBar() {
         statusBarHeight,
         safeAreaInsets,
         rawSafeAreaTop,
+        cssStatusBarHeight,
         cssSafeAreaTop,
         safeAreaTop,
         safeAreaSource,
         safeAreaTopNormalized: safeAreaTop,
+        normalizedCssStatusBarHeight,
+        normalizedCssSafeAreaTop,
+        normalizedStatusBarHeight,
+        normalizedSafeAreaTop,
         windowTop,
         screenTop,
         pixelRatio,
+        devicePxPerCssPx,
+        windowInnerWidth,
+        windowScreenWidth,
+        systemScreenWidth,
         navBarHeight,
         headerContentHeight,
         headerOuterHeight,
@@ -95,13 +127,22 @@ export function useNavBar() {
     statusBarHeight,
     safeAreaInsets,
     rawSafeAreaTop,
+    cssStatusBarHeight,
     cssSafeAreaTop,
     safeAreaTop,
     safeAreaSource,
     safeAreaTopNormalized: safeAreaTop,
+    normalizedCssStatusBarHeight,
+    normalizedCssSafeAreaTop,
+    normalizedStatusBarHeight,
+    normalizedSafeAreaTop,
     windowTop,
     screenTop,
     pixelRatio,
+    devicePxPerCssPx,
+    windowInnerWidth,
+    windowScreenWidth,
+    systemScreenWidth,
     navBarHeight,
     headerContentHeight,
     headerOuterHeight,
@@ -142,6 +183,17 @@ function resolveNavBarHeight(systemInfo) {
 }
 
 function measureCssSafeAreaInsetTop() {
+  return measureCssLength(
+    ['padding-top: constant(safe-area-inset-top)', 'padding-top: env(safe-area-inset-top)'],
+    'paddingTop',
+  )
+}
+
+function measureCssStatusBarHeight() {
+  return measureCssLength(['height: var(--status-bar-height, 0px)'], 'height')
+}
+
+function measureCssLength(declarations, propertyName) {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return 0
   }
@@ -153,17 +205,16 @@ function measureCssSafeAreaInsetTop() {
     'left: 0',
     'width: 0',
     'height: 0',
-    'padding-top: constant(safe-area-inset-top)',
-    'padding-top: env(safe-area-inset-top)',
     'visibility: hidden',
     'pointer-events: none',
     'z-index: -1',
+    ...declarations,
   ].join(';')
 
   const host = document.body || document.documentElement
   host.appendChild(probe)
   const computed = window.getComputedStyle(probe)
-  const measured = Number.parseFloat(computed.paddingTop || '0')
+  const measured = Number.parseFloat(computed[propertyName] || '0')
   probe.remove()
 
   return Number.isFinite(measured) && measured > 0 ? measured : 0
@@ -173,8 +224,10 @@ function resolveH5SafeAreaTop({
   systemInfo,
   rawSafeAreaTop,
   statusBarHeight,
+  cssStatusBarHeight,
   cssSafeAreaTop,
   pixelRatio,
+  devicePxPerCssPx,
 }) {
   if (isIOSLikePlatform(systemInfo)) {
     const top = resolveIOSH5SafeAreaTop(rawSafeAreaTop, statusBarHeight, cssSafeAreaTop)
@@ -186,10 +239,13 @@ function resolveH5SafeAreaTop({
   }
 
   if (isAndroidLikePlatform(systemInfo)) {
-    return {
-      top: normalizeAndroidH5SafeAreaTop(cssSafeAreaTop, systemInfo, pixelRatio),
-      source: 'android-css-env',
-    }
+    return resolveAndroidH5SafeAreaTop({
+      rawSafeAreaTop,
+      statusBarHeight,
+      cssStatusBarHeight,
+      cssSafeAreaTop,
+      devicePxPerCssPx: resolveDevicePxPerCssPx(devicePxPerCssPx, pixelRatio),
+    })
   }
 
   return {
@@ -208,6 +264,80 @@ function resolveSystemSafeAreaTop(rawSafeAreaTop, statusBarHeight, fallbackTop =
   }
 
   return normalizeNumber(fallbackTop)
+}
+
+function resolveAndroidH5SafeAreaTop({
+  rawSafeAreaTop,
+  statusBarHeight,
+  cssStatusBarHeight,
+  cssSafeAreaTop,
+  devicePxPerCssPx,
+}) {
+  const cssStatusTop = normalizeTopInsetForCss(cssStatusBarHeight, devicePxPerCssPx)
+  if (cssStatusTop.top > 0) {
+    return {
+      top: cssStatusTop.top,
+      source: cssStatusTop.normalized
+        ? 'android-css-status-bar-height-normalized'
+        : 'android-css-status-bar-height',
+    }
+  }
+
+  const cssSafeTop = normalizeTopInsetForCss(cssSafeAreaTop, devicePxPerCssPx)
+  if (cssSafeTop.top > 0) {
+    return {
+      top: cssSafeTop.top,
+      source: cssSafeTop.normalized ? 'android-css-safe-area-normalized' : 'android-css-safe-area',
+    }
+  }
+
+  const statusTop = normalizeTopInsetForCss(statusBarHeight, devicePxPerCssPx)
+  if (statusTop.top > 0) {
+    return {
+      top: statusTop.top,
+      source: statusTop.normalized
+        ? 'android-status-bar-height-normalized'
+        : 'android-status-bar-height',
+    }
+  }
+
+  const safeAreaTop = normalizeTopInsetForCss(rawSafeAreaTop, devicePxPerCssPx)
+  if (safeAreaTop.top > 0) {
+    return {
+      top: safeAreaTop.top,
+      source: safeAreaTop.normalized ? 'android-safe-area-top-normalized' : 'android-safe-area-top',
+    }
+  }
+
+  return {
+    top: 0,
+    source: 'android-default-top',
+  }
+}
+
+function normalizeTopInsetForCss(value, devicePxPerCssPx) {
+  const top = normalizeNumber(value)
+  const ratio = normalizeNumber(devicePxPerCssPx)
+
+  if (top <= 0 || ratio <= 1.5 || top <= MAX_STATUS_BAR_CSS_HEIGHT) {
+    return {
+      top,
+      normalized: false,
+    }
+  }
+
+  const cssTop = top / ratio
+  if (cssTop >= MIN_STATUS_BAR_CSS_HEIGHT && cssTop <= MAX_STATUS_BAR_CSS_HEIGHT) {
+    return {
+      top: Math.round(cssTop),
+      normalized: true,
+    }
+  }
+
+  return {
+    top,
+    normalized: false,
+  }
 }
 
 function resolveIOSH5SafeAreaTop(rawSafeAreaTop, statusBarHeight, cssSafeAreaTop) {
@@ -273,20 +403,6 @@ function isAndroidLikePlatform(systemInfo) {
     /android|harmony/.test(systemText) ||
     /android|arkweb|harmony/.test(userAgent)
   )
-}
-
-function normalizeAndroidH5SafeAreaTop(value, systemInfo, pixelRatio) {
-  const normalizedValue = normalizeNumber(value)
-  if (normalizedValue <= 0) {
-    return 0
-  }
-
-  const platform = String(systemInfo.platform || '').toLowerCase()
-  if (platform !== 'android' || pixelRatio <= 1) {
-    return normalizedValue
-  }
-
-  return normalizedValue / pixelRatio
 }
 
 function detectIOSBaselineSafeAreaTop() {
@@ -369,6 +485,48 @@ function resolvePixelRatio(systemInfo) {
   return 1
 }
 
+function resolveViewportMetrics(systemInfo) {
+  const pixelRatio = resolvePixelRatio(systemInfo)
+  const systemScreenWidth = normalizeNumber(systemInfo.screenWidth)
+  let windowInnerWidth = 0
+  let windowScreenWidth = 0
+
+  if (typeof window !== 'undefined') {
+    windowInnerWidth = normalizeNumber(window.innerWidth)
+    windowScreenWidth = normalizeNumber(window.screen && window.screen.width)
+  }
+
+  const widthRatios = [pixelRatio]
+
+  if (windowInnerWidth > 0 && windowScreenWidth > windowInnerWidth) {
+    widthRatios.push(windowScreenWidth / windowInnerWidth)
+  }
+
+  if (windowInnerWidth > 0 && systemScreenWidth > windowInnerWidth) {
+    widthRatios.push(systemScreenWidth / windowInnerWidth)
+  }
+
+  const devicePxPerCssPx = resolveDevicePxPerCssPx(Math.max(...widthRatios), pixelRatio)
+
+  return {
+    pixelRatio,
+    devicePxPerCssPx,
+    windowInnerWidth,
+    windowScreenWidth,
+    systemScreenWidth,
+  }
+}
+
+function resolveDevicePxPerCssPx(value, fallbackValue = 1) {
+  const normalizedValue = normalizeNumber(value)
+  if (normalizedValue > 0) {
+    return normalizedValue
+  }
+
+  const normalizedFallback = normalizeNumber(fallbackValue)
+  return normalizedFallback > 0 ? normalizedFallback : 1
+}
+
 function normalizeNumber(value) {
   const normalized = Number(value || 0)
   return Number.isFinite(normalized) ? normalized : 0
@@ -380,4 +538,8 @@ function stringifyField(value) {
   }
 
   return String(value)
+}
+
+export function resolveH5SafeAreaTopForTest(options) {
+  return resolveH5SafeAreaTop(options)
 }

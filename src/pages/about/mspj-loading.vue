@@ -14,7 +14,7 @@
   <view class="page-container" v-if="!isInitialCheckDone">
     <!-- 可以选择显示一个极简的加载指示器，或者完全空白 -->
   </view>
-  
+
   <!-- 初始检查完成后显示正常页面 -->
   <view class="page-container" v-else>
     <AiPageNavBar
@@ -24,23 +24,17 @@
       :show-background="true"
       @back="handleClickLeft"
     />
-    
+
     <!-- 主内容区域 -->
     <view class="content-area" :style="contentAreaStyle">
-      <image 
-        class="report-icon" 
-        :src="reportIcon"
-        mode="aspectFit"
-      />
-      
+      <image class="report-icon" :src="reportIcon" mode="aspectFit" />
+
       <!-- 提示文字 -->
       <text class="loading-text">报告生成中，请稍等...</text>
       <text class="sub-text">大概需要10-30秒时间，请耐心等待</text>
-      
+
       <!-- 返回按钮 -->
-      <view class="return-button" @click="handleExit">
-        返回
-      </view>
+      <view class="return-button" @click="handleExit">返回</view>
     </view>
     <AiRuntimeDiagPanel page-name="mspj-loading" :safe-area-top="safeAreaTop" />
   </view>
@@ -60,8 +54,15 @@ import {
 } from '@/utils/mspjNavigation'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useInterviewStore } from '@/store/interview'
+import AiPageNavBar from '@/components/public/AiPageNavBar.vue'
+import AiRuntimeDiagPanel from '@/components/public/AiRuntimeDiagPanel.vue'
 import { useNavBar } from '@/utils/useNavBar'
-import { getCurrentBuildId, getCurrentRouteKey, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import {
+  getCurrentBuildId,
+  getCurrentRouteKey,
+  isH5TestSite,
+  resolveApiBaseUrlForCurrentSite,
+} from '@/utils/url'
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
@@ -72,10 +73,10 @@ const subText = ref('请耐心等待，这可能需要几分钟时间')
 const progress = ref(0)
 const timer = ref<number | null>(null)
 const pollInterval = ref<number | null>(null)
-const isInitialCheckDone = ref(false)  // 标记初始检查是否完成
+const isInitialCheckDone = ref(false) // 标记初始检查是否完成
 const entryKey = ref<MspjEntryKey | null>(null)
 const defaultFallbackUrl = computed(() =>
-  type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record'
+  type.value === '2' ? '/pages/interviews/record-simulate' : '/pages/interviews/record',
 )
 const interviewStore = useInterviewStore()
 let isPageActive = true
@@ -301,11 +302,10 @@ const navigateToReportPage = (skipToast = false) => {
   if (urlToken.value) {
     queryParts.push(`token=${encodeURIComponent(urlToken.value)}`)
   }
-  const targetUrl = queryParts.length > 0
-    ? `/pages/about/mspj?${queryParts.join('&')}`
-    : '/pages/about/mspj'
+  const targetUrl =
+    queryParts.length > 0 ? `/pages/about/mspj?${queryParts.join('&')}` : '/pages/about/mspj'
   console.log('➡️ 跳转到报告页面:', targetUrl)
-  
+
   // 所有类型的面试都跳转到报告页面
   uni.redirectTo({
     url: targetUrl,
@@ -315,7 +315,7 @@ const navigateToReportPage = (skipToast = false) => {
         uni.showToast({
           title: '报告生成成功',
           icon: 'success',
-          duration: 1500
+          duration: 1500,
         })
       }
     },
@@ -374,7 +374,7 @@ const handleClickLeft = () => {
   handleExit()
 }
 const interviewType = ref()
-const type = ref('0')  // 默认值为'0'，表示真实面试
+const type = ref('0') // 默认值为'0'，表示真实面试
 
 const resolveEntryKey = (options: Record<string, any>): MspjEntryKey => {
   if (options.entry && isMspjEntryKey(options.entry)) {
@@ -412,13 +412,14 @@ onLoad((options) => {
   }
   const key = resolveEntryKey(options)
   entryKey.value = key
-  const fallbackUrl = key === 'simulate-record'
-    ? '/pages/interviews/record-simulate'
-    : key === 'enterprise-record'
-      ? '/pages/interviews/record?identity=enterprise'
-      : key === 'recruiter-record'
-        ? '/pages/interviews/record'
-        : undefined
+  const fallbackUrl =
+    key === 'simulate-record'
+      ? '/pages/interviews/record-simulate'
+      : key === 'enterprise-record'
+        ? '/pages/interviews/record?identity=enterprise'
+        : key === 'recruiter-record'
+          ? '/pages/interviews/record'
+          : undefined
   if (fallbackUrl) {
     registerMspjEntry(key, { fallbackUrl })
   } else {
@@ -478,9 +479,9 @@ onMounted(async () => {
       title: '未找到面试ID，请重试',
       icon: 'none',
     })
-        setTimeout(() => {
-          returnToEntry()
-        }, 2000)
+    setTimeout(() => {
+      returnToEntry()
+    }, 2000)
   }
 })
 

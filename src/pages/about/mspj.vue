@@ -21,318 +21,359 @@
     <!-- h-50 h-auto  pt-24-->
     <view class="relative w-full h-auto flex flex-wrap justify-center" :style="pageContentStyle">
       <!-- 顶部背景 -->
-      <view
-        class="absolute w-100% h-50 z-0"
-        :style="heroBackgroundStyle"
-      ></view>
-      
+      <view class="absolute w-100% h-50 z-0" :style="heroBackgroundStyle"></view>
+
       <!-- Loading 状态 -->
-      <view v-if="isLoading" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-20">
+      <view
+        v-if="isLoading"
+        class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-20"
+      >
         <view class="bg-white rounded-lg p-5 flex flex-col items-center">
           <view class="text-gray-600">加载报告中...</view>
         </view>
       </view>
-      
+
       <!-- 正常内容显示 -->
       <view v-if="!isLoading">
-      <view class="relative z-1 bg-#fafafa h-10 w-82 flex items-center rounded-lg">
-        <image class="w-4 h-4 ml-4" :src="icon001"></image>
-        <view class="pl-3 text-xs">面试职位：{{ mszw }}</view>
-      </view>
-      <view class="relative z-1 bg-#fafafa h-22 w-82 rounded-lg mt-2 shadow-md">
-        <wd-row>
-          <wd-col :span="4">
-            <image class="w-12 h-18 ml-4 mt-2 rounded" :src="userAvatar || icon001" mode="aspectFit"></image>
-          </wd-col>
-          <wd-col :span="16">
-            <view class="ml-5 mt-3 font-bold text-sm">{{ msrName }}</view>
-            <view class="ml-5 mt-1 text-xs text-#374151">
-              做题时长：{{ formatTimeToMinSec(totalDuration) }}
-            </view>
-            <view class="ml-5 mt-1 text-xs text-#374151">
-              报告生成时间：{{ formatDateTime(bgscTime) }}
-            </view>
-          </wd-col>
-          <wd-col :span="4">
-            <image class="w-14 h-14 mt-3 ml-0" :src="getScoreIcon()"></image>
-          </wd-col>
-        </wd-row>
-      </view>
-      <!-- 综合评价 -->
-      <view class="relative z-1 bg-white h-auto w-82 rounded-lg mt-3 shadow-md" style="overflow: hidden;"
-        v-if="overallSummary">
-        <view class="pjbg"></view>
-        <view class="flex items-center justify-center mt-2">
-          <image class="w-5 h-5 ml-2 mt-2" :src="iconComprehensive"></image>
-          <view class="ml-3 mt-2 text-xs text-#1f2937 font-bold" style="font-size: 18px">
-            综合评价
-          </view>
+        <view class="relative z-1 bg-#fafafa h-10 w-82 flex items-center rounded-lg">
+          <image class="w-4 h-4 ml-4" :src="icon001"></image>
+          <view class="pl-3 text-xs">面试职位：{{ mszw }}</view>
         </view>
-        <view class="m-3 text-xs mt-5 text-#374151 whitespace-pre-wrap">
-          {{ renderMarkdownText(cleanMarkdownCodeBlocks(overallSummary)) }}
-        </view>
-      </view>
-      <!-- 能力提升建议 -->
-      <view class="relative z-1 bg-white h-auto w-82 rounded-lg mt-3 shadow-md" style="overflow: hidden;"
-        v-if="improvementSuggestions">
-        <view class="pjbg"></view>
-        <view class="flex items-center justify-center mt-2">
-          <image class="w-5 h-5 ml-2 mt-2" :src="iconpj"></image>
-          <view class="ml-3 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
-            能力提升建议
-          </view>
-        </view>
-        <view class="m-3 text-xs mt-5 text-#374151 whitespace-pre-wrap">
-          {{ formatImprovementSuggestions(improvementSuggestions) }}
-        </view>
-      </view>
-      <!-- 风险评价 -->
-      <view class="relative z-1 bg-#fafafa h-auto w-82 rounded-lg mt-3 shadow-md pb-2" style="overflow: hidden;">
-        <view class="fxbg"></view>
-        <wd-row class="mt-2">
-          <wd-col :span="4">
-            <image class="w-6 h-6 ml-2 mt-2" src=""></image>
-          </wd-col>
-          <wd-col :span="16">
-            <view class="flex items-center justify-center">
-              <image class="w-5 h-5 ml-2 mt-2" :src="iconfx"></image>
-              <view class="ml-3 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
-                风险评价
-              </view>
-            </view>
-          </wd-col>
-          <wd-col :span="4">
-            <image class="w-10 h-10" src=""></image>
-          </wd-col>
-        </wd-row>
-        <view class="flex justify-between items-center mx-2">
-          <view class="flex">
-            <view class="text-sm font-bold">评估结果：</view>
-            <view class="text-sm font-bold" :class="hasAnomalies() ? 'text-red-500' : 'text-green-500'">
-              {{ hasAnomalies() ? '检测到异常行为' : '未检测到异常行为' }}
-            </view>
-          </view>
-          
-          <!-- 显示异常详情 -->
-          <view v-if="hasAnomalies()">
-            <view class="text-xs text-orange-500">
-              {{ getAnomalyCount() }} 个异常片段
-            </view>
-          </view>
-        </view>
-        
-        <view class="flex ml-2 mt-2">
-          <view class="text-sm font-bold">面试录屏：</view>
-          <view class="text-xs text-gray-500 ml-2">
-            <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">
-              ({{ frameAnalysis.samples.length }}个片段)
-            </template>
-            <template v-else-if="interviewReport.length > 0">
-              ({{ interviewReport.length }}个视频)
-            </template>
-            <template v-else>
-              (加载中...)
-            </template>
-          </view>
-        </view>
-        
-        <view class="flex w-95% justify-start mt-2 ml-2" style="overflow: hidden; overflow-x: auto">
-          <!-- 始终显示所有题目的视频 -->
-          <template v-if="interviewReport.length > 0">
-            <view class="relative w-14 h-18 ml-2 mt-2" v-for="(item, index) in interviewReport" :key="index">
-              <!-- 如果有对应的风险分析数据，显示分析缩略图，否则显示默认图 -->
-              <image 
-                class="w-14 h-18 rounded" 
-                :src="getVideoThumbnail(item.question_id, index)" 
-                mode="aspectFill"
-                @error="onImageError($event, index)"
-                @load="onImageLoad($event, index)"
+        <view class="relative z-1 bg-#fafafa h-22 w-82 rounded-lg mt-2 shadow-md">
+          <wd-row>
+            <wd-col :span="4">
+              <image
+                class="w-12 h-18 ml-4 mt-2 rounded"
+                :src="userAvatar || icon001"
+                mode="aspectFit"
               ></image>
-              
-              <!-- 显示异常标记（如果有风险分析数据且有异常） -->
-              <view v-if="hasQuestionAnomaly(item.question_id)" class="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded">
-                异常
+            </wd-col>
+            <wd-col :span="16">
+              <view class="ml-5 mt-3 font-bold text-sm">{{ msrName }}</view>
+              <view class="ml-5 mt-1 text-xs text-#374151">
+                做题时长：{{ formatTimeToMinSec(totalDuration) }}
               </view>
-              
-              <!-- 播放按钮 -->
-              <image 
-                v-if="item.video_url" 
-                class="absolute w-5 h-5 z-1" 
-                style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
-                :src="iconframe" 
-                @click="showVideoModal(item.video_url, index)"
-              ></image>
-              <view v-else class="absolute text-xs text-gray-400" style="top: 50%; left: 50%; transform: translate(-50%, -50%)">
-                无视频
+              <view class="ml-5 mt-1 text-xs text-#374151">
+                报告生成时间：{{ formatDateTime(bgscTime) }}
               </view>
-
-              <view class="h-5 video_title" style="font-size: 12px">
-                第{{ numberToChinese(index + 1) }}题
-              </view>
-            </view>
-          </template>
-          
-          <!-- 加载中状态 -->
-          <template v-else>
-            <view class="w-full flex flex-col items-center justify-center py-4">
-              <view class="text-gray-500 text-sm mb-2">视频加载中，请稍候...</view>
-              <view class="flex gap-2">
-                <image class="w-14 h-18 rounded-1" :src="icon001"></image>
-                <image class="w-14 h-18 rounded-1" :src="icon001"></image>
-                <image class="w-14 h-18 rounded-1" :src="icon001"></image>
-              </view>
-            </view>
-          </template>
+            </wd-col>
+            <wd-col :span="4">
+              <image class="w-14 h-14 mt-3 ml-0" :src="getScoreIcon()"></image>
+            </wd-col>
+          </wd-row>
         </view>
-      </view>
-      <view class="relative z-1 bg-#fafafa h-auto w-82 pb-5 rounded-lg mt-3 shadow-md">
-        <view class="flex items-center justify-center mt-2">
-          <image class="w-4 h-4 ml-2 mt-2" :src="iconjt"></image>
-          <view class="ml-5 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
-            答题解析
-            <text class="text-xs text-gray-500 ml-2" v-if="!isLoading">({{ interviewReport.length }}题)</text>
+        <!-- 综合评价 -->
+        <view
+          class="relative z-1 bg-white h-auto w-82 rounded-lg mt-3 shadow-md"
+          style="overflow: hidden"
+          v-if="overallSummary"
+        >
+          <view class="pjbg"></view>
+          <view class="flex items-center justify-center mt-2">
+            <image class="w-5 h-5 ml-2 mt-2" :src="iconComprehensive"></image>
+            <view class="ml-3 mt-2 text-xs text-#1f2937 font-bold" style="font-size: 18px">
+              综合评价
+            </view>
+          </view>
+          <view class="m-3 text-xs mt-5 text-#374151 whitespace-pre-wrap">
+            {{ renderMarkdownText(cleanMarkdownCodeBlocks(overallSummary)) }}
           </view>
         </view>
-        <view class="text-sm ml-6 mr-6 font-bold">问答题</view>
-        <view v-if="isLoading" class="flex justify-center items-center p-10">
-          <view class="text-center text-gray-500">面试内容正在处理，请稍后再试</view>
-        </view>
-        <view v-else-if="interviewReport.length === 0" class="flex justify-center items-center p-10">
-          <view class="text-center text-gray-500">暂无面试数据</view>
-        </view>
-        <view v-else>
-          <!-- 如果题目数量少于5道，显示提示 -->
-          <view v-if="interviewReport.length < 5" class="mx-4 mt-2 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
-            <text>提示：本次面试仅完成 {{ interviewReport.length }} 道题，部分题目数据可能正在处理中。</text>
+        <!-- 能力提升建议 -->
+        <view
+          class="relative z-1 bg-white h-auto w-82 rounded-lg mt-3 shadow-md"
+          style="overflow: hidden"
+          v-if="improvementSuggestions"
+        >
+          <view class="pjbg"></view>
+          <view class="flex items-center justify-center mt-2">
+            <image class="w-5 h-5 ml-2 mt-2" :src="iconpj"></image>
+            <view class="ml-3 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
+              能力提升建议
+            </view>
           </view>
-          <view v-for="(item, index) in interviewReport" :key="index">
-          <view class="flex ml-6 mr-6 pt-5" style="justify-content: space-between">
+          <view class="m-3 text-xs mt-5 text-#374151 whitespace-pre-wrap">
+            {{ formatImprovementSuggestions(improvementSuggestions) }}
+          </view>
+        </view>
+        <!-- 风险评价 -->
+        <view
+          class="relative z-1 bg-#fafafa h-auto w-82 rounded-lg mt-3 shadow-md pb-2"
+          style="overflow: hidden"
+        >
+          <view class="fxbg"></view>
+          <wd-row class="mt-2">
+            <wd-col :span="4">
+              <image class="w-6 h-6 ml-2 mt-2" src=""></image>
+            </wd-col>
+            <wd-col :span="16">
+              <view class="flex items-center justify-center">
+                <image class="w-5 h-5 ml-2 mt-2" :src="iconfx"></image>
+                <view class="ml-3 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
+                  风险评价
+                </view>
+              </view>
+            </wd-col>
+            <wd-col :span="4">
+              <image class="w-10 h-10" src=""></image>
+            </wd-col>
+          </wd-row>
+          <view class="flex justify-between items-center mx-2">
             <view class="flex">
-              <view class="">第{{ numberToChinese(index + 1) }}题</view>
-              <view class="text-xs mt-1 ml-5 text-#a1a1aa">
-                答题时长：{{ formatTimeToMinSec(item.duration_sec) }}
+              <view class="text-sm font-bold">评估结果：</view>
+              <view
+                class="text-sm font-bold"
+                :class="hasAnomalies() ? 'text-red-500' : 'text-green-500'"
+              >
+                {{ hasAnomalies() ? '检测到异常行为' : '未检测到异常行为' }}
               </view>
             </view>
-            <view class="flex justify-right">
-              <image 
-                v-if="item.video_url" 
-                class="w-5 h-5 ml-2" 
-                :src="iconframe" 
-                @click="showVideoModal(item.video_url, index)"
-              ></image>
-              <view v-if="item.video_url" class="text-xs ml-2 mt-0.5 text-#a1a1aa">
-                第{{ numberToChinese(index + 1) }}题录屏
-              </view>
-              <view v-else class="text-xs ml-2 mt-0.5 text-gray-400">
-                暂无录屏
-              </view>
+
+            <!-- 显示异常详情 -->
+            <view v-if="hasAnomalies()">
+              <view class="text-xs text-orange-500">{{ getAnomalyCount() }} 个异常片段</view>
             </view>
           </view>
-          <view class="flex justify-center mt-2">
-            <view class="text-sm ml-6 mr-6 font-bold">
-              {{ item.original_question }}
+
+          <view class="flex ml-2 mt-2">
+            <view class="text-sm font-bold">面试录屏：</view>
+            <view class="text-xs text-gray-500 ml-2">
+              <template v-if="frameAnalysis.samples && frameAnalysis.samples.length > 0">
+                ({{ frameAnalysis.samples.length }}个片段)
+              </template>
+              <template v-else-if="interviewReport.length > 0">
+                ({{ interviewReport.length }}个视频)
+              </template>
+              <template v-else>(加载中...)</template>
             </view>
           </view>
-          <view class="mt-2 w-92% ml-4% rounded" style="background-color: #ffffff">
-            <view class="pt-3 pl-6 text-xs">面试人回答：</view>
-            <view class="pt-2 pb-3 pr-6 pl-6 text-xs text-#a1a1aa">
-              <text v-if="item.answer && item.answer.includes('[录制失败]')" class="text-red-500">
-                {{ item.answer }}
-              </text>
-              <text v-else-if="!item.answer || item.answer.trim() === ''" class="text-gray-500">
-                未回答
-              </text>
-              <text v-else>{{ filiterNum(item.answer) }}</text>
-            </view>
-          </view>
-          <view class="mt-2 w-92% ml-4% rounded" style="background-color: #f2f7ff">
-            <view class="flex pt-3 pr-6 pl-6">
-              <view class="text-xs w-30" style="word-break: keep-all">整体分析：</view>
-              <view class="text-xs text-#a1a1aa">{{ item.reason }}</view>
-            </view>
-            <view class="flex pt-1 pr-6 pl-6 pb-3">
-              <view class="" style="font-size: 12px; word-break: keep-all">打分：</view>
-              <view v-if="item.answer && item.answer.includes('[录制失败]')">
-                <view class="text-red-500 font-bold">录制失败</view>
+
+          <view
+            class="flex w-95% justify-start mt-2 ml-2"
+            style="overflow: hidden; overflow-x: auto"
+          >
+            <!-- 始终显示所有题目的视频 -->
+            <template v-if="interviewReport.length > 0">
+              <view
+                class="relative w-14 h-18 ml-2 mt-2"
+                v-for="(item, index) in interviewReport"
+                :key="index"
+              >
+                <!-- 如果有对应的风险分析数据，显示分析缩略图，否则显示默认图 -->
+                <image
+                  class="w-14 h-18 rounded"
+                  :src="getVideoThumbnail(item.question_id, index)"
+                  mode="aspectFill"
+                  @error="onImageError($event, index)"
+                  @load="onImageLoad($event, index)"
+                ></image>
+
+                <!-- 显示异常标记（如果有风险分析数据且有异常） -->
+                <view
+                  v-if="hasQuestionAnomaly(item.question_id)"
+                  class="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded"
+                >
+                  异常
+                </view>
+
+                <!-- 播放按钮 -->
+                <image
+                  v-if="item.video_url"
+                  class="absolute w-5 h-5 z-1"
+                  style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
+                  :src="iconframe"
+                  @click="showVideoModal(item.video_url, index)"
+                ></image>
+                <view
+                  v-else
+                  class="absolute text-xs text-gray-400"
+                  style="top: 50%; left: 50%; transform: translate(-50%, -50%)"
+                >
+                  无视频
+                </view>
+
+                <view class="h-5 video_title" style="font-size: 12px">
+                  第{{ numberToChinese(index + 1) }}题
+                </view>
               </view>
-              <view v-else class="flex items-center">
-                <wd-progress :percentage="item.score * 10" hide-text style="width: 200px"></wd-progress>
-                <view class="font-bold ml-3">{{ item.score * 10 }}</view>
+            </template>
+
+            <!-- 加载中状态 -->
+            <template v-else>
+              <view class="w-full flex flex-col items-center justify-center py-4">
+                <view class="text-gray-500 text-sm mb-2">视频加载中，请稍候...</view>
+                <view class="flex gap-2">
+                  <image class="w-14 h-18 rounded-1" :src="icon001"></image>
+                  <image class="w-14 h-18 rounded-1" :src="icon001"></image>
+                  <image class="w-14 h-18 rounded-1" :src="icon001"></image>
+                </view>
               </view>
-            </view>
-          </view>
+            </template>
           </view>
         </view>
-      </view>
-      <view class="w-82 h-5"></view>
-      <!-- <aizdsc class="mt-10" />
+        <view class="relative z-1 bg-#fafafa h-auto w-82 pb-5 rounded-lg mt-3 shadow-md">
+          <view class="flex items-center justify-center mt-2">
+            <image class="w-4 h-4 ml-2 mt-2" :src="iconjt"></image>
+            <view class="ml-5 mt-2 text-xs text-#374151 font-bold" style="font-size: 18px">
+              答题解析
+              <text class="text-xs text-gray-500 ml-2" v-if="!isLoading">
+                ({{ interviewReport.length }}题)
+              </text>
+            </view>
+          </view>
+          <view class="text-sm ml-6 mr-6 font-bold">问答题</view>
+          <view v-if="isLoading" class="flex justify-center items-center p-10">
+            <view class="text-center text-gray-500">面试内容正在处理，请稍后再试</view>
+          </view>
+          <view
+            v-else-if="interviewReport.length === 0"
+            class="flex justify-center items-center p-10"
+          >
+            <view class="text-center text-gray-500">暂无面试数据</view>
+          </view>
+          <view v-else>
+            <!-- 如果题目数量少于5道，显示提示 -->
+            <view
+              v-if="interviewReport.length < 5"
+              class="mx-4 mt-2 p-2 bg-yellow-50 rounded text-xs text-yellow-800"
+            >
+              <text>
+                提示：本次面试仅完成 {{ interviewReport.length }} 道题，部分题目数据可能正在处理中。
+              </text>
+            </view>
+            <view v-for="(item, index) in interviewReport" :key="index">
+              <view class="flex ml-6 mr-6 pt-5" style="justify-content: space-between">
+                <view class="flex">
+                  <view class="">第{{ numberToChinese(index + 1) }}题</view>
+                  <view class="text-xs mt-1 ml-5 text-#a1a1aa">
+                    答题时长：{{ formatTimeToMinSec(item.duration_sec) }}
+                  </view>
+                </view>
+                <view class="flex justify-right">
+                  <image
+                    v-if="item.video_url"
+                    class="w-5 h-5 ml-2"
+                    :src="iconframe"
+                    @click="showVideoModal(item.video_url, index)"
+                  ></image>
+                  <view v-if="item.video_url" class="text-xs ml-2 mt-0.5 text-#a1a1aa">
+                    第{{ numberToChinese(index + 1) }}题录屏
+                  </view>
+                  <view v-else class="text-xs ml-2 mt-0.5 text-gray-400">暂无录屏</view>
+                </view>
+              </view>
+              <view class="flex justify-center mt-2">
+                <view class="text-sm ml-6 mr-6 font-bold">
+                  {{ item.original_question }}
+                </view>
+              </view>
+              <view class="mt-2 w-92% ml-4% rounded" style="background-color: #ffffff">
+                <view class="pt-3 pl-6 text-xs">面试人回答：</view>
+                <view class="pt-2 pb-3 pr-6 pl-6 text-xs text-#a1a1aa">
+                  <text
+                    v-if="item.answer && item.answer.includes('[录制失败]')"
+                    class="text-red-500"
+                  >
+                    {{ item.answer }}
+                  </text>
+                  <text v-else-if="!item.answer || item.answer.trim() === ''" class="text-gray-500">
+                    未回答
+                  </text>
+                  <text v-else>{{ filiterNum(item.answer) }}</text>
+                </view>
+              </view>
+              <view class="mt-2 w-92% ml-4% rounded" style="background-color: #f2f7ff">
+                <view class="flex pt-3 pr-6 pl-6">
+                  <view class="text-xs w-30" style="word-break: keep-all">整体分析：</view>
+                  <view class="text-xs text-#a1a1aa">{{ item.reason }}</view>
+                </view>
+                <view class="flex pt-1 pr-6 pl-6 pb-3">
+                  <view class="" style="font-size: 12px; word-break: keep-all">打分：</view>
+                  <view v-if="item.answer && item.answer.includes('[录制失败]')">
+                    <view class="text-red-500 font-bold">录制失败</view>
+                  </view>
+                  <view v-else class="flex items-center">
+                    <wd-progress
+                      :percentage="item.score * 10"
+                      hide-text
+                      style="width: 200px"
+                    ></wd-progress>
+                    <view class="font-bold ml-3">{{ item.score * 10 }}</view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="w-82 h-5"></view>
+        <!-- <aizdsc class="mt-10" />
             <aimn class="mt-10" />
             <xzzw class="my-10" />
             <xzzw class="my-10" /> -->
-      <view
-        v-if="isModalVisible"
-        class="video-modal-overlay"
-        :style="`--video-safe-top: ${safeAreaTop}px`"
-        @click.stop
-        @touchmove.stop.prevent
-      >
-        <view class="video-modal-shell" @click.stop>
-          <view class="video-modal-bar">
-            <view class="video-modal-meta">
-              <text class="video-modal-title">{{ currentVideoTitle || '面试录屏' }}</text>
-              <text class="video-modal-duration">{{ formattedVideoDuration }}</text>
-            </view>
-            <view class="video-modal-close" @click.stop="closeVideoModal">
-              <text class="video-modal-close-icon">×</text>
-            </view>
-          </view>
-
-          <view class="video-modal-content">
-            <view v-if="isVideoLoading && !videoError" class="video-modal-loading">
-              <view class="loading-spinner"></view>
-              <text class="loading-text">视频加载中...</text>
-            </view>
-
-            <view v-if="videoError" class="video-modal-error">
-              <text class="i-carbon-warning text-4xl text-gray-400 mb-2"></text>
-              <text class="text-gray-400">视频加载失败</text>
-              <view class="video-modal-retry" @click="retryLoadVideo">
-                <text class="text-white">重试</text>
+        <view
+          v-if="isModalVisible"
+          class="video-modal-overlay"
+          :style="`--video-safe-top: ${safeAreaTop}px`"
+          @click.stop
+          @touchmove.stop.prevent
+        >
+          <view class="video-modal-shell" @click.stop>
+            <view class="video-modal-bar">
+              <view class="video-modal-meta">
+                <text class="video-modal-title">{{ currentVideoTitle || '面试录屏' }}</text>
+                <text class="video-modal-duration">{{ formattedVideoDuration }}</text>
+              </view>
+              <view class="video-modal-close" @click.stop="closeVideoModal">
+                <text class="video-modal-close-icon">×</text>
               </view>
             </view>
 
-            <video
-              v-show="showVideo && !videoError"
-              :id="'video-player-' + currentVideoIndex"
-              class="video-modal-player"
-              :src="showVideo"
-              controls
-              show-center-play-btn
-              :show-fullscreen-btn="false"
-              show-play-btn
-              show-progress
-              :autoplay="true"
-              object-fit="contain"
-              preload="auto"
-              :page-gesture="true"
-              :enable-progress-gesture="true"
-              :show-mute-btn="true"
-              :enable-play-gesture="true"
-              :initial-time="0"
-              @loadstart="onVideoLoadStart"
-              @loadeddata="onVideoLoadedData"
-              @loadedmetadata="onVideoLoadedMetadata"
-              @canplay="onVideoCanPlay"
-              @error="handleVideoError"
-              @play="onVideoPlay"
-              @pause="onVideoPause"
-              @ended="onVideoEnded"
-              @timeupdate="onVideoTimeUpdate"
-            ></video>
+            <view class="video-modal-content">
+              <view v-if="isVideoLoading && !videoError" class="video-modal-loading">
+                <view class="loading-spinner"></view>
+                <text class="loading-text">视频加载中...</text>
+              </view>
+
+              <view v-if="videoError" class="video-modal-error">
+                <text class="i-carbon-warning text-4xl text-gray-400 mb-2"></text>
+                <text class="text-gray-400">视频加载失败</text>
+                <view class="video-modal-retry" @click="retryLoadVideo">
+                  <text class="text-white">重试</text>
+                </view>
+              </view>
+
+              <video
+                v-show="showVideo && !videoError"
+                :id="'video-player-' + currentVideoIndex"
+                class="video-modal-player"
+                :src="showVideo"
+                controls
+                show-center-play-btn
+                :show-fullscreen-btn="false"
+                show-play-btn
+                show-progress
+                :autoplay="true"
+                object-fit="contain"
+                preload="auto"
+                :page-gesture="true"
+                :enable-progress-gesture="true"
+                :show-mute-btn="true"
+                :enable-play-gesture="true"
+                :initial-time="0"
+                @loadstart="onVideoLoadStart"
+                @loadeddata="onVideoLoadedData"
+                @loadedmetadata="onVideoLoadedMetadata"
+                @canplay="onVideoCanPlay"
+                @error="handleVideoError"
+                @play="onVideoPlay"
+                @pause="onVideoPause"
+                @ended="onVideoEnded"
+                @timeupdate="onVideoTimeUpdate"
+              ></video>
+            </view>
           </view>
         </view>
       </view>
-    </view>
     </view>
     <AiRuntimeDiagPanel
       page-name="mspj"
@@ -366,6 +407,7 @@ import iconfx from '@/static/app/icons/icon-fx.png'
 import Aizdsc from '@/pages/about/components/aizdsc.vue'
 import Aimn from '@/pages/about/components/aimn.vue'
 import Xzzw from '@/pages/about/components/xzzw.vue'
+import AiRuntimeDiagPanel from '@/components/public/AiRuntimeDiagPanel.vue'
 import { onPullDownRefresh, onBackPress } from '@dcloudio/uni-app'
 import { hasNativeBridge } from '@/utils/platformUtils'
 import {
@@ -377,12 +419,21 @@ import {
   type MspjEntryKey,
   type MspjEntryState,
 } from '@/utils/mspjNavigation'
-import { handleToken } from "@/utils/useAuth"
-import { renderMarkdownText, cleanMarkdownCodeBlocks, formatImprovementSuggestions } from '@/utils/markdownUtils'
+import { handleToken } from '@/utils/useAuth'
+import {
+  renderMarkdownText,
+  cleanMarkdownCodeBlocks,
+  formatImprovementSuggestions,
+} from '@/utils/markdownUtils'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { nextTick, computed } from 'vue'
 import { useNavBar } from '@/utils/useNavBar'
-import { getCurrentBuildId, getCurrentRouteKey, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import {
+  getCurrentBuildId,
+  getCurrentRouteKey,
+  isH5TestSite,
+  resolveApiBaseUrlForCurrentSite,
+} from '@/utils/url'
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
@@ -451,7 +502,7 @@ interface InterviewReportItem {
   interview_id: number
   question_id: number
   video_url: string
-  thumbnail_url?: string  // 视频缩略图URL
+  thumbnail_url?: string // 视频缩略图URL
   duration_sec: number
   score: number
   answer: string
@@ -498,42 +549,42 @@ const videoError = ref(false)
 
 const showVideoModal = (videoUrl: string, questionIndex?: number) => {
   console.log('showVideoModal called with URL:', videoUrl, 'questionIndex:', questionIndex)
-  
+
   // 打印当前面试报告数据
   if (questionIndex !== undefined) {
     console.log('当前题目数据:', interviewReport.value[questionIndex])
   }
-  
+
   if (!videoUrl) {
     uni.showToast({
       title: '视频地址不可用',
       icon: 'none',
-      duration: 2000
+      duration: 2000,
     })
     return
   }
-  
+
   // 重置视频状态
   showVideo.value = ''
   videoError.value = false
-  
+
   // 立即设置视频信息（如果有的话）
   if (questionIndex !== undefined && interviewReport.value[questionIndex]) {
     const item = interviewReport.value[questionIndex]
     currentVideoTitle.value = `第${numberToChinese(questionIndex + 1)}题录屏`
-    
+
     // 先设置报告中的时长作为初始值
     const reportDuration = item.duration_sec || item.duration || 0
     console.log('报告中的时长数据:', {
       duration_sec: item.duration_sec,
       duration: item.duration,
-      使用的时长: reportDuration
+      使用的时长: reportDuration,
     })
-    
+
     // 立即设置时长，不管是否为0
     currentVideoDuration.value = reportDuration
     currentVideoIndex.value = questionIndex
-    
+
     // 如果有时长，不显示加载中；如果没有时长，才显示加载中
     isVideoLoading.value = reportDuration === 0
   } else {
@@ -541,10 +592,10 @@ const showVideoModal = (videoUrl: string, questionIndex?: number) => {
     currentVideoDuration.value = 0
     isVideoLoading.value = true
   }
-  
+
   // 显示弹窗
   isModalVisible.value = true
-  
+
   // 使用 nextTick 设置视频URL
   nextTick(() => {
     showVideo.value = videoUrl
@@ -554,10 +605,10 @@ const showVideoModal = (videoUrl: string, questionIndex?: number) => {
 // 关闭视频弹窗
 const closeVideoModal = () => {
   console.log('关闭视频弹窗')
-  
+
   // 立即关闭弹窗，防止后续的错误处理
   isModalVisible.value = false
-  
+
   // 停止视频播放
   try {
     if (currentVideoIndex.value !== -1) {
@@ -572,7 +623,7 @@ const closeVideoModal = () => {
   } catch (error) {
     console.error('停止视频时出错:', error)
   }
-  
+
   // 使用 setTimeout 延迟清理状态，确保视频组件已销毁
   setTimeout(() => {
     showVideo.value = ''
@@ -612,7 +663,7 @@ const handleVideoError = (e: any) => {
     uni.showToast({
       title: '视频加载失败',
       icon: 'none',
-      duration: 2000
+      duration: 2000,
     })
   }
 }
@@ -628,7 +679,12 @@ const onVideoLoadStart = () => {
 const onVideoLoadedData = (e: any) => {
   console.log('视频数据加载完成', e)
   // 尝试获取时长
-  if (e.detail && e.detail.duration && isFinite(e.detail.duration) && currentVideoDuration.value === 0) {
+  if (
+    e.detail &&
+    e.detail.duration &&
+    isFinite(e.detail.duration) &&
+    currentVideoDuration.value === 0
+  ) {
     const duration = Math.round(e.detail.duration)
     if (duration > 0) {
       currentVideoDuration.value = duration
@@ -642,7 +698,12 @@ const onVideoCanPlay = (e: any) => {
   console.log('视频可以播放', e)
   isVideoLoading.value = false
   // 再次尝试获取时长
-  if (e.detail && e.detail.duration && isFinite(e.detail.duration) && currentVideoDuration.value === 0) {
+  if (
+    e.detail &&
+    e.detail.duration &&
+    isFinite(e.detail.duration) &&
+    currentVideoDuration.value === 0
+  ) {
     const duration = Math.round(e.detail.duration)
     if (duration > 0) {
       currentVideoDuration.value = duration
@@ -654,23 +715,32 @@ const onVideoCanPlay = (e: any) => {
 // 视频元数据加载完成
 const onVideoLoadedMetadata = (e: any) => {
   console.log('视频元数据加载完成', e)
-  
+
   // 获取视频实际时长
   if (e.detail && e.detail.duration && isFinite(e.detail.duration)) {
     const actualDuration = Math.round(e.detail.duration)
-    console.log('从metadata获取视频实际时长:', actualDuration, '秒，当前显示时长:', currentVideoDuration.value)
-    
+    console.log(
+      '从metadata获取视频实际时长:',
+      actualDuration,
+      '秒，当前显示时长:',
+      currentVideoDuration.value,
+    )
+
     // 如果视频时长有效且与当前时长差异较大，则更新
-    if (actualDuration > 0 && (currentVideoDuration.value === 0 || Math.abs(actualDuration - currentVideoDuration.value) > 2)) {
+    if (
+      actualDuration > 0 &&
+      (currentVideoDuration.value === 0 ||
+        Math.abs(actualDuration - currentVideoDuration.value) > 2)
+    ) {
       currentVideoDuration.value = actualDuration
     }
   } else {
     console.log('视频时长无效或为Infinity，保持使用报告中的时长')
   }
-  
+
   // 元数据加载完成后，标记加载完成
   isVideoLoading.value = false
-  
+
   // 如果有 videoContext，也可以通过它获取时长
   if (currentVideoIndex.value !== -1) {
     const videoId = `video-player-${currentVideoIndex.value}`
@@ -832,7 +902,7 @@ function numberToChinese(num) {
 // 清理ASR转译结果中的特殊标记
 function filiterNum(str) {
   if (!str) return ''
-  
+
   // 清理腾讯云ASR的特殊标记
   // 包括：[:.,.:]、[:,:] 等标点符号标记
   // 以及 [用户无回答] 等占位符
@@ -848,7 +918,7 @@ function filiterNum(str) {
     // 清理多余的空格
     .replace(/\s+/g, ' ')
     .trim()
-  
+
   return cleaned || '未回答'
 }
 const type = ref('')
@@ -913,7 +983,7 @@ onLoad((options) => {
     // 两者都不存在时提示用户
     uni.showToast({
       title: '未找到 interviewId 参数',
-      icon: 'none'
+      icon: 'none',
     })
   }
   if (options.type) {
@@ -922,7 +992,7 @@ onLoad((options) => {
   } else {
     console.log('onLoad - 没有type参数')
   }
-  
+
   // 获取from参数，用于确定返回目标
   console.log('=== mspj onLoad 参数分析 START ===')
   console.log('onLoad - 完整options:', JSON.stringify(options))
@@ -940,17 +1010,18 @@ onLoad((options) => {
     from.value = undefined
     console.log('onLoad - ❓ from参数为空，将使用默认返回逻辑')
   }
-  
+
   console.log('onLoad - 最终确定from值:', from.value, '类型:', typeof from.value)
   const resolvedEntry = resolveEntryKey({ ...options, type: type.value })
   const existingState = getMspjEntryState()
   entryKey.value = resolvedEntry
   if (!existingState || existingState.key !== resolvedEntry) {
-    const fallbackUrl = resolvedEntry === 'simulate-record'
-      ? '/pages/interviews/record-simulate'
-      : resolvedEntry === 'enterprise-record'
-        ? '/pages/interviews/record?identity=enterprise'
-        : '/pages/interviews/record'
+    const fallbackUrl =
+      resolvedEntry === 'simulate-record'
+        ? '/pages/interviews/record-simulate'
+        : resolvedEntry === 'enterprise-record'
+          ? '/pages/interviews/record?identity=enterprise'
+          : '/pages/interviews/record'
     registerMspjEntry(resolvedEntry, { fallbackUrl })
     console.log('onLoad - 重新注册入口:', resolvedEntry, 'fallback:', fallbackUrl)
   } else {
@@ -1004,7 +1075,7 @@ const fetchInterviewReport = async (interviewId: number) => {
       url: API_ENDPOINTS.interviews.report(interviewId),
       method: 'GET',
     }
-    
+
     // If we have a URL token, add it as a query parameter
     if (urlToken.value) {
       requestConfig.url += `?token=${urlToken.value}`
@@ -1014,7 +1085,7 @@ const fetchInterviewReport = async (interviewId: number) => {
       requestConfig.header = { Authorization: `Bearer ${uni.getStorageSync('token')}` }
       console.log('使用Bearer token访问报告')
     }
-    
+
     const response = await uni.request(requestConfig)
 
     if (response.statusCode === 200) {
@@ -1034,13 +1105,13 @@ const fetchInterviewReport = async (interviewId: number) => {
         }
         frame_analysis?: {
           summary: {
-            total_segments?: number  // 新格式
-            abnormal_segments?: number  // 新格式
-            total_frames?: number  // 旧格式
-            abnormal_frames?: number  // 旧格式
+            total_segments?: number // 新格式
+            abnormal_segments?: number // 新格式
+            total_frames?: number // 旧格式
+            abnormal_frames?: number // 旧格式
             abnormal_rate: number
-            abnormal_types?: string[]  // 新格式
-            abnormal_type_stats?: Record<string, any>  // 旧格式
+            abnormal_types?: string[] // 新格式
+            abnormal_type_stats?: Record<string, any> // 旧格式
           }
           samples: Array<{
             // 新格式字段
@@ -1076,7 +1147,7 @@ const fetchInterviewReport = async (interviewId: number) => {
         console.log(`报告项${index + 1}:`, {
           video_url: item.video_url,
           thumbnail_url: item.thumbnail_url,
-          has_thumbnail: !!item.thumbnail_url
+          has_thumbnail: !!item.thumbnail_url,
         })
       })
       mszw.value = responseData.info.position_name
@@ -1100,7 +1171,7 @@ const fetchInterviewReport = async (interviewId: number) => {
         console.log('帧分析数据:', responseData.frame_analysis)
         console.log('帧分析samples:', responseData.frame_analysis.samples)
         frameAnalysis.value = responseData.frame_analysis
-        
+
         // 检查视频URL是否存在
         if (responseData.frame_analysis.samples && responseData.frame_analysis.samples.length > 0) {
           responseData.frame_analysis.samples.forEach((sample, index) => {
@@ -1121,7 +1192,7 @@ const fetchInterviewReport = async (interviewId: number) => {
       // 202 表示报告还在生成中，跳转到loading页面
       console.log('报告还在生成中，跳转到loading页面')
       uni.redirectTo({
-        url: `/pages/about/mspj-loading?interviewId=${interviewId}&type=${type.value}`
+        url: `/pages/about/mspj-loading?interviewId=${interviewId}&type=${type.value}`,
       })
     } else if (response.statusCode === 403) {
       // 403 表示权限不足，可能是报告未审核通过
@@ -1136,7 +1207,7 @@ const fetchInterviewReport = async (interviewId: number) => {
           if (res.confirm) {
             handleClickLeft()
           }
-        }
+        },
       })
     } else {
       console.error('获取面试报告失败:', response.data)
@@ -1213,7 +1284,7 @@ const hasAnomalies = () => {
   if (!frameAnalysis.value.samples || frameAnalysis.value.samples.length === 0) {
     return false
   }
-  return frameAnalysis.value.samples.some(sample => sample.has_anomaly === true)
+  return frameAnalysis.value.samples.some((sample) => sample.has_anomaly === true)
 }
 
 // 获取异常数量
@@ -1221,25 +1292,27 @@ const getAnomalyCount = () => {
   if (!frameAnalysis.value.samples || frameAnalysis.value.samples.length === 0) {
     return 0
   }
-  return frameAnalysis.value.samples.filter(sample => sample.has_anomaly === true).length
+  return frameAnalysis.value.samples.filter((sample) => sample.has_anomaly === true).length
 }
 
 // 获取视频缩略图
 const getVideoThumbnail = (questionId: number, index: number) => {
   // 首先查找对应题目的风险分析数据
   if (frameAnalysis.value.samples && frameAnalysis.value.samples.length > 0) {
-    const sample = frameAnalysis.value.samples.find(s => s.question_id === questionId)
+    const sample = frameAnalysis.value.samples.find((s) => s.question_id === questionId)
     if (sample && sample.frame_url) {
       return sample.frame_url
     }
   }
-  
+
   // 检查是否有后端返回的缩略图URL
   const reportItem = interviewReport.value[index]
   if (reportItem) {
     // 添加调试日志
-    console.log(`题目${index + 1} - video_url: ${reportItem.video_url}, thumbnail_url: ${reportItem.thumbnail_url ? '有缩略图' : '无缩略图'}`)
-    
+    console.log(
+      `题目${index + 1} - video_url: ${reportItem.video_url}, thumbnail_url: ${reportItem.thumbnail_url ? '有缩略图' : '无缩略图'}`,
+    )
+
     if (reportItem.thumbnail_url) {
       // 如果是base64格式（以data:image开头），直接返回
       if (reportItem.thumbnail_url.startsWith('data:image')) {
@@ -1249,18 +1322,24 @@ const getVideoThumbnail = (questionId: number, index: number) => {
       // 如果是URL格式，也直接返回
       return reportItem.thumbnail_url
     }
-    
+
     // 如果后端没有返回缩略图，前端尝试生成
-    if (reportItem.video_url && (reportItem.video_url.includes('.webm') || reportItem.video_url.includes('.mp4'))) {
+    if (
+      reportItem.video_url &&
+      (reportItem.video_url.includes('.webm') || reportItem.video_url.includes('.mp4'))
+    ) {
       // 如果是转换后的域名，需要还原成原始COS域名
       let originalUrl = reportItem.video_url
       if (originalUrl.includes('interview-cos.ycjp-work.com')) {
         // 将自定义域名替换回原始COS域名，因为数据万象只支持原始域名
         // 注意：URL路径是区分大小写的，需要保持原样
-        originalUrl = originalUrl.replace('https://interview-cos.ycjp-work.com/', 'https://interview-system-1325886122.cos.ap-nanjing.myqcloud.com/')
+        originalUrl = originalUrl.replace(
+          'https://interview-cos.ycjp-work.com/',
+          'https://interview-system-1325886122.cos.ap-nanjing.myqcloud.com/',
+        )
         console.log(`转换域名: ${reportItem.video_url} -> ${originalUrl}`)
       }
-      
+
       if (originalUrl.includes('.myqcloud.com')) {
         const baseUrl = originalUrl.split('?')[0]
         // 添加width、height和format参数，与后端保持一致
@@ -1270,7 +1349,7 @@ const getVideoThumbnail = (questionId: number, index: number) => {
       }
     }
   }
-  
+
   // 返回默认缩略图
   console.log(`题目${index + 1} - 使用默认图片`)
   return icon001
@@ -1281,7 +1360,7 @@ const hasQuestionAnomaly = (questionId: number) => {
   if (!frameAnalysis.value.samples || frameAnalysis.value.samples.length === 0) {
     return false
   }
-  const sample = frameAnalysis.value.samples.find(s => s.question_id === questionId)
+  const sample = frameAnalysis.value.samples.find((s) => s.question_id === questionId)
   return sample && sample.has_anomaly === true
 }
 
@@ -1296,14 +1375,14 @@ const onImageError = (event: any, index: number) => {
   const item = interviewReport.value[index]
   if (item) {
     const failedUrl = getVideoThumbnail(item.question_id, index)
-    
+
     // 如果是base64格式失败，不打印完整URL（太长）
     if (failedUrl && failedUrl.startsWith('data:image')) {
       console.error(`失败的URL: base64格式图片`)
     } else {
       console.error(`失败的URL: ${failedUrl}`)
     }
-    
+
     // 如果是COS数据万象的404错误，提示可能的原因
     if (failedUrl && failedUrl.includes('ci-process=snapshot')) {
       console.warn('提示：视频截帧失败可能是因为：')
@@ -1408,7 +1487,12 @@ uni-page-body,
   justify-content: space-between;
   gap: 16px;
   padding: calc(var(--video-safe-top, 0px) + 12px) 16px 20px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.28) 70%, rgba(0, 0, 0, 0) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.78) 0%,
+    rgba(0, 0, 0, 0.28) 70%,
+    rgba(0, 0, 0, 0) 100%
+  );
 }
 
 .video-modal-meta {
@@ -1507,7 +1591,9 @@ uni-page-body,
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 错误状态优化 */
@@ -1547,5 +1633,4 @@ uni-page-body,
 /* .interview-video.mirror {
   transform: scaleX(-1);
 } */
-
 </style>

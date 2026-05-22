@@ -1,30 +1,28 @@
 <route lang="json5">
-{ 
-  style: { 
+{
+  style: {
     navigationStyle: 'custom',
-    enablePullDownRefresh: true 
-  } 
+    enablePullDownRefresh: true,
+  },
 }
 </route>
 
 <template>
   <view class="w-full bg-#f5f7fb min-h-screen flex flex-col">
-    <view
-      class="fixed top-0 left-0 right-0 z-10 bg-white"
-      :style="{ height: topBarHeight + 'px' }"
-    >
-      <view class="relative flex items-center" :style="{ marginTop: safeAreaTop + 'px', height: navBarHeight + 'px' }">
-        <view
-          class="i-carbon-chevron-left w-8 h-8 absolute left-5 text-black"
-          @click="handleBack"
-        ></view>
-        <view class="absolute left-1/2 transform -translate-x-1/2 text-black font-medium">个人AI模拟面试</view>
-      </view>
-    </view>
+    <AiPageNavBar
+      title="个人AI模拟面试"
+      text-color="#111111"
+      background-color="#ffffff"
+      show-background
+      @back="handleBack"
+    />
 
-    <view class="flex-1 overflow-y-auto" :style="{ paddingTop: topBarHeight + 'px', paddingBottom: '80px' }">
+    <view
+      class="flex-1 overflow-y-auto"
+      :style="{ paddingTop: `${topBarHeight}px`, paddingBottom: '80px' }"
+    >
       <view class="w-full" @click="goProcess">
-        <image :src="aibg07" class="w-full" style="aspect-ratio: 375/160;" mode="widthFix"></image>
+        <image :src="aibg07" class="w-full" style="aspect-ratio: 375/160" mode="widthFix"></image>
       </view>
 
       <view
@@ -77,11 +75,7 @@
               :src="iconNotQualified"
               class="w-15 h-15"
             />
-            <image
-              v-else-if="item.is_qualified == 'PASS'"
-              :src="iconQualified"
-              class="w-15 h-15"
-            />
+            <image v-else-if="item.is_qualified == 'PASS'" :src="iconQualified" class="w-15 h-15" />
             <view
               v-else
               class="min-w-12 h-7 px-2 rounded-full bg-#eef3ff text-#5b6b8c text-xs flex items-center justify-center"
@@ -139,10 +133,16 @@
               <image :src="zfj" class="w-5 h-5" />
             </view>
             <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-4">
-              <view class="font-medium" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <view
+                class="font-medium"
+                style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
+              >
                 {{ item.position_name || item.title }}
               </view>
-              <view class="text-gray-600" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <view
+                class="text-gray-600"
+                style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
+              >
                 {{ item.industry || '行业不限' }}
               </view>
             </view>
@@ -189,14 +189,22 @@ import iconNotQualified from '../../static/app/icons/interview-status-new/unqual
 import iconVeryQualified from '../../static/app/icons/interview-status-new/very_suitable_2x.png'
 import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { registerMspjEntry } from '@/utils/mspjNavigation'
-import { getCurrentBuildId, getCurrentRouteKey, getRelativeUniPathFromUrl, isH5TestSite, resolveApiBaseUrlForCurrentSite } from '@/utils/url'
+import {
+  getCurrentBuildId,
+  getCurrentRouteKey,
+  getRelativeUniPathFromUrl,
+  isH5TestSite,
+  resolveApiBaseUrlForCurrentSite,
+} from '@/utils/url'
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 import { ensureLatestH5Bundle } from '@/utils/runtimeVersion'
-import { handleToken } from "@/utils/useAuth"
+import { handleToken } from '@/utils/useAuth'
 import { ref, watch, onMounted } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useUserStore } from '@/store'
+import AiPageNavBar from '@/components/public/AiPageNavBar.vue'
+import AiRuntimeDiagPanel from '@/components/public/AiRuntimeDiagPanel.vue'
 import { useAiPageBack } from '@/utils/useAiPageBack'
 import { useNavBar } from '@/utils/useNavBar'
 const toast = useToast()
@@ -206,7 +214,7 @@ const loading = ref(true)
 const searchValue = ref()
 const showSheet = ref(false)
 const showErrorTip = ref(false)
-const { safeAreaTop, navBarHeight, topBarHeight, navDiagnostics } = useNavBar()
+const { safeAreaTop, topBarHeight, navDiagnostics } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
   mode: 'native-first',
@@ -245,14 +253,18 @@ onMounted(() => {
   getPostionInfo()
   my_test_interviews()
   syncRuntimeState('mounted')
-  
+
   // 添加watch来监控interviewList的变化
-  watch(interviewList, (newVal, oldVal) => {
-    console.log('interviewList发生变化:')
-    console.log('- 旧值长度:', oldVal?.length || 0)
-    console.log('- 新值长度:', newVal?.length || 0)
-    console.log('- 新值内容:', JSON.stringify(newVal, null, 2))
-  }, { deep: true })
+  watch(
+    interviewList,
+    (newVal, oldVal) => {
+      console.log('interviewList发生变化:')
+      console.log('- 旧值长度:', oldVal?.length || 0)
+      console.log('- 新值长度:', newVal?.length || 0)
+      console.log('- 新值内容:', JSON.stringify(newVal, null, 2))
+    },
+    { deep: true },
+  )
 })
 
 // 页面显示时刷新数据
@@ -277,7 +289,7 @@ const my_test_interviews = async (keyword = '') => {
   // 在函数开始处打印token值
   const token = uni.getStorageSync('token')
   console.log('my_test_interviews - 当前token值:', token)
-  
+
   if (keyword.trim() !== '') {
     console.log('search')
   }
@@ -286,7 +298,7 @@ const my_test_interviews = async (keyword = '') => {
   const trimmedKeyword = keyword.trim()
   const queryParams = trimmedKeyword ? `?keyword=${encodeURIComponent(trimmedKeyword)}` : ''
   const url = API_ENDPOINTS.interviews.myTestInterviews + queryParams
-  
+
   try {
     const response = await uni.request({
       url: url,
@@ -294,11 +306,17 @@ const my_test_interviews = async (keyword = '') => {
     })
     console.log('my_test_interviews - 响应状态码:', response.statusCode)
     console.log('my_test_interviews - 响应数据:', response.data)
-    console.log('my_test_interviews - 模拟面试列表API完整响应:', JSON.stringify(response.data, null, 2))
+    console.log(
+      'my_test_interviews - 模拟面试列表API完整响应:',
+      JSON.stringify(response.data, null, 2),
+    )
     if (response.statusCode === 200) {
       interviewList.value = response.data.data
       console.log('my_test_interviews - interviewList已更新，长度:', interviewList.value.length)
-      console.log('my_test_interviews - interviewList内容:', JSON.stringify(interviewList.value, null, 2))
+      console.log(
+        'my_test_interviews - interviewList内容:',
+        JSON.stringify(interviewList.value, null, 2),
+      )
       console.log('my_test_interviews - 获取到的模拟面试数量:', interviewList.value.length)
       // 检查每个item的interviews_id
       interviewList.value.forEach((item, index) => {
@@ -312,7 +330,7 @@ const my_test_interviews = async (keyword = '') => {
       errorMessage: error?.message || '未知错误',
       errorStack: error?.stack || '无堆栈信息',
       url: url,
-      token: uni.getStorageSync('token')
+      token: uni.getStorageSync('token'),
     })
     toast.error('面试结果正在生成中，请稍后再试')
   } finally {
@@ -336,59 +354,66 @@ const cleanupIndustry = (raw: any, positionName: string) => {
 const cleanupPositionName = (raw: any, industry: string) => {
   if (!raw) return ''
   const str = String(raw)
-  const parts = splitByDelimiters(str).map((s) => s.trim()).filter(Boolean)
+  const parts = splitByDelimiters(str)
+    .map((s) => s.trim())
+    .filter(Boolean)
   let name = parts.length > 1 ? parts[parts.length - 1] : str.trim()
   if (industry) name = name.replace(String(industry), '').trim()
-  name = name.replace(/^行业不限/, '').replace(/^[·•\-—\/\|:：]/, '').trim()
+  name = name
+    .replace(/^行业不限/, '')
+    .replace(/^[·•\-—\/\|:：]/, '')
+    .trim()
   return name
 }
 
 const getPostionInfo = async () => {
   // 记录函数开始执行
   console.log('=== getPostionInfo 开始执行 ===')
-  
+
   // 构建完整URL并记录
   const url = API_ENDPOINTS.jobseekers.byUser
   const token = uni.getStorageSync('token')
-  
+
   console.log('getPostionInfo - 请求详情:', {
     url: url,
     baseUrl: baseUrl,
     token: token ? `Bearer ${token.substring(0, 10)}...` : '无token',
-    method: 'GET'
+    method: 'GET',
   })
-  
+
   try {
     const response = await uni.request({
       url: url,
       method: 'GET',
     })
-    
+
     console.log('getPostionInfo - 响应详情:', {
       statusCode: response.statusCode,
       dataType: typeof response.data,
       dataIsArray: Array.isArray(response.data),
       dataLength: Array.isArray(response.data) ? response.data.length : 'N/A',
-      sampleData: response.data ? JSON.stringify(response.data).substring(0, 200) + '...' : '无数据'
+      sampleData: response.data
+        ? JSON.stringify(response.data).substring(0, 200) + '...'
+        : '无数据',
     })
-    
+
     if (response.statusCode === 200) {
       // 清空items数组以避免重复
       items.value = []
-      
+
       // 检查响应数据格式
       if (!response.data) {
         console.warn('getPostionInfo - 响应数据为空')
         return
       }
-      
+
       if (!Array.isArray(response.data)) {
         console.warn('getPostionInfo - 响应数据不是数组，实际类型:', typeof response.data)
         return
       }
-      
+
       console.log(`getPostionInfo - 开始处理 ${response.data.length} 个职位`)
-      
+
       response.data.forEach((element, index) => {
         console.log(`处理职位[${index}]:`, {
           position_name: element.position_name,
@@ -396,9 +421,9 @@ const getPostionInfo = async () => {
           id: element.id,
           expected_city: element.expected_city,
           salary_min: element.expected_salary_min,
-          salary_max: element.expected_salary_max
+          salary_max: element.expected_salary_max,
         })
-        
+
         let salaryStr = ''
         if (element.expected_salary_min === '待议' && element.expected_salary_max === '待议') {
           salaryStr = ''
@@ -410,8 +435,9 @@ const getPostionInfo = async () => {
         } else {
           salaryStr = element.expected_salary_min + '-' + element.expected_salary_max
         }
-        
-        const industry = element.industry || cleanupIndustry(element.industry, element.position_name)
+
+        const industry =
+          element.industry || cleanupIndustry(element.industry, element.position_name)
         const positionName =
           element.position_display_name || cleanupPositionName(element.position_name, industry)
         const itemData = {
@@ -429,22 +455,21 @@ const getPostionInfo = async () => {
           position_id: element.position_id,
           id: element.id,
         }
-        
+
         items.value.push(itemData)
         console.log(`职位[${index}]处理完成，当前items长度:`, items.value.length)
       })
-      
+
       console.log('getPostionInfo - 处理完成，最终items:', {
         length: items.value.length,
-        items: items.value
+        items: items.value,
       })
-      
     } else {
       console.error('getPostionInfo - 请求失败:', {
         statusCode: response.statusCode,
         statusText: response.statusText || '无状态文本',
         data: response.data,
-        headers: response.headers || '无响应头'
+        headers: response.headers || '无响应头',
       })
     }
   } catch (error) {
@@ -456,9 +481,9 @@ const getPostionInfo = async () => {
       errorStack: error?.stack || '无堆栈信息',
       url: url,
       token: token ? '有token' : '无token',
-      fullError: error
+      fullError: error,
     })
-    
+
     // 根据不同错误类型给出更具体的提示
     if (error?.code === 'NETWORK_ERROR' || error?.errMsg?.includes('network')) {
       toast.error('网络连接失败，请检查网络设置')
@@ -468,13 +493,13 @@ const getPostionInfo = async () => {
       toast.error('获取职位信息失败，请稍后重试')
     }
   }
-  
+
   console.log('=== getPostionInfo 执行结束 ===')
 }
 onLoad((options) => {
   handleToken(options)
   syncRuntimeState('load')
-  
+
   // Sync token with user store
   const token = uni.getStorageSync('token')
   if (token) {
@@ -512,11 +537,11 @@ const formatTimeToMinSec = (seconds: number) => {
 // 格式化到岗时间
 const formatAvailabilityTime = (availability: string) => {
   const availabilityMap = {
-    'immediately': '随时到岗',
-    'within_week': '一周内到岗',
-    'within_month': '一个月内到岗',
-    'within_three_months': '三个月内到岗',
-    'negotiable': '到岗时间面议'
+    immediately: '随时到岗',
+    within_week: '一周内到岗',
+    within_month: '一个月内到岗',
+    within_three_months: '三个月内到岗',
+    negotiable: '到岗时间面议',
   }
   return availabilityMap[availability] || availability
 }
@@ -528,7 +553,7 @@ const openInfo = (id) => {
   console.log('openInfo - id是否为undefined:', id === undefined)
   console.log('openInfo - id是否为null:', id === null)
   console.log('openInfo - id是否为0:', id === 0)
-  
+
   if (!id || id === undefined || id === null) {
     console.log('openInfo - id无效，显示错误提示')
     toast.error('面试结果正在生成中，请稍后再试')
@@ -607,7 +632,7 @@ const submitTestInerview = async () => {
           console.error('submitTestInerview - 失败详情:', {
             error: error,
             token: uni.getStorageSync('token'),
-            selectedItemId: selectedItem.id
+            selectedItemId: selectedItem.id,
           })
         },
         complete: () => {

@@ -21,11 +21,7 @@
           :mode="heroMode"
           @click="handleHeroClick"
         />
-        <slot
-          name="hero-footer"
-          :safe-area-top="safeAreaTop"
-          :top-bar-height="topBarHeight"
-        />
+        <slot name="hero-footer" :safe-area-top="safeAreaTop" :top-bar-height="topBarHeight" />
       </view>
     </template>
 
@@ -37,10 +33,14 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import AiPageNavBar from '@/components/public/AiPageNavBar.vue'
 import { ensureLatestH5Bundle } from '@/utils/runtimeVersion'
 import { useNavBar } from '@/utils/useNavBar'
 
-type HeroImageStyle = string | Record<string, string | number> | Array<Record<string, string | number>>
+type HeroImageStyle =
+  | string
+  | Record<string, string | number>
+  | Array<Record<string, string | number>>
 
 const props = withDefaults(
   defineProps<{

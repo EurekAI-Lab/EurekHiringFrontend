@@ -218,6 +218,7 @@ import { useQueue, useToast, useMessage } from 'wot-design-uni'
 import { usePublicStore } from '@/store'
 import {
   aiInterviewSaved,
+  aiInterviewSavedAndExit,
   getNativeRuntimeInfo,
   isAndroidLikeBridgePlatform,
 } from '@/utils/platformUtils'
@@ -805,12 +806,10 @@ const saveQusetion = async () => {
               const runtimeInfo = getNativeRuntimeInfo()
               console.log('保存AI面试题桥接信息:', runtimeInfo)
 
-              // 通知原生面试题保存成功
-              aiInterviewSaved()
-              
-              // Android/Harmony平台需要调用navigateBack，iOS不需要
               if (isAndroidLikeBridgePlatform()) {
-                void handleBack()
+                aiInterviewSavedAndExit()
+              } else {
+                aiInterviewSaved()
               }
             } catch (error) {
               console.log('返回app函数报错', error)

@@ -1,15 +1,9 @@
 <template>
   <view :style="navStyle">
-    <view
-      v-if="showBackground"
-      :style="backgroundStyle"
-    ></view>
-    <view
-      v-if="back"
-      class="i-carbon-chevron-left"
-      :style="backStyle"
-      @click="emit('back')"
-    ></view>
+    <view v-if="showBackground" :style="backgroundStyle"></view>
+    <view v-if="back" :style="backButtonStyle" @click="emit('back')">
+      <view class="i-carbon-chevron-left" :style="backIconStyle"></view>
+    </view>
     <view :style="titleRowStyle">
       <view :style="titleStyle">{{ title }}</view>
       <slot name="right" />
@@ -35,7 +29,7 @@ const props = withDefaults(
     backgroundColor: 'transparent',
     back: true,
     showBackground: false,
-    zIndex: 40,
+    zIndex: 1000,
   },
 )
 
@@ -45,6 +39,13 @@ const emit = defineEmits<{
 
 const { safeAreaTop, headerContentHeight, headerOuterHeight } = useNavBar()
 
+const shouldEnhanceLightText = computed(() => {
+  const color = String(props.textColor || '')
+    .trim()
+    .toLowerCase()
+  return color === '#fff' || color === '#ffffff' || color === 'white' || color === '#f4f4f4'
+})
+
 const navStyle = computed(() => ({
   position: 'fixed',
   top: '0px',
@@ -53,7 +54,7 @@ const navStyle = computed(() => ({
   width: '100%',
   height: `${headerOuterHeight}px`,
   pointerEvents: 'none',
-  zIndex: String(props.zIndex),
+  zIndex: props.zIndex,
 }))
 
 const backgroundStyle = computed(() => ({
@@ -80,15 +81,29 @@ const titleStyle = computed(() => ({
   fontSize: '17px',
   fontWeight: '500',
   lineHeight: '1',
+  textShadow: shouldEnhanceLightText.value ? '0 1px 4px rgba(0, 0, 0, 0.35)' : 'none',
 }))
 
-const backStyle = computed(() => ({
+const backButtonStyle = computed(() => ({
   position: 'absolute',
-  top: `${safeAreaTop + Math.max((headerContentHeight - 28) / 2, 8)}px`,
-  left: '20px',
-  width: '28px',
-  height: '28px',
+  top: `${safeAreaTop + Math.max((headerContentHeight - 34) / 2, 7)}px`,
+  left: '16px',
+  width: '34px',
+  height: '34px',
+  borderRadius: '999px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: shouldEnhanceLightText.value ? 'rgba(0, 0, 0, 0.18)' : 'transparent',
   pointerEvents: 'auto',
   color: props.textColor,
+  filter: shouldEnhanceLightText.value ? 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45))' : 'none',
+}))
+
+const backIconStyle = computed(() => ({
+  width: '28px',
+  height: '28px',
+  color: 'inherit',
+  flexShrink: 0,
 }))
 </script>
