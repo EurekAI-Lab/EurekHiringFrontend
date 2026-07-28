@@ -85,10 +85,14 @@
         </view>
         <view class="mb-10 w-full pt-4 flex justify-center items-center">
           <view
-            @click="generateInterview()"
-            class="w-[80%] h-10 rounded-md bg-#1778ff flex justify-center items-center text-white"
+            :class="
+              canGenerateInterview ? 'bg-#1778ff text-white' : 'bg-#cbd5e1 text-gray-500 opacity-70'
+            "
+            :aria-disabled="!canGenerateInterview"
+            class="w-[80%] h-10 rounded-md flex justify-center items-center"
+            @click="generateInterview"
           >
-            确定
+            {{ isSubmittingInterview ? '生成中...' : '确定' }}
           </view>
         </view>
       </wd-action-sheet>
@@ -124,7 +128,16 @@ import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 
 const toast = useToast()
 const showSheet = ref(false)
-const items = ref([])
+const items = ref<any[]>([])
+const positionLoading = ref(true)
+const isSubmittingInterview = ref(false)
+const canGenerateInterview = computed(
+  () =>
+    !positionLoading.value &&
+    items.value.length > 0 &&
+    items.value.some((item) => item.selected) &&
+    !isSubmittingInterview.value,
+)
 const headerOpacity = ref(0)
 const baseUrl = import.meta.env.VITE_SERVER_BASEURL
 const { safeAreaTop, navDiagnostics } = useNavBar()
@@ -164,7 +177,7 @@ const selectItem = (index) => {
   })
 }
 
-const splitByDelimiters = (text: string) => String(text).split(/[·•\-—\/\|:：]/)
+const splitByDelimiters = (text: string) => String(text).split(/[·•—/|:：-]/)
 
 const cleanupIndustry = (raw: any, positionName: string) => {
   if (!raw || String(raw).trim() === '') return '行业不限'
@@ -186,12 +199,15 @@ const cleanupPositionName = (raw: any, industry: string) => {
   }
   name = name
     .replace(/^行业不限/, '')
-    .replace(/^[·•\-—\/\|:：]/, '')
+    .replace(/^[·•—/|:：-]/, '')
     .trim()
   return name
 }
 
 const getPostionInfo = async () => {
+  positionLoading.value = true
+  items.value = []
+
   try {
     const response = await uni.request({
       url: API_ENDPOINTS.jobseekers.byUser,
@@ -199,8 +215,12 @@ const getPostionInfo = async () => {
       header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
     })
     if (response.statusCode === 200) {
-      items.value = []
-      response.data?.forEach((element) => {
+      if (!Array.isArray(response.data)) {
+        console.error('获取职位信息失败: 响应数据不是数组', response.data)
+        return
+      }
+
+      items.value = response.data.map((element, index) => {
         let salaryStr = ''
         if (element.expected_salary_min === '待议' && element.expected_salary_max === '待议') {
           salaryStr = ''
@@ -217,81 +237,96 @@ const getPostionInfo = async () => {
         const positionName =
           element.position_display_name || cleanupPositionName(element.position_name, industry)
 
-        items.value.push({
+        return {
           position_name: positionName,
           industry,
           salary: salaryStr,
           expected_city: element.expected_city,
           title: positionName,
           description: positionName,
-          selected: false,
+          selected: index === 0,
           position_id: element.position_id,
           id: element.id,
-        })
+        }
       })
     } else {
       console.error('获取职位信息失败:', response.data)
     }
   } catch (error) {
     console.error('请求失败:', error)
+  } finally {
+    positionLoading.value = false
   }
 }
 
-const generateInterview = async () => {
-  await submitTestInerview()
-  showSheet.value = false
+const generateInterview = () => {
+  if (!canGenerateInterview.value) return
+
+  const selectedItem = items.value.find((item) => item.selected)
+  if (!selectedItem) return
+
+  const selectedItemSnapshot = { ...selectedItem }
+  isSubmittingInterview.value = true
+  submitTestInterview(selectedItemSnapshot)
 }
 
-const submitTestInerview = async () => {
-  if (items.value.some((item) => item.selected)) {
-    const selectedItem = items.value.find((item) => item.selected)
-    toast.loading({ loadingType: 'ring', msg: '正在生成题目...' })
-    try {
-      uni.request({
-        url: API_ENDPOINTS.interviews.createMock(selectedItem.id),
-        method: 'POST',
-        header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
-        success: (res: any) => {
-          const redirectUrl = res?.data?.data?.redirect_url || ''
+const submitTestInterview = (selectedItem: any) => {
+  toast.loading({ loadingType: 'ring', msg: '正在生成题目...' })
+  try {
+    uni.request({
+      url: API_ENDPOINTS.interviews.createMock(selectedItem.id),
+      method: 'POST',
+      header: { Authorization: `Bearer ${uni.getStorageSync('token')}` },
+      success: (res: any) => {
+        if (res.statusCode === 200 && res?.data?.data?.redirect_url) {
+          const redirectUrl = res.data.data.redirect_url
 
           console.log('process-simulation 创建模拟面试结果:', {
             selectedJobseekerPositionId: selectedItem.id,
             redirectUrl,
-            interviewId: res?.data?.data?.interview_id,
-            positionName: res?.data?.data?.position_name,
+            interviewId: res.data.data.interview_id,
+            positionName: res.data.data.position_name,
           })
 
-          if (redirectUrl) {
-            if (typeof window !== 'undefined') {
-              console.log('process-simulation - H5直跳redirect_url:', {
-                navigationMode: 'h5-redirect-url',
-                redirectUrl,
-              })
-              window.location.href = redirectUrl
-              return
-            }
-
-            const targetUrl = getRelativeUniPathFromUrl(redirectUrl)
-            if (targetUrl) {
-              console.log('process-simulation - 非H5跳转:', {
-                navigationMode: 'uni-relaunch',
-                targetUrl,
-              })
-              uni.reLaunch({ url: targetUrl })
-              return
-            }
+          if (typeof window !== 'undefined') {
+            console.log('process-simulation - H5直跳redirect_url:', {
+              navigationMode: 'h5-redirect-url',
+              redirectUrl,
+            })
+            window.location.href = redirectUrl
+            return
           }
 
-          console.error('process-simulation - 缺少redirect_url', res)
-        },
-        fail: () => {},
-        complete: () => {
-          toast.close()
-        },
-      })
-    } catch (error) {
-      console.error('请求失败:', error)
-    }
+          const targetUrl = getRelativeUniPathFromUrl(redirectUrl)
+          if (targetUrl) {
+            console.log('process-simulation - 非H5跳转:', {
+              navigationMode: 'uni-relaunch',
+              targetUrl,
+            })
+            uni.reLaunch({ url: targetUrl })
+            return
+          }
+
+          console.error('process-simulation - 非H5缺少可用目标地址', {
+            redirectUrl,
+          })
+          return
+        }
+
+        console.error('process-simulation - 创建模拟面试响应无效', res)
+      },
+      fail: (error) => {
+        console.error('process-simulation - 创建模拟面试请求失败', error)
+      },
+      complete: () => {
+        isSubmittingInterview.value = false
+        toast.close()
+      },
+    })
+  } catch (error) {
+    isSubmittingInterview.value = false
+    toast.close()
+    console.error('请求失败:', error)
   }
 }
 
