@@ -160,10 +160,14 @@
         </view>
         <view class="mb-10 w-full pt-4 flex justify-center items-center">
           <view
-            @click="generateInterview()"
-            class="w-[80%] h-10 rounded-md bg-#1778ff flex justify-center items-center text-white"
+            :class="
+              canGenerateInterview ? 'bg-#1778ff text-white' : 'bg-#cbd5e1 text-gray-500 opacity-70'
+            "
+            :aria-disabled="!canGenerateInterview"
+            class="w-[80%] h-10 rounded-md flex justify-center items-center"
+            @click="generateInterview"
           >
-            确定
+            {{ isSubmittingInterview ? '生成中...' : '确定' }}
           </view>
         </view>
       </wd-action-sheet>
@@ -199,7 +203,7 @@ import {
 import { updateRuntimeDiagnostics } from '@/utils/runtimeDiagnostics'
 import { ensureLatestH5Bundle } from '@/utils/runtimeVersion'
 import { handleToken } from '@/utils/useAuth'
-import { ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useUserStore } from '@/store'
@@ -214,6 +218,17 @@ const loading = ref(true)
 const searchValue = ref()
 const showSheet = ref(false)
 const showErrorTip = ref(false)
+const items = ref<any[]>([])
+const interviewList = ref<any[]>([])
+const positionLoading = ref(true)
+const isSubmittingInterview = ref(false)
+const canGenerateInterview = computed(
+  () =>
+    !positionLoading.value &&
+    items.value.length > 0 &&
+    items.value.some((item) => item.selected) &&
+    !isSubmittingInterview.value,
+)
 const { safeAreaTop, topBarHeight, navDiagnostics } = useNavBar()
 const { handleBack } = useAiPageBack({
   fallbackUrl: '/pages/about/about',
@@ -239,9 +254,15 @@ const syncRuntimeState = (pageStage: string, extras: Record<string, any> = {}) =
 const close = async () => {
   showSheet.value = false
 }
-const generateInterview = async () => {
-  await submitTestInerview()
-  showSheet.value = false
+const generateInterview = () => {
+  if (!canGenerateInterview.value) return
+
+  const selectedItem = items.value.find((item) => item.selected)
+  if (!selectedItem) return
+
+  const selectedItemSnapshot = { ...selectedItem }
+  isSubmittingInterview.value = true
+  submitTestInterview(selectedItemSnapshot)
 }
 onMounted(() => {
   // #ifdef H5
@@ -369,6 +390,8 @@ const cleanupPositionName = (raw: any, industry: string) => {
 const getPostionInfo = async () => {
   // 记录函数开始执行
   console.log('=== getPostionInfo 开始执行 ===')
+  positionLoading.value = true
+  items.value = []
 
   // 构建完整URL并记录
   const url = API_ENDPOINTS.jobseekers.byUser
@@ -398,9 +421,6 @@ const getPostionInfo = async () => {
     })
 
     if (response.statusCode === 200) {
-      // 清空items数组以避免重复
-      items.value = []
-
       // 检查响应数据格式
       if (!response.data) {
         console.warn('getPostionInfo - 响应数据为空')
@@ -414,7 +434,7 @@ const getPostionInfo = async () => {
 
       console.log(`getPostionInfo - 开始处理 ${response.data.length} 个职位`)
 
-      response.data.forEach((element, index) => {
+      items.value = response.data.map((element, index) => {
         console.log(`处理职位[${index}]:`, {
           position_name: element.position_name,
           position_id: element.position_id,
@@ -451,13 +471,13 @@ const getPostionInfo = async () => {
           title: positionName,
           description: positionName,
           // 其他字段
-          selected: false,
+          selected: index === 0,
           position_id: element.position_id,
           id: element.id,
         }
 
-        items.value.push(itemData)
-        console.log(`职位[${index}]处理完成，当前items长度:`, items.value.length)
+        console.log(`职位[${index}]处理完成`)
+        return itemData
       })
 
       console.log('getPostionInfo - 处理完成，最终items:', {
@@ -465,6 +485,7 @@ const getPostionInfo = async () => {
         items: items.value,
       })
     } else {
+      items.value = []
       console.error('getPostionInfo - 请求失败:', {
         statusCode: response.statusCode,
         statusText: response.statusText || '无状态文本',
@@ -492,6 +513,8 @@ const getPostionInfo = async () => {
     } else {
       toast.error('获取职位信息失败，请稍后重试')
     }
+  } finally {
+    positionLoading.value = false
   }
 
   console.log('=== getPostionInfo 执行结束 ===')
@@ -510,8 +533,6 @@ onLoad((options) => {
     }
   }
 })
-const items = ref([])
-const interviewList = ref([])
 
 // 添加格式化时间的函数
 const formatTime = (timeString: string) => {
@@ -577,71 +598,71 @@ const selectItem = (index) => {
     item.selected = i === index // 只有当前索引的项会被选中
   })
 }
-const submitTestInerview = async () => {
-  if (items.value.some((item) => item.selected)) {
-    const selectedItem = items.value.find((item) => item.selected)
-    toast.loading({ loadingType: 'ring', msg: '正在生成题目...' })
-    try {
-      uni.request({
-        url: API_ENDPOINTS.interviews.createMock(selectedItem.id),
-        method: 'POST',
-        success: (res: any) => {
-          console.log('submitTestInerview - 成功响应:', res)
-          if (res.statusCode === 200 && res.data && res.data.data && res.data.data.redirect_url) {
-            const redirectUrl = res.data.data.redirect_url
+const submitTestInterview = (selectedItem: any) => {
+  toast.loading({ loadingType: 'ring', msg: '正在生成题目...' })
+  try {
+    uni.request({
+      url: API_ENDPOINTS.interviews.createMock(selectedItem.id),
+      method: 'POST',
+      success: (res: any) => {
+        console.log('submitTestInterview - 成功响应:', res)
+        if (res.statusCode === 200 && res.data && res.data.data && res.data.data.redirect_url) {
+          const redirectUrl = res.data.data.redirect_url
 
-            console.log('submitTestInerview - 创建模拟面试结果:', {
-              selectedJobseekerPositionId: selectedItem.id,
-              redirectUrl,
-              interviewId: res.data.data.interview_id,
-              positionName: res.data.data.position_name,
-            })
-
-            syncRuntimeState('create-success', {
-              interviewId: res.data.data.interview_id,
-            })
-
-            if (typeof window !== 'undefined') {
-              console.log('submitTestInerview - H5直跳redirect_url:', {
-                navigationMode: 'h5-redirect-url',
-                redirectUrl,
-              })
-              window.location.href = redirectUrl
-              return
-            }
-
-            const targetUrl = getRelativeUniPathFromUrl(redirectUrl)
-            if (targetUrl) {
-              console.log('submitTestInerview - 非H5跳转:', {
-                navigationMode: 'uni-relaunch',
-                targetUrl,
-              })
-              uni.reLaunch({ url: targetUrl })
-              return
-            }
-
-            console.error('submitTestInerview - 非H5缺少可用目标地址', {
-              redirectUrl,
-            })
-          } else {
-            console.error('响应格式错误:', res)
-            toast.error('创建面试失败，请稍后重试')
-          }
-        },
-        fail: (error) => {
-          console.error('submitTestInerview - 失败详情:', {
-            error: error,
-            token: uni.getStorageSync('token'),
-            selectedItemId: selectedItem.id,
+          console.log('submitTestInterview - 创建模拟面试结果:', {
+            selectedJobseekerPositionId: selectedItem.id,
+            redirectUrl,
+            interviewId: res.data.data.interview_id,
+            positionName: res.data.data.position_name,
           })
-        },
-        complete: () => {
-          toast.close()
-        },
-      })
-    } catch (error) {
-      console.error('请求失败:', error)
-    }
+
+          syncRuntimeState('create-success', {
+            interviewId: res.data.data.interview_id,
+          })
+
+          if (typeof window !== 'undefined') {
+            console.log('submitTestInterview - H5直跳redirect_url:', {
+              navigationMode: 'h5-redirect-url',
+              redirectUrl,
+            })
+            window.location.href = redirectUrl
+            return
+          }
+
+          const targetUrl = getRelativeUniPathFromUrl(redirectUrl)
+          if (targetUrl) {
+            console.log('submitTestInterview - 非H5跳转:', {
+              navigationMode: 'uni-relaunch',
+              targetUrl,
+            })
+            uni.reLaunch({ url: targetUrl })
+            return
+          }
+
+          console.error('submitTestInterview - 非H5缺少可用目标地址', {
+            redirectUrl,
+          })
+        } else {
+          console.error('响应格式错误:', res)
+          toast.error('创建面试失败，请稍后重试')
+        }
+      },
+      fail: (error) => {
+        console.error('submitTestInterview - 失败详情:', {
+          error: error,
+          token: uni.getStorageSync('token'),
+          selectedItemId: selectedItem.id,
+        })
+      },
+      complete: () => {
+        isSubmittingInterview.value = false
+        toast.close()
+      },
+    })
+  } catch (error) {
+    isSubmittingInterview.value = false
+    toast.close()
+    console.error('请求失败:', error)
   }
 }
 const goProcess = () => {
