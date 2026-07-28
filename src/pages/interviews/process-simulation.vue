@@ -50,38 +50,14 @@
           v-for="(item, index) in items"
           :key="index"
         >
-          <view
-            :class="item.selected ? 'border-blue-500 border-2' : 'border-blue-100'"
-            @click="selectItem(index)"
-            class="relative flex flex-row overflow-hidden rounded-xl border border-blue-100 border-solid w-[90%] h-full"
-          >
-            <view class="absolute right-0 top-0" v-if="item.selected">
-              <image :src="dh" class="w-6 h-6" />
-            </view>
-            <view
-              class="flex justify-center items-center bg-#e8f1ff rounded-full w-8 h-8 ml-2 mt-3.5"
-            >
-              <image :src="zfj" class="w-5 h-5" />
-            </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-4">
-              <view style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
-                {{ item.position_name || item.title }}
-              </view>
-              <view
-                class="text-gray-400"
-                style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
-              >
-                {{ item.industry || '行业不限' }}
-              </view>
-            </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 ml-2.5 absolute right-2.5">
-              <view class="text-#1778ff" style="text-align: center">{{ item.salary }}</view>
-              <view class="text-gray-400 flex flex-row items-center justify-end">
-                <image :src="dw" class="w-5 h-5" />
-                <view class="text-gray-400">{{ item.expected_city }}</view>
-              </view>
-            </view>
-          </view>
+          <MockInterviewPositionCard
+            :title="item.position_name || item.title"
+            :industry="item.industry"
+            :salary="item.salary"
+            :city="item.expected_city"
+            :selected="item.selected"
+            @select="selectItem(index)"
+          />
         </view>
         <view class="mb-10 w-full pt-4 flex justify-center items-center">
           <view
@@ -106,10 +82,8 @@
 import { onLoad, onPageScroll as uniPageScroll } from '@dcloudio/uni-app'
 import aibg10 from '../../static/images/ai-bg-10.png'
 import processSimulation from '../../static/app/icons/icon-process-simulation.png'
-import zfj from '../../static/app/icons/icon_zfj.png'
 import qzzsybz from '../../static/app/icons/icon_qzzsybz.png'
-import dw from '../../static/app/icons/icon_dw.png'
-import dh from '../../static/app/icons/icon_dh.png'
+import MockInterviewPositionCard from '@/components/interviews/MockInterviewPositionCard.vue'
 import AiPageNavBar from '@/components/public/AiPageNavBar.vue'
 import AiRuntimeDiagPanel from '@/components/public/AiRuntimeDiagPanel.vue'
 import { useToast } from 'wot-design-uni'

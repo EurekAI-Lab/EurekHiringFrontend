@@ -119,44 +119,17 @@
           v-for="(item, index) in items"
           :key="index"
         >
-          <view
-            :class="item.selected ? 'border-blue-500 border-2' : 'border-blue-100'"
-            @click="selectItem(index)"
-            class="relative flex flex-row overflow-hidden rounded-xl border border-blue-100 border-solid w-[90%] h-full"
-          >
-            <view class="absolute right-0 top-0" v-if="item.selected">
-              <image :src="dh" class="w-6 h-6" />
-            </view>
-            <view
-              class="flex justify-center items-center bg-#e8f1ff rounded-full w-8 h-8 ml-2 mt-3.5"
-            >
-              <image :src="zfj" class="w-5 h-5" />
-            </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 flex-1 pr-4">
-              <view
-                class="font-medium"
-                style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
-              >
-                {{ item.position_name || item.title }}
-              </view>
-              <view
-                class="text-gray-600"
-                style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis"
-              >
-                {{ item.industry || '行业不限' }}
-              </view>
-            </view>
-            <view class="flex flex-col text-sm space-y-1 pt-2 pr-2.5 ml-auto">
-              <view class="text-#1778ff text-right">{{ item.salary }}</view>
-              <view class="text-gray-400 flex flex-row items-center justify-end gap-0.5">
-                <image :src="dw" class="w-4 h-4" />
-                <view class="text-gray-400 text-xs">{{ item.expected_city || '全国' }}</view>
-              </view>
-              <view v-if="item.availability_time" class="text-gray-400 text-xs text-right">
-                {{ formatAvailabilityTime(item.availability_time) }}
-              </view>
-            </view>
-          </view>
+          <MockInterviewPositionCard
+            :title="item.position_name || item.title"
+            :industry="item.industry"
+            :salary="item.salary"
+            :city="item.expected_city"
+            :availability-label="
+              item.availability_time ? formatAvailabilityTime(item.availability_time) : ''
+            "
+            :selected="item.selected"
+            @select="selectItem(index)"
+          />
         </view>
         <view class="mb-10 w-full pt-4 flex justify-center items-center">
           <view
@@ -184,9 +157,6 @@ import aiRobot from '../../static/app/icons/icon_ai_interview_robot_2x.png'
 import hg from '../../static/app/icons/icon_hg.png'
 import bhg from '../../static/app/icons/icon_bhg.png'
 import rame from '../../static/app/icons/Frame-001.png'
-import zfj from '../../static/app/icons/icon_zfj.png'
-import dw from '../../static/app/icons/icon_dw.png'
-import dh from '../../static/app/icons/icon_dh.png'
 // 导入新的面试状态图标
 import iconQualified from '../../static/app/icons/interview-status-new/suitable_2x.png'
 import iconNotQualified from '../../static/app/icons/interview-status-new/unqualified_2x.png'
@@ -207,6 +177,7 @@ import { computed, ref, watch, onMounted } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { API_ENDPOINTS } from '@/config/apiEndpoints'
 import { useUserStore } from '@/store'
+import MockInterviewPositionCard from '@/components/interviews/MockInterviewPositionCard.vue'
 import AiPageNavBar from '@/components/public/AiPageNavBar.vue'
 import AiRuntimeDiagPanel from '@/components/public/AiRuntimeDiagPanel.vue'
 import { useAiPageBack } from '@/utils/useAiPageBack'
