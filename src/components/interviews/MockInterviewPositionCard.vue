@@ -15,29 +15,39 @@
       <image :src="positionIcon" class="w-5 h-5" />
     </view>
 
-    <view class="position-copy flex flex-col text-sm space-y-1 pt-2 pb-2 ml-2.5 pr-2">
-      <view class="position-title font-medium">
-        {{ title }}
-      </view>
-      <view class="position-industry text-gray-600">
-        {{ industry || '行业不限' }}
-      </view>
-    </view>
-
-    <view
-      class="position-metadata flex flex-shrink-0 flex-col justify-between text-sm pt-2 pb-2 pr-2.5"
-    >
-      <view class="position-salary text-#1778ff text-right">
-        {{ salary }}
-      </view>
-      <view class="position-meta-row text-gray-400 flex flex-row items-center justify-end gap-0.5">
-        <image :src="locationIcon" class="flex-shrink-0 w-4 h-4" />
-        <view class="position-city text-gray-400 text-xs">
-          {{ city || '全国' }}
+    <view class="position-content flex flex-col text-sm pt-2 pb-2 ml-2.5">
+      <view class="position-paired-row position-title-row">
+        <view class="position-copy pr-2">
+          <view class="position-title font-medium">
+            {{ title }}
+          </view>
+        </view>
+        <view class="position-metadata position-salary text-#1778ff text-right">
+          {{ salary }}
         </view>
       </view>
-      <view v-if="availabilityLabel" class="position-availability text-gray-400 text-xs text-right">
-        {{ availabilityLabel }}
+
+      <view class="position-paired-row position-details-row">
+        <view class="position-copy pr-2">
+          <view class="position-industry text-gray-600">
+            {{ industry || '行业不限' }}
+          </view>
+        </view>
+        <view
+          class="position-metadata position-meta-row text-gray-400 flex flex-row items-center justify-end gap-0.5"
+        >
+          <image :src="locationIcon" class="flex-shrink-0 w-4 h-4" />
+          <view class="position-city text-gray-400 text-xs">
+            {{ city || '全国' }}
+          </view>
+        </view>
+      </view>
+
+      <view v-if="availabilityLabel" class="position-paired-row position-availability-row">
+        <view class="position-copy"></view>
+        <view class="position-metadata position-availability text-gray-400 text-xs text-right">
+          {{ availabilityLabel }}
+        </view>
       </view>
     </view>
   </view>
@@ -77,6 +87,23 @@ const emit = defineEmits<{
   min-height: 5rem;
 }
 
+.position-content {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+}
+
+.position-paired-row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.position-paired-row + .position-paired-row {
+  margin-top: 0.25rem;
+}
+
 .position-copy {
   flex: 1 1 0;
   width: 0;
@@ -109,6 +136,7 @@ const emit = defineEmits<{
 }
 
 .position-metadata {
+  box-sizing: border-box;
   flex: 0 0 7rem;
   width: 7rem;
   min-width: 7rem;
@@ -116,10 +144,12 @@ const emit = defineEmits<{
 
 .position-salary {
   min-height: 1.25rem;
-  padding-right: 1.5rem;
+  padding-right: 2rem;
 }
 
-.position-meta-row {
+.position-meta-row,
+.position-availability {
   min-width: 0;
+  padding-right: 0.625rem;
 }
 </style>

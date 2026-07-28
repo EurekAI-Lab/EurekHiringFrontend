@@ -28,6 +28,16 @@ assert.equal(
 )
 assert.match(
   componentCompact,
+  /\.position-content \{ flex: 1 1 0; width: 0; min-width: 0;/,
+  '职位内容区必须允许从零收缩，不能挤压卡片边界',
+)
+assert.match(
+  componentCompact,
+  /\.position-paired-row \{ display: flex; width: 100%; min-width: 0; align-items: flex-start;/,
+  '每一行必须使用同一个成对布局容器对齐左右字段',
+)
+assert.match(
+  componentCompact,
   /\.position-copy \{ flex: 1 1 0; width: 0; min-width: 0;/,
   '职位文案列必须允许从零收缩，不能挤压右侧元数据列',
 )
@@ -45,18 +55,61 @@ assert.match(
 )
 assert.match(
   componentCompact,
-  /\.position-metadata \{ flex: 0 0 7rem; width: 7rem; min-width: 7rem;/,
+  /\.position-metadata \{ box-sizing: border-box; flex: 0 0 7rem; width: 7rem; min-width: 7rem;/,
   '薪资、城市和到岗列必须固定为 7rem 且禁止被标题挤压',
 )
 assert.equal(
-  componentSource.includes('flex-col justify-between text-sm pt-2 pb-2'),
-  true,
-  '右侧元数据必须在卡片高度内上下对齐，不受标题行数变化影响',
+  componentSource.includes('justify-between'),
+  false,
+  '右侧字段不得独立均分高度，否则会与左侧字段错行',
 )
 assert.match(
   componentCompact,
-  /\.position-salary \{ min-height: 1.25rem; padding-right: 1.5rem;/,
+  /\.position-salary \{ min-height: 1.25rem; padding-right: 2rem;/,
   '薪资行必须保留空值高度，并为右上选中角标预留空间',
+)
+
+const titleRowStart = componentSource.indexOf('class="position-paired-row position-title-row"')
+const detailsRowStart = componentSource.indexOf('class="position-paired-row position-details-row"')
+const availabilityRowStart = componentSource.indexOf(
+  'class="position-paired-row position-availability-row"',
+)
+
+assert.equal(
+  titleRowStart < detailsRowStart && detailsRowStart < availabilityRowStart,
+  true,
+  '共享职位卡片必须按标题行、详情行、可选到岗行顺序渲染',
+)
+
+const titleRowSource = componentSource.slice(titleRowStart, detailsRowStart)
+assert.equal(
+  titleRowSource.includes('class="position-title font-medium"') &&
+    titleRowSource.includes('position-metadata position-salary'),
+  true,
+  '第一行必须成对渲染职位标题和薪资',
+)
+assert.equal(
+  titleRowSource.includes('position-industry') || titleRowSource.includes('position-city'),
+  false,
+  '第一行不得混入行业或城市',
+)
+
+const detailsRowSource = componentSource.slice(detailsRowStart, availabilityRowStart)
+assert.equal(
+  detailsRowSource.includes('class="position-industry text-gray-600"') &&
+    detailsRowSource.includes('position-metadata position-meta-row') &&
+    detailsRowSource.includes('class="position-city text-gray-400 text-xs"'),
+  true,
+  '第二行必须成对渲染行业和城市',
+)
+
+const availabilityTagStart = componentSource.lastIndexOf('<view', availabilityRowStart)
+const availabilityRowSource = componentSource.slice(availabilityTagStart)
+assert.equal(
+  availabilityRowSource.includes('v-if="availabilityLabel"') &&
+    availabilityRowSource.includes('position-metadata position-availability'),
+  true,
+  '第三行必须仅在有到岗时间时渲染右侧字段',
 )
 
 const pages = [
